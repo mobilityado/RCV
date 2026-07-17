@@ -3,30 +3,31 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#6d28d9" />
-  <title>REPORT.IA RCV</title>
+  <meta name="theme-color" content="#4c1d95" />
+  <title>REPORT.IA RCV · Centro Ejecutivo</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-icon">R</div>
-      <div><strong>REPORT.IA</strong><span>RCV · Automatización</span></div>
+      <div><strong>REPORT.IA</strong><span>RCV · Centro Ejecutivo</span></div>
     </div>
     <nav>
       <a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
       <a href="#validacion">✓ <span>Validación</span></a>
-      <a href="#resultados">⇩ <span>Resultados</span></a>
+      <a href="#dashboard">◫ <span>Dashboard</span></a>
+      <a href="#resultados">⇩ <span>Descargas</span></a>
     </nav>
-    <div class="privacy">🔒 Procesamiento local<br><small>Tus archivos no se envían a ningún servidor.</small></div>
+    <div class="privacy">🔒 Procesamiento local<br><small>La información permanece en tu equipo.</small></div>
   </aside>
 
   <main>
     <header class="hero">
       <div>
-        <p class="eyebrow">CENTRO DE AUTOMATIZACIÓN RCV</p>
-        <h1>¿Qué reportes deseas generar hoy?</h1>
-        <p>Carga un Excel con pestañas JD o varios archivos por separado. REPORT.IA detectará, validará y procesará la información.</p>
+        <p class="eyebrow">CENTRO EJECUTIVO DE REPORTES RCV</p>
+        <h1>REPORT.IA transforma tus JD en decisiones.</h1>
+        <p>Carga la información, valida las fuentes y analiza resultados, tendencias y desviaciones antes de generar el paquete final.</p>
       </div>
       <div class="month-box">
         <label for="month">Mes de corte</label>
@@ -34,49 +35,79 @@
       </div>
     </header>
 
-    <section id="carga" class="panel">
+    <section id="carga" class="panel compact-panel">
       <div class="section-title">
-        <div><span class="step">01</span><h2>Carga de información</h2></div>
+        <div><span class="step">01</span><div><h2>Carga de información</h2><p>Excel consolidado por pestañas o archivos individuales.</p></div></div>
         <button id="clearBtn" class="ghost">Limpiar</button>
       </div>
       <div id="dropZone" class="drop-zone" tabindex="0">
         <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
         <div class="upload-icon">⇧</div>
-        <h3>Arrastra aquí tus archivos</h3>
-        <p>Un solo Excel con pestañas o archivos separados.</p>
+        <div><h3>Arrastra aquí tus archivos</h3><p>REPORT.IA identificará automáticamente cada fuente JD.</p></div>
         <button id="browseBtn" class="primary">Seleccionar archivos</button>
-        <small>Formatos admitidos: XLSX, XLS y XLSM</small>
+        <small>XLSX · XLS · XLSM</small>
       </div>
       <div id="fileList" class="file-list"></div>
     </section>
 
     <section id="validacion" class="panel">
-      <div class="section-title"><div><span class="step">02</span><h2>Validación automática</h2></div></div>
-      <div id="validationGrid" class="validation-grid">
-        <div class="empty-state">Aún no has cargado información.</div>
-      </div>
+      <div class="section-title"><div><span class="step">02</span><div><h2>Control de fuentes</h2><p>Verifica que la información necesaria esté disponible.</p></div></div></div>
+      <div id="validationGrid" class="validation-grid"><div class="empty-state">Aún no has cargado información.</div></div>
     </section>
 
     <section class="actions">
-      <button id="processBtn" class="process" disabled>✨ Procesar y generar reportes</button>
+      <button id="processBtn" class="process" disabled>✨ Analizar y generar reportes</button>
       <p id="statusText">Carga los reportes requeridos para continuar.</p>
     </section>
 
-    <section id="resultados" class="panel hidden">
-      <div class="section-title"><div><span class="step success">03</span><h2>Reportes generados</h2></div></div>
-      <div class="success-banner">
-        <div class="success-icon">✓</div>
-        <div><h3>¡Excelente trabajo!</h3><p>Los reportes RCV fueron procesados correctamente.</p></div>
+    <section id="dashboard" class="dashboard hidden">
+      <div class="dashboard-head">
+        <div><p class="eyebrow">RESULTADOS DEL PERIODO</p><h2>Resumen ejecutivo RCV</h2><p id="dashboardSubtitle">Información consolidada del periodo seleccionado.</p></div>
+        <div class="dashboard-badge">ANÁLISIS COMPLETADO</div>
       </div>
+
+      <div id="kpiGrid" class="kpi-grid"></div>
+
+      <div class="insight-grid">
+        <article class="chart-card wide">
+          <div class="card-head"><div><span>TENDENCIA</span><h3>Evolución mensual consolidada</h3></div><div class="legend-note">Costo + Gastos</div></div>
+          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="card-head"><div><span>DESVIACIÓN</span><h3>Real 2026 vs Presupuesto</h3></div></div>
+          <div class="chart-wrap"><canvas id="budgetChart"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="card-head"><div><span>PRODUCTIVIDAD</span><h3>XPV por gerencia</h3></div></div>
+          <div class="chart-wrap"><canvas id="xpvChart"></canvas></div>
+        </article>
+      </div>
+
+      <div class="executive-grid">
+        <article class="table-card">
+          <div class="card-head"><div><span>FOCO EJECUTIVO</span><h3>Gerencias con mayor desviación</h3></div></div>
+          <div class="table-scroll"><table><thead><tr><th>Gerencia</th><th>Real 2026</th><th>Presupuesto</th><th>Desviación</th><th>%</th></tr></thead><tbody id="managerTable"></tbody></table></div>
+        </article>
+        <article class="alerts-card">
+          <div class="card-head"><div><span>RESUMEN INTELIGENTE</span><h3>Hallazgos del periodo</h3></div></div>
+          <div id="alertsList" class="alerts-list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="resultados" class="panel hidden">
+      <div class="section-title"><div><span class="step success">04</span><div><h2>Centro de descargas</h2><p>Descarga cada reporte o genera el paquete FINAL.zip.</p></div></div></div>
+      <div class="success-banner"><div class="success-icon">✓</div><div><h3>¡Excelente trabajo!</h3><p>La información fue analizada y los reportes RCV están listos.</p></div></div>
       <div id="downloadGrid" class="download-grid"></div>
       <button id="zipBtn" class="zip-button">📦 Descargar paquete FINAL.zip</button>
     </section>
 
-    <footer>REPORT.IA RCV · Automatización local de reportes · Mobility ADO</footer>
+    <footer>REPORT.IA RCV · Centro Ejecutivo de Automatización · Mobility ADO</footer>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
