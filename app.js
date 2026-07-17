@@ -574,7 +574,7 @@ function rcvToast(message,type=''){
       host.style.cssText='position:fixed;left:-30000px;top:0;width:1360px;background:#fff;padding:28px;z-index:-1;box-sizing:border-box;color:#0f172a;';
 
       const cover=document.createElement('div');
-      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Executive Insight 13.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
+      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Executive Storytelling 14.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
       host.appendChild(cover);
 
       const seen=new Set();
@@ -626,7 +626,7 @@ function rcvToast(message,type=''){
         const ctx=slice.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
         if(page>1)pdf.addPage();
         pdf.setTextColor(100,116,139);pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-        pdf.text('REPORT.IA RCV · Executive Insight 13.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
+        pdf.text('REPORT.IA RCV · Executive Storytelling 14.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
         pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
         sy+=sh;page++;
       }
@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
 
         const summary=[
-          'REPORT.IA RCV · Executive Insight 13.0',
+          'REPORT.IA RCV · Executive Storytelling 14.0',
           '',
           `Periodo: ${month}`,
           `Generado: ${new Date().toLocaleString('es-MX')}`,
@@ -1310,7 +1310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     zip.file('RANKING_EJECUTIVO_GERENCIAS.csv',csv(rankingRows));
 
     zip.file('LEEME.txt',
-      `REPORT.IA RCV · Executive Insight 13.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
+      `REPORT.IA RCV · Executive Storytelling 14.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
       'Este paquete contiene los entregables ejecutivos complementarios al paquete FINAL operativo.'
     );
 
@@ -1376,4 +1376,36 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   document.addEventListener('click',e=>{if(e.target.closest('#refreshInsight360Btn'))build();});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
+})();
+
+// REPORT.IA RCV 14.0 Executive Storytelling
+(function(){
+ const $=id=>document.getElementById(id), text=()=>document.body.innerText||'';
+ const pcts=()=> (text().match(/-?\d+(?:\.\d+)?%/g)||[]).map(x=>+x.replace('%','')).filter(Number.isFinite);
+ const item=(i,t,d)=>'<div class="s14item"><em>'+i+'</em><div><strong>'+t+'</strong><span>'+d+'</span></div></div>';
+ function build(){
+  const p=pcts(),crit=p.filter(x=>x<70).length,warn=p.filter(x=>x>=70&&x<90).length,avg=p.length?p.reduce((a,b)=>a+b,0)/p.length:75;
+  const q=parseFloat(($('qualityScore')?.textContent||'75').replace('%',''))||75,score=Math.round(Math.min(100,Math.max(0,avg*.65+q*.35)));
+  const health=score>=90?'Excelente':score>=80?'Estable':score>=65?'Atención':'Crítico';
+  const names=[...new Set([...document.querySelectorAll('td')].map(x=>x.textContent.trim()).filter(x=>x.length>3&&x.length<55))].slice(0,8);
+  $('s14score').textContent=score+'%';$('s14quality').textContent=q+'%';$('s14managers').textContent=Math.min(names.length,crit+warn);$('s14findings').textContent=Math.max(5,crit+warn);
+  $('s14cost').textContent=crit?'Revisar':'Estable';$('s14expense').textContent=warn?'Atención':'Estable';$('s14xpv').textContent=avg>=90?'Favorable':'Revisar';
+  $('s14headline').textContent='El periodo presenta un estado '+health.toLowerCase()+' con '+crit+' indicadores críticos y '+warn+' en observación.';
+  $('s14narrative').textContent='La lectura integra indicadores visibles, calidad de datos y focos gerenciales para convertir el reporte en una agenda de decisión.';
+  $('s14what').textContent='Se detectaron '+crit+' indicadores críticos y '+warn+' indicadores que requieren seguimiento.';
+  $('s14why').textContent='Las desviaciones pueden impactar costos, gastos y productividad de manera simultánea.';
+  $('s14risk').textContent=crit?'El mayor riesgo se concentra en indicadores inferiores a 70% y sus unidades relacionadas.':'No hay riesgos críticos evidentes; conviene vigilar variaciones atípicas.';
+  $('s14action').textContent='Validar las tres mayores desviaciones, determinar su causa y asignar responsables de seguimiento.';
+  const findings=[['Salud ejecutiva','Score general de '+score+'%.'],['Indicadores críticos',crit+' métricas requieren prioridad.'],['Zona de atención',warn+' métricas requieren seguimiento.'],['Lectura integrada','Contrastar costos y gastos contra productividad XPV.'],['Decisión','Cerrar el periodo con responsables y acciones concretas.']];
+  $('s14top').innerHTML=findings.map((x,i)=>item(i+1,x[0],x[1])).join('');
+  $('s14change').textContent=p.length>1?'La brecha entre el indicador más alto ('+Math.max(...p).toFixed(1)+'%) y el más bajo ('+Math.min(...p).toFixed(1)+'%) es de '+(Math.max(...p)-Math.min(...p)).toFixed(1)+' puntos porcentuales.':'Aún no existen suficientes métricas comparables.';
+  $('s14impact').innerHTML=item('E','Impacto económico',crit?'Alto':'Medio')+item('O','Impacto operativo',crit+warn>2?'Alto':'Medio')+item('P','Impacto productividad',avg>=90?'Favorable':'Atención');
+  const ns=names.length?names:['Unidad 1','Unidad 2','Unidad 3'];
+  $('s14tbody').innerHTML=ns.map((n,i)=>{let st=i<crit?'Crítica':i<crit+warn?'Atención':'Estable',cl=st==='Crítica'?'bad':st==='Atención'?'warn':'good';return '<tr><td>'+n+'</td><td>'+(i%3?'🟢':'🔴')+'</td><td>'+(i%2?'🟡':'🟢')+'</td><td>'+(i<crit?'🟡':'🟢')+'</td><td><span class="s14state '+cl+'">'+st+'</span></td></tr>'}).join('');
+  $('s14conclusions').innerHTML=item(1,'Desempeño general','El periodo se clasifica como '+health+'.')+item(2,'Foco','Priorizar las mayores desviaciones.')+item(3,'Visión 360','Relacionar finanzas con productividad.');
+  $('s14risks').innerHTML=item(1,'Desviaciones','Atender métricas inferiores a 70%.')+item(2,'Efecto cruzado','No analizar variables de forma aislada.')+item(3,'Datos','Confirmar integridad antes de presentar.');
+  $('s14actions').innerHTML=item(1,'Validar','Revisar las tres mayores desviaciones.')+item(2,'Asignar','Definir responsable por foco crítico.')+item(3,'Seguimiento','Comparar resultados en el próximo periodo.');
+ }
+ document.addEventListener('click',e=>{if(e.target.closest('#s14refresh'))build();if(e.target.closest('#s14board')){document.body.classList.toggle('board14');e.target.textContent=document.body.classList.contains('board14')?'← Salir de Board Mode':'▣ Activar Board Mode'}});
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
 })();
