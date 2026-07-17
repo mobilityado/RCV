@@ -38,7 +38,7 @@ async function loadFiles(files){
 }
 
 function removeFile(i){state.files.splice(i,1);renderFiles();parseSources()}
-function reset(){state.files=[];state.sources={};state.outputs={};state.analysis=null;destroyCharts();$('#fileInput').value='';renderFiles();renderValidation();['dashboard','gerencias','costos','gastos','xpv','tendencias','inteligencia','resultados'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
+function reset(){state.files=[];state.sources={};state.outputs={};state.analysis=null;destroyCharts();$('#fileInput').value='';renderFiles();renderValidation();['dashboard','gerencias','costos','gastos','xpv','tendencias','inteligencia','comparador','explorador','historial','informePro','resultados'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
 function renderFiles(){
   $('#fileList').innerHTML=state.files.map((f,i)=>`<div class="file-item"><div class="file-meta"><div class="file-badge">XLS</div><div><strong>${escapeHtml(f.name)}</strong><small>${formatBytes(f.size)}</small></div></div><button class="remove" data-i="${i}" title="Quitar">×</button></div>`).join('');
   document.querySelectorAll('.remove').forEach(b=>b.onclick=()=>removeFile(+b.dataset.i));
@@ -189,6 +189,7 @@ async function processAll(){
     };
     renderExecutiveDashboard(costRows,expenseRows,xpvRows,cutoff);
     renderExtendedSuite(costRows,expenseRows,xpvRows,cutoff);
+    renderProEdition(costRows,expenseRows,xpvRows,cutoff);
     renderDownloads();
     $('#dashboard').classList.remove('hidden');
     $('#resultados').classList.remove('hidden');
@@ -561,3 +562,156 @@ function renderComparison(ma,mb){
     $('btnPaqueteEjecutivo')?.addEventListener('click',paquete);
   });
 })();
+
+
+// ===== REPORT.IA RCV · PRO EDITION 4.0 =====
+const PRO_HISTORY_KEY='reportia_rcv_history_v4';
+
+function proFinancialRows(){
+  const a=state.analysis||{};
+  return [...(a.costRows||[]),...(a.expenseRows||[])];
+}
+function proManagers(){
+  return [...new Set(proFinancialRows().map(r=>r.manager).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function proSnapshot(){
+  if(!state.analysis)return null;
+  const fin=proFinancialRows(), xpv=state.analysis.xpvRows||[];
+  const real=sum(fin,'real26'), budget=sum(fin,'budget26'), real25=sum(fin,'real25');
+  const xpvReal=sum(xpv,'real'), xpvBudget=sum(xpv,'budget');
+  const managers=aggregate(fin,['manager'],['real26','budget26']).map(addVariance);
+  const favorable=managers.filter(x=>x.varBudget<=0).length;
+  const critical=managers.filter(x=>(x.varBudgetPct||0)>.10).length;
+  const budgetVar=budget?(real-budget)/budget:0;
+  const xpvVar=xpvBudget?(xpvReal-xpvBudget)/xpvBudget:0;
+  let score=100-Math.max(0,budgetVar*180)-critical*6+Math.max(-8,Math.min(8,xpvVar*35));
+  score=Math.max(0,Math.min(100,Math.round(score)));
+  const label=MONTHS.find(x=>x[0]===state.analysis.cutoff)?.[1]||state.analysis.cutoff;
+  return {
+    id:`${new Date().getFullYear()}-${state.analysis.cutoff}`,
+    label:`${label} 2026`,
+    cutoff:state.analysis.cutoff,
+    createdAt:new Date().toISOString(),
+    real,budget,real25,xpvReal,xpvBudget,budgetVar,xpvVar,
+    favorable,critical,totalManagers:managers.length,score
+  };
+}
+function loadProHistory(){
+  try{return JSON.parse(localStorage.getItem(PRO_HISTORY_KEY)||'[]')}catch(e){return[]}
+}
+function saveProHistory(snapshot){
+  if(!snapshot)return;
+  let list=loadProHistory().filter(x=>x.id!==snapshot.id);
+  list.push(snapshot);
+  list=list.slice(-18);
+  localStorage.setItem(PRO_HISTORY_KEY,JSON.stringify(list));
+  renderHistoryModule();
+}
+function renderProEdition(costRows,expenseRows,xpvRows,cutoff){
+  ['explorador','historial','informePro','comparador'].forEach(id=>document.getElementById(id)?.classList.remove('hidden'));
+  document.getElementById('proCommandStrip')?.classList.remove('hidden');
+  setupDrilldown();
+  renderHistoryModule();
+  renderProNarrative();
+  enrichComparator();
+}
+function setupDrilldown(){
+  const manager=document.getElementById('drillManager'),group=document.getElementById('drillGroup'),account=document.getElementById('drillAccount');
+  if(!manager||!group||!account)return;
+  const managers=proManagers();
+  manager.innerHTML='<option value="">Todas</option>'+managers.map(m=>`<option>${escapeHtml(m)}</option>`).join('');
+  const updateGroups=()=>{
+    const rows=proFinancialRows().filter(r=>!manager.value||r.manager===manager.value);
+    const groups=[...new Set(rows.map(r=>r.group).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'es'));
+    group.innerHTML='<option value="">Todos</option>'+groups.map(g=>`<option>${escapeHtml(g)}</option>`).join('');
+    updateAccounts();
+  };
+  const updateAccounts=()=>{
+    const rows=proFinancialRows().filter(r=>(!manager.value||r.manager===manager.value)&&(!group.value||r.group===group.value));
+    const accounts=[...new Set(rows.map(r=>r.account).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'es'));
+    account.innerHTML='<option value="">Todas</option>'+accounts.map(a=>`<option>${escapeHtml(a)}</option>`).join('');
+    renderDrilldown();
+  };
+  manager.onchange=updateGroups; group.onchange=updateAccounts; account.onchange=renderDrilldown;
+  updateGroups();
+}
+function renderDrilldown(){
+  if(!state.analysis)return;
+  const manager=document.getElementById('drillManager')?.value||'',group=document.getElementById('drillGroup')?.value||'',account=document.getElementById('drillAccount')?.value||'';
+  const rows=proFinancialRows().filter(r=>(!manager||r.manager===manager)&&(!group||r.group===group)&&(!account||r.account===account));
+  const real=sum(rows,'real26'),budget=sum(rows,'budget26'),real25=sum(rows,'real25');
+  const varValue=real-budget,varPct=budget?varValue/budget:0,yoy=real25?(real-real25)/real25:0;
+  const box=document.getElementById('drillKpis');
+  if(box)box.innerHTML=[
+    ['REAL 2026',money(real),`${rows.length.toLocaleString('es-MX')} registros`],
+    ['PRESUPUESTO',money(budget),'Base comparable'],
+    ['DESVIACIÓN',money(varValue),pct(varPct)],
+    ['VS 2025',pct(yoy),money(real-real25)]
+  ].map(x=>`<article class="kpi-card"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${x[1]}</div><div class="kpi-detail">${x[2]}</div></article>`).join('');
+  const detail=topByAbs(aggregate(rows,['account','group'],['real26','budget26']).map(addVariance),'varBudget',12);
+  const tbody=document.getElementById('drillTable');
+  if(tbody)tbody.innerHTML=detail.map(d=>`<tr><td>${escapeHtml(d.account||'—')}</td><td>${escapeHtml(d.group||'—')}</td><td class="num">${money(d.real26)}</td><td class="num">${money(d.budget26)}</td><td class="num"><span class="pill ${d.varBudget>0?'bad':'good'}">${money(d.varBudget)}</span></td></tr>`).join('')||'<tr><td colspan="5">Sin datos para los filtros seleccionados.</td></tr>';
+  const old=Chart.getChart(document.getElementById('drillChart')); if(old)old.destroy();
+  safeChart('drillChart',{type:'bar',data:{labels:detail.slice(0,8).map(d=>String(d.account||d.group||'Sin clasificar').slice(0,24)),datasets:[{label:'Real',data:detail.slice(0,8).map(d=>d.real26)},{label:'Presupuesto',data:detail.slice(0,8).map(d=>d.budget26)}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{position:'bottom'}},scales:{x:{ticks:{callback:v=>shortMoney(v)}}}}});
+}
+function renderHistoryModule(){
+  const history=loadProHistory();
+  const current=proSnapshot();
+  const k=document.getElementById('historyKpis');
+  if(k){
+    const prev=history.length?history[history.length-1]:null;
+    const delta=prev&&current&&prev.real?((current.real-prev.real)/Math.abs(prev.real)):0;
+    k.innerHTML=[
+      ['CORTES GUARDADOS',history.length.toLocaleString('es-MX'),'Historial local'],
+      ['ÚLTIMO CORTE',history.at(-1)?.label||'—','Periodo más reciente'],
+      ['CAMBIO REAL',prev&&current?pct(delta):'—','Vs corte guardado anterior'],
+      ['MEJOR PULSO',history.length?Math.max(...history.map(x=>x.score))+'/100':'—','Máximo histórico']
+    ].map(x=>`<article class="kpi-card"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${x[1]}</div><div class="kpi-detail">${x[2]}</div></article>`).join('');
+  }
+  const body=document.getElementById('historyTable');
+  if(body)body.innerHTML=history.slice().reverse().map(x=>`<tr><td>${escapeHtml(x.label)}</td><td class="num">${money(x.real)}</td><td class="num">${money(x.budget)}</td><td class="num">${pct(x.budgetVar)}</td><td class="num">${x.score}/100</td></tr>`).join('')||'<tr><td colspan="5">Aún no has guardado cortes.</td></tr>';
+  const el=document.getElementById('historyChart'); if(!el)return;
+  const old=Chart.getChart(el);if(old)old.destroy();
+  safeChart('historyChart',{type:'line',data:{labels:history.map(x=>x.label),datasets:[{label:'Real',data:history.map(x=>x.real),tension:.35,borderWidth:3},{label:'Presupuesto',data:history.map(x=>x.budget),tension:.35,borderDash:[6,5]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>shortMoney(v)}}}}});
+}
+function renderProNarrative(){
+  const s=proSnapshot(); if(!s)return;
+  const fin=proFinancialRows();
+  const managers=aggregate(fin,['manager'],['real26','budget26']).map(addVariance).sort((a,b)=>b.varBudgetPct-a.varBudgetPct);
+  const worst=managers[0],best=managers[managers.length-1];
+  document.getElementById('proReportTitle').textContent=`Informe Ejecutivo RCV · ${s.label}`;
+  document.getElementById('proReportSubtitle').textContent=`Generado automáticamente con ${s.totalManagers} gerencias analizadas.`;
+  document.getElementById('proReportScore').textContent=`${s.score}/100`;
+  const blocks=[
+    ['Resumen general',s.budgetVar>0?`La operación se encuentra ${pct(Math.abs(s.budgetVar))} por encima del presupuesto consolidado, con una desviación de ${money(s.real-s.budget)}.`:`La operación mantiene una posición favorable de ${pct(Math.abs(s.budgetVar))} por debajo del presupuesto, equivalente a ${money(Math.abs(s.real-s.budget))}.`],
+    ['Pulso RCV',`El Pulso RCV se ubica en ${s.score}/100. ${s.favorable} de ${s.totalManagers} gerencias están dentro o por debajo del presupuesto y ${s.critical} se encuentran en condición crítica.`],
+    ['Principal foco',worst?`${worst.manager} presenta la mayor presión presupuestal con ${pct(worst.varBudgetPct||0)} de desviación y ${money(worst.varBudget)} de impacto.`:'No se identificó un foco principal.'],
+    ['Mejor posición',best?`${best.manager} presenta la mejor posición relativa frente al presupuesto con ${pct(best.varBudgetPct||0)}.`:'Sin información suficiente.'],
+    ['Productividad XPV',`La productividad XPV registra ${money(s.xpvReal)} frente a un objetivo de ${money(s.xpvBudget)}, con una variación de ${pct(s.xpvVar)}.`],
+    ['Recomendación',s.critical>0?'Priorizar la revisión de las gerencias críticas y utilizar el Explorador para identificar cuentas y agrupadores que explican la desviación.':'Mantener seguimiento preventivo y documentar las prácticas de las gerencias con mejor desempeño para replicarlas.']
+  ];
+  document.getElementById('proNarrative').innerHTML=blocks.map((b,i)=>`<div class="pro-narrative-block"><span>${String(i+1).padStart(2,'0')}</span><div><strong>${b[0]}</strong><p>${b[1]}</p></div></div>`).join('');
+}
+function enrichComparator(){
+  const box=document.getElementById('comparisonCards');
+  if(box) box.classList.add('pro-comparison');
+}
+async function downloadNarrativePdf(){
+  const s=proSnapshot();if(!s||!window.jspdf){alert('Primero procesa los reportes.');return;}
+  const {jsPDF}=window.jspdf;
+  const pdf=new jsPDF('p','mm','a4');
+  const margin=16,maxW=178;
+  pdf.setFont('helvetica','bold');pdf.setFontSize(20);pdf.text('REPORT.IA RCV',margin,20);
+  pdf.setFontSize(13);pdf.text(`Informe Ejecutivo · ${s.label}`,margin,30);
+  pdf.setFont('helvetica','normal');pdf.setFontSize(9);pdf.text(`Pulso RCV: ${s.score}/100`,margin,38);
+  const text=(document.getElementById('proNarrative')?.innerText||'').replace(/\n{3,}/g,'\n\n');
+  const lines=pdf.splitTextToSize(text,maxW);
+  pdf.text(lines,margin,50);
+  pdf.save(`REPORTIA_RCV_Informe_Ejecutivo_${s.label.replace(/\s+/g,'_')}.pdf`);
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.pro-command[data-target]').forEach(b=>b.addEventListener('click',()=>document.getElementById(b.dataset.target)?.scrollIntoView({behavior:'smooth'})));
+  document.getElementById('saveSnapshotBtn')?.addEventListener('click',()=>{const s=proSnapshot();if(!s){alert('Primero procesa los reportes.');return;}saveProHistory(s)});
+  document.getElementById('clearHistoryBtn')?.addEventListener('click',()=>{if(confirm('¿Deseas limpiar el historial local de REPORT.IA?')){localStorage.removeItem(PRO_HISTORY_KEY);renderHistoryModule();}});
+  document.getElementById('downloadNarrativePdf')?.addEventListener('click',downloadNarrativePdf);
+});

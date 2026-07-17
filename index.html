@@ -16,7 +16,7 @@
     <div class="mockup-logo">R</div>
     <div>
       <strong>REPORT.IA RCV</strong>
-      <span>Intelligence Edition 3.2</span>
+      <span>Pro Edition 4.0</span>
     </div>
   </div>
 
@@ -31,6 +31,9 @@
     <a href="#comparador"><span>⇄</span>Comparador</a>
     <a href="#pulso"><span>!</span>Alertas <b class="mockup-alert-badge">5</b></a>
     <a href="#inteligencia"><span>✺</span>Resumen Inteligente</a>
+    <a href="#explorador"><span>⌕</span>Explorador</a>
+    <a href="#historial"><span>◷</span>Historial</a>
+    <a href="#informePro"><span>✦</span>Informe Ejecutivo</a>
     <a href="#resultados"><span>▤</span>Reportes Ejecutivos</a>
   </nav>
 
@@ -124,7 +127,23 @@
 
     
 
-    <section id="dashboard" class="dashboard hidden">
+    
+<section class="pro-command-strip hidden" id="proCommandStrip">
+  <button class="pro-command" data-target="explorador">
+    <span>⌕</span><div><strong>Explorar desviaciones</strong><small>Gerencia → agrupador → cuenta</small></div>
+  </button>
+  <button class="pro-command" data-target="comparador">
+    <span>⇄</span><div><strong>Comparar gerencias</strong><small>Desempeño lado a lado</small></div>
+  </button>
+  <button class="pro-command" data-target="historial">
+    <span>◷</span><div><strong>Historial de periodos</strong><small>Consulta y compara cortes guardados</small></div>
+  </button>
+  <button class="pro-command accent" data-target="informePro">
+    <span>✦</span><div><strong>Generar informe</strong><small>Narrativa ejecutiva automática</small></div>
+  </button>
+</section>
+
+<section id="dashboard" class="dashboard hidden">
       <div class="dashboard-head">
         <div><p class="eyebrow">RESULTADOS DEL PERIODO</p><h2>Resumen ejecutivo RCV</h2><p id="dashboardSubtitle">Información consolidada del periodo seleccionado.</p></div>
         <div class="dashboard-badge">ANÁLISIS COMPLETADO</div>
@@ -233,7 +252,87 @@
       </div>
     </section>
 
-    <section id="resultados" class="panel hidden">
+    
+<section id="explorador" class="analytics-section hidden">
+  <div class="module-head pro-module-head">
+    <div>
+      <p class="eyebrow">DRILL-DOWN</p>
+      <h2>Explorador de desviaciones</h2>
+      <p>Profundiza desde la gerencia hasta el agrupador y la cuenta contable para encontrar el origen de una desviación.</p>
+    </div>
+    <div class="drill-controls">
+      <label>Gerencia<select id="drillManager"></select></label>
+      <label>Agrupador<select id="drillGroup"></select></label>
+      <label>Cuenta<select id="drillAccount"></select></label>
+    </div>
+  </div>
+  <div id="drillKpis" class="kpi-grid"></div>
+  <div class="pro-two-col">
+    <article class="chart-card">
+      <div class="card-head"><div><span>IMPACTO</span><h3>Real vs Presupuesto</h3></div></div>
+      <div class="chart-wrap"><canvas id="drillChart"></canvas></div>
+    </article>
+    <article class="table-card">
+      <div class="card-head"><div><span>DETALLE</span><h3>Registros con mayor impacto</h3></div></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Cuenta</th><th>Agrupador</th><th>Real</th><th>Presupuesto</th><th>Desviación</th></tr></thead>
+        <tbody id="drillTable"></tbody></table>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="historial" class="analytics-section hidden">
+  <div class="module-head pro-module-head">
+    <div>
+      <p class="eyebrow">HISTORIAL LOCAL</p>
+      <h2>Evolución de periodos</h2>
+      <p>Guarda una fotografía de cada corte para comparar cómo cambia la operación mes a mes.</p>
+    </div>
+    <div class="history-actions">
+      <button id="saveSnapshotBtn" class="pro-action-btn">＋ Guardar corte actual</button>
+      <button id="clearHistoryBtn" class="pro-ghost-btn">Limpiar historial</button>
+    </div>
+  </div>
+  <div id="historyKpis" class="kpi-grid"></div>
+  <div class="pro-two-col">
+    <article class="chart-card">
+      <div class="card-head"><div><span>EVOLUCIÓN</span><h3>Real y Presupuesto por corte</h3></div></div>
+      <div class="chart-wrap"><canvas id="historyChart"></canvas></div>
+    </article>
+    <article class="table-card">
+      <div class="card-head"><div><span>CORTES GUARDADOS</span><h3>Historial disponible</h3></div></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Periodo</th><th>Real</th><th>Presupuesto</th><th>Desviación</th><th>Pulso</th></tr></thead>
+        <tbody id="historyTable"></tbody></table>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="informePro" class="analytics-section hidden">
+  <div class="module-head pro-module-head">
+    <div>
+      <p class="eyebrow">INFORME EJECUTIVO AUTOMÁTICO</p>
+      <h2>REPORT.IA explica el periodo</h2>
+      <p>Convierte los indicadores y alertas del dashboard en una narrativa ejecutiva lista para comité.</p>
+    </div>
+    <button id="downloadNarrativePdf" class="pro-action-btn accent">📄 Descargar informe PDF</button>
+  </div>
+  <div class="pro-report-layout">
+    <article class="pro-report-cover">
+      <span class="report-badge">PRO EDITION 4.0</span>
+      <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
+      <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
+      <div id="proReportScore" class="report-score">—</div>
+    </article>
+    <article class="pro-report-body">
+      <div id="proNarrative" class="pro-narrative"></div>
+    </article>
+  </div>
+</section>
+
+<section id="resultados" class="panel hidden">
       <div class="section-title"><div><span class="step success">04</span><div><h2>Centro de descargas</h2><p>Descarga cada reporte o genera el paquete FINAL.zip.</p></div></div></div>
       <div class="success-banner"><div class="success-icon">✓</div><div><h3>¡Excelente trabajo!</h3><p>La información fue analizada y los reportes RCV están listos.</p></div></div>
       <div id="downloadGrid" class="download-grid"></div>
@@ -244,7 +343,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">INTELLIGENCE EDITION 3.2</span>
+    <span class="eyebrow">PRO EDITION 4.0</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>

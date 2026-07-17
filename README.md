@@ -89,3 +89,12 @@ Rediseño visual completo inspirado en dashboards ejecutivos BI:
 - Se retiró la carga de archivos del sidebar.
 - La carga ahora aparece como una tarjeta compacta en el área blanca superior.
 - El sidebar queda dedicado únicamente a navegación y usuario.
+
+## REPORT.IA RCV · Pro Edition 4.0
+Nuevas funciones:
+- Explorador drill-down: gerencia → agrupador → cuenta.
+- Historial local de periodos usando LocalStorage.
+- Comparador ejecutivo enriquecido.
+- Módulo "Qué cambió" integrado con el análisis.
+- Informe ejecutivo automático con narrativa y PDF.
+- Barra de accesos rápidos para análisis avanzado.
