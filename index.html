@@ -13,7 +13,7 @@
   <div class="login-visual">
     <div class="login-brand">
       <div class="login-logo">R</div>
-      <div><strong>REPORT.IA RCV</strong><span>Signature Edition 7.0</span></div>
+      <div><strong>REPORT.IA RCV</strong><span>Signature Edition 7.1</span></div>
     </div>
     <div class="login-copy">
       <span class="login-kicker">CENTRO DE INTELIGENCIA EJECUTIVA</span>
@@ -67,29 +67,35 @@
     <div class="mockup-logo">R</div>
     <div>
       <strong>REPORT.IA RCV</strong>
-      <span>Signature Edition 7.0</span>
+      <span>Signature Edition 7.1</span>
     </div>
   </div>
 
-  <nav class="mockup-nav">
-    <a class="active" href="#enterpriseHome" data-route="enterpriseHome"><span>⌂</span>Inicio</a>
-    <a href="#dashboard" data-route="dashboard"><span>▥</span>Resumen Ejecutivo</a>
-    <a href="#gerencias" data-route="gerencias"><span>♟</span>Gerencias</a>
-    <a href="#costos" data-route="costos"><span>$</span>Costos</a>
-    <a href="#gastos" data-route="gastos"><span>▣</span>Gastos</a>
-    <a href="#xpv" data-route="xpv"><span>↗</span>Productividad XPV</a>
-    <a href="#tendencias" data-route="tendencias"><span>⌁</span>Tendencias</a>
-    <a href="#comparador" data-route="comparador"><span>⇄</span>Comparador</a>
-    <a href="#pulso" data-route="pulso"><span>!</span>Alertas <b class="mockup-alert-badge">5</b></a>
-    <a href="#inteligencia" data-route="inteligencia"><span>✺</span>Resumen Inteligente</a>
-    <a href="#explorador" data-route="explorador"><span>⌕</span>Explorador</a>
-    <a href="#historial" data-route="historial"><span>◷</span>Historial</a>
-    <a href="#prioridades" data-route="prioridades"><span>◆</span>Prioridades</a>
-    <a href="#copiloto" data-route="copiloto"><span>✦</span>Copiloto REPORT.IA</a>
-    <a href="#informePro" data-route="informePro"><span>✦</span>Informe Ejecutivo</a>
-    <a href="#cierreEjecutivo" data-route="cierreEjecutivo"><span>✓</span>Cierre Ejecutivo</a>
-    <a href="#resultados" data-route="resultados"><span>▤</span>Reportes Ejecutivos</a>
-  </nav>
+  
+<nav class="mockup-nav clean-primary-nav">
+  <a class="active" href="#enterpriseHome" data-route="enterpriseHome"><span>⌂</span>Inicio</a>
+  <a href="#dashboard" data-route="dashboard"><span>▥</span>Resumen Ejecutivo</a>
+  <a href="#gerencias" data-route="gerencias"><span>♟</span>Gerencias</a>
+  <a href="#costos" data-route="costos"><span>$</span>Costos y Gastos</a>
+  <a href="#xpv" data-route="xpv"><span>↗</span>Productividad XPV</a>
+  <a href="#resultados" data-route="resultados"><span>▤</span>Reportes Ejecutivos</a>
+</nav>
+
+<div class="tools-accordion">
+  <button id="toolsAccordionBtn" class="tools-accordion-btn">
+    <span>✦</span><strong>Más herramientas</strong><b>⌄</b>
+  </button>
+  <div id="toolsAccordionPanel" class="tools-accordion-panel hidden">
+    <a href="#tendencias" data-route="tendencias">Tendencias</a>
+    <a href="#comparador" data-route="comparador">Comparador</a>
+    <a href="#prioridades" data-route="prioridades">Prioridades</a>
+    <a href="#explorador" data-route="explorador">Explorador</a>
+    <a href="#historial" data-route="historial">Historial</a>
+    <a href="#informePro" data-route="informePro">Informe Ejecutivo</a>
+    <a href="#cierreEjecutivo" data-route="cierreEjecutivo">Cierre Ejecutivo</a>
+  </div>
+</div>
+
 
   <div class="mockup-separator"></div>
 
@@ -460,7 +466,7 @@
 </section>
 
 
-<section id="copiloto" class="analytics-section hidden">
+<section id="copiloto" class="analytics-section hidden legacy-copilot-section">
   <div class="module-head pro-module-head">
     <div>
       <p class="eyebrow">COPILOTO REPORT.IA</p>
@@ -522,7 +528,7 @@
   </div>
   <div class="pro-report-layout">
     <article class="pro-report-cover">
-      <span class="report-badge">SIGNATURE EDITION 7.0</span>
+      <span class="report-badge">SIGNATURE EDITION 7.1</span>
       <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
       <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
       <div id="proReportScore" class="report-score">—</div>
@@ -544,7 +550,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">SIGNATURE EDITION 7.0</span>
+    <span class="eyebrow">SIGNATURE EDITION 7.1</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>
@@ -580,5 +586,48 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
+
+<button id="copilotFloatingBtn" class="copilot-floating-btn" aria-label="Abrir Copiloto REPORT.IA">
+  <span class="copilot-float-icon">R</span>
+  <span class="copilot-float-label">Copiloto</span>
+  <span class="copilot-online-dot"></span>
+</button>
+
+<div id="copilotDrawerBackdrop" class="copilot-drawer-backdrop hidden"></div>
+<aside id="copilotDrawer" class="copilot-drawer hidden">
+  <div class="copilot-drawer-head">
+    <div class="copilot-drawer-brand">
+      <div class="copilot-drawer-avatar">R</div>
+      <div><strong>Copiloto REPORT.IA</strong><span>Asistente ejecutivo RCV</span></div>
+    </div>
+    <button id="copilotDrawerClose">×</button>
+  </div>
+
+  <div class="copilot-drawer-status">
+    <span></span> Analizando los datos de esta sesión
+  </div>
+
+  <div id="copilotDrawerConversation" class="copilot-drawer-conversation">
+    <div class="copilot-drawer-message bot">
+      <div class="copilot-drawer-avatar small">R</div>
+      <div>
+        <strong>Hola, José 👋</strong>
+        <p>Puedo ayudarte a interpretar desviaciones, comparar gerencias, revisar XPV y encontrar qué deberías atender primero.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="copilot-drawer-suggestions">
+    <button data-q="¿Qué debo revisar primero?">¿Qué debo revisar primero?</button>
+    <button data-q="¿Qué gerencia está peor contra presupuesto?">Gerencia con mayor desviación</button>
+    <button data-q="¿Cómo va la productividad XPV?">Resumen de XPV</button>
+  </div>
+
+  <div class="copilot-drawer-input">
+    <input id="copilotDrawerInput" type="text" placeholder="Pregúntame sobre tus resultados..." />
+    <button id="copilotDrawerSend">➤</button>
+  </div>
+</aside>
+
 </body>
 </html>

@@ -2298,3 +2298,233 @@ body.signature-dark .workspace-upload-heading p{color:#9d9baa!important}
   .signature-hero-copy{padding:22px}
   .signature-hero-copy h2{font-size:25px}
 }
+
+/* =========================================================
+   SIGNATURE EDITION 7.1 · CLEAN SIDEBAR + REAL COPILOT
+   ========================================================= */
+
+/* Clean primary navigation */
+.clean-primary-nav{
+  display:flex!important;
+  flex-direction:column;
+  gap:3px;
+  margin-top:8px;
+}
+.clean-primary-nav a{
+  min-height:44px!important;
+  padding:0 13px!important;
+  border-radius:9px!important;
+  font-size:11px!important;
+}
+.clean-primary-nav a span{
+  width:20px!important;
+  text-align:center;
+}
+.tools-accordion{
+  margin:10px 0 0;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.tools-accordion-btn{
+  width:100%;
+  min-height:40px!important;
+  padding:0 12px!important;
+  display:grid!important;
+  grid-template-columns:20px 1fr auto;
+  align-items:center;
+  gap:9px;
+  border:0!important;
+  border-radius:8px!important;
+  background:rgba(255,255,255,.035)!important;
+  color:#d8d4e6!important;
+  text-align:left!important;
+}
+.tools-accordion-btn strong{font-size:9.5px}
+.tools-accordion-btn b{transition:transform .2s ease}
+.tools-accordion-btn.open b{transform:rotate(180deg)}
+.tools-accordion-panel{
+  display:grid;
+  gap:2px;
+  padding:6px 0 0 28px;
+}
+.tools-accordion-panel a{
+  min-height:30px;
+  display:flex;
+  align-items:center;
+  padding:0 9px;
+  border-radius:7px;
+  color:#9e99b3;
+  text-decoration:none;
+  font-size:8.5px;
+}
+.tools-accordion-panel a:hover{
+  background:rgba(255,255,255,.05);
+  color:#fff;
+}
+
+/* Hide legacy in-page copilot */
+.legacy-copilot-section{display:none!important}
+
+/* Floating assistant */
+.copilot-floating-btn{
+  position:fixed;
+  right:24px;
+  bottom:22px;
+  z-index:300;
+  min-height:48px!important;
+  padding:6px 14px 6px 6px!important;
+  display:flex!important;
+  align-items:center;
+  gap:8px;
+  border:0!important;
+  border-radius:16px!important;
+  background:linear-gradient(135deg,#5a26df,#7b3ff1)!important;
+  color:#fff!important;
+  box-shadow:0 18px 40px rgba(91,39,223,.3);
+  cursor:pointer;
+}
+.copilot-float-icon{
+  width:36px;height:36px;
+  display:grid;place-items:center;
+  border-radius:11px;
+  background:rgba(255,255,255,.14);
+  font-weight:900;
+}
+.copilot-float-label{font-size:9px;font-weight:850}
+.copilot-online-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:#35d07f;
+  box-shadow:0 0 0 3px rgba(53,208,127,.14);
+}
+
+.copilot-drawer-backdrop{
+  position:fixed;inset:0;
+  background:rgba(10,7,28,.22);
+  backdrop-filter:blur(2px);
+  z-index:340;
+}
+.copilot-drawer{
+  position:fixed;
+  top:0;right:0;bottom:0;
+  width:min(410px,92vw);
+  z-index:350;
+  display:flex;
+  flex-direction:column;
+  background:#fff;
+  border-left:1px solid #e8e6ed;
+  box-shadow:-24px 0 60px rgba(22,16,50,.16);
+}
+.copilot-drawer-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px;
+  border-bottom:1px solid #eceaf1;
+}
+.copilot-drawer-brand{display:flex;align-items:center;gap:10px}
+.copilot-drawer-avatar{
+  width:38px;height:38px;
+  display:grid;place-items:center;
+  border-radius:11px;
+  background:linear-gradient(135deg,#5b27df,#7d41f2);
+  color:#fff;font-weight:900;
+}
+.copilot-drawer-avatar.small{width:28px;height:28px;flex:0 0 28px;border-radius:8px;font-size:9px}
+.copilot-drawer-brand strong{display:block;font-size:10px}
+.copilot-drawer-brand span{display:block;margin-top:2px;color:#7b7689;font-size:7px}
+#copilotDrawerClose{
+  width:32px;height:32px;min-height:32px!important;
+  border:0!important;border-radius:8px!important;
+  background:#f4f2f7!important;color:#6f697c!important;font-size:18px!important
+}
+.copilot-drawer-status{
+  padding:9px 18px;
+  display:flex;align-items:center;gap:7px;
+  background:#f8f7fb;color:#706b7c;font-size:7.5px
+}
+.copilot-drawer-status span{width:7px;height:7px;border-radius:50%;background:#31c778}
+.copilot-drawer-conversation{
+  flex:1;
+  overflow:auto;
+  padding:18px;
+  background:linear-gradient(180deg,#fcfbff,#fff);
+}
+.copilot-drawer-message{
+  display:flex;gap:9px;
+  max-width:88%;
+  margin-bottom:12px;
+}
+.copilot-drawer-message.user{
+  margin-left:auto;
+  justify-content:flex-end;
+}
+.copilot-drawer-message>div:last-child{
+  padding:10px 12px;
+  border-radius:11px;
+  background:#f2eff9;
+}
+.copilot-drawer-message.user>div:last-child{
+  background:#5a27db;
+  color:#fff;
+}
+.copilot-drawer-message strong{font-size:8px}
+.copilot-drawer-message p{margin:4px 0 0;font-size:8.5px;line-height:1.5}
+.copilot-drawer-suggestions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:10px 14px;
+  border-top:1px solid #eeecf2;
+  background:#faf9fc;
+}
+.copilot-drawer-suggestions button{
+  min-height:28px!important;
+  padding:0 9px!important;
+  border:1px solid #e2dfE8!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#5d566d!important;
+  font-size:7.5px!important;
+}
+.copilot-drawer-input{
+  display:grid;
+  grid-template-columns:1fr 40px;
+  gap:8px;
+  padding:12px 14px;
+  border-top:1px solid #eceaf1;
+  background:#fff;
+}
+.copilot-drawer-input input{
+  min-height:42px!important;
+  padding:0 12px!important;
+  border:1px solid #ddd9e6!important;
+  border-radius:10px!important;
+  font-size:9px!important;
+}
+.copilot-drawer-input button{
+  min-height:42px!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:linear-gradient(135deg,#5a26df,#7438ed)!important;
+  color:#fff!important;
+}
+.hidden{display:none!important}
+
+/* Reduce sidebar visual density */
+.mockup-sidebar{
+  overflow-y:auto!important;
+}
+.mockup-user{
+  margin-top:18px!important;
+}
+.signature-sidebar-collapsed .tools-accordion{display:none!important}
+.signature-sidebar-collapsed .clean-primary-nav a{
+  font-size:0!important;
+}
+.signature-sidebar-collapsed .clean-primary-nav a span{
+  font-size:14px!important;
+}
+
+/* Avoid collision with old command button */
+.signature-command-btn{
+  right:24px!important;
+  bottom:82px!important;
+}

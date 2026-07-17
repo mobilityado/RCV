@@ -134,3 +134,10 @@ Nuevas funciones:
 - Sidebar colapsable.
 - Modo oscuro.
 - Command Palette.
+
+## Signature Edition 7.1
+- Sidebar simplificado con solo módulos principales.
+- Funciones avanzadas agrupadas en "Más herramientas".
+- Copiloto convertido en asistente flotante real.
+- Chat lateral emergente con sugerencias y conversación.
+- Menor densidad visual en navegación.
