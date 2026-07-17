@@ -16,12 +16,14 @@
     <nav>
       <a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
       <a href="#dashboard">⌂ <span>Resumen Ejecutivo</span></a>
+      <a href="#pulso">◉ <span>Pulso RCV</span></a>
       <a href="#gerencias">🏢 <span>Gerencias</span></a>
       <a href="#costos">💰 <span>Costos</span></a>
       <a href="#gastos">📊 <span>Gastos</span></a>
       <a href="#xpv">🚌 <span>Productividad XPV</span></a>
       <a href="#tendencias">📈 <span>Tendencias</span></a>
       <a href="#inteligencia">🧠 <span>Resumen Inteligente</span></a>
+      <a href="#comparador">⇄ <span>Comparador</span></a>
       <a href="#resultados">📑 <span>Generar Reportes</span></a>
     </nav>
     <div class="privacy">🔒 Procesamiento local<br><small>La información permanece en tu equipo.</small></div>
@@ -34,9 +36,12 @@
         <h1>REPORT.IA transforma tus JD en decisiones.</h1>
         <p>Carga la información, valida las fuentes y analiza resultados, tendencias y desviaciones antes de generar el paquete final.</p>
       </div>
-      <div class="month-box">
-        <label for="month">Mes de corte</label>
-        <select id="month"></select>
+      <div class="hero-actions">
+        <div class="month-box">
+          <label for="month">Mes de corte</label>
+          <select id="month"></select>
+        </div>
+        <button id="presentationBtn" class="presentation-btn" type="button">▶ Modo presentación</button>
       </div>
     </header>
 
@@ -101,6 +106,21 @@
     </section>
 
 
+    <section id="pulso" class="intelligence-shell hidden">
+      <div class="welcome-strip">
+        <div><p class="eyebrow">INTELLIGENCE EDITION</p><h2 id="executiveGreeting">Tu operación RCV, explicada en segundos.</h2><p id="executiveHeadline">Procesa la información para obtener la lectura ejecutiva del periodo.</p></div>
+        <button class="focus-button" id="focusBtn" type="button">Ver prioridades →</button>
+      </div>
+      <div class="pulse-layout">
+        <article class="pulse-card">
+          <div class="pulse-ring" id="pulseRing"><div><strong id="pulseScore">--</strong><span>/100</span></div></div>
+          <div class="pulse-copy"><span>PULSO RCV</span><h3 id="pulseLabel">Esperando análisis</h3><p id="pulseDescription">El score combina control presupuestal, tendencia, cobertura de gerencias y productividad XPV.</p></div>
+        </article>
+        <article class="change-card"><div class="card-head"><div><span>¿QUÉ CAMBIÓ?</span><h3>Movimiento del último periodo</h3></div></div><div id="changeList" class="change-list"></div></article>
+        <article class="alert-center"><div class="card-head"><div><span>CENTRO DE ALERTAS</span><h3>Prioridades que requieren atención</h3></div><span id="alertCount" class="alert-count">0</span></div><div id="intelligenceAlerts" class="intelligence-alerts"></div></article>
+      </div>
+    </section>
+
     <section id="gerencias" class="analytics-section hidden">
       <div class="module-head">
         <div><p class="eyebrow">ANÁLISIS POR GERENCIA</p><h2>Ficha ejecutiva de desempeño</h2><p>Selecciona una gerencia para entender su resultado, tendencia y principales impulsores.</p></div>
@@ -145,6 +165,18 @@
       <div class="module-head"><div><p class="eyebrow">RESUMEN INTELIGENTE</p><h2>Lo que REPORT.IA considera prioritario</h2><p>Hallazgos automáticos para orientar la conversación ejecutiva.</p></div></div>
       <div id="smartSummary" class="smart-summary"></div>
       <div class="executive-grid"><article class="table-card"><div class="card-head"><div><span>SEMÁFORO</span><h3>Mapa ejecutivo de gerencias</h3></div></div><div id="managerMap" class="manager-map"></div></article><article class="alerts-card"><div class="card-head"><div><span>PRIORIDADES</span><h3>Acciones sugeridas</h3></div></div><div id="actionList" class="alerts-list"></div></article></div>
+    </section>
+
+    <section id="comparador" class="analytics-section hidden">
+      <div class="module-head">
+        <div><p class="eyebrow">COMPARADOR EJECUTIVO</p><h2>Gerencia vs Gerencia</h2><p>Compara desempeño financiero, desviación y productividad para detectar brechas y mejores prácticas.</p></div>
+        <div class="compare-controls"><select id="compareA"></select><span>VS</span><select id="compareB"></select></div>
+      </div>
+      <div id="comparisonCards" class="comparison-cards"></div>
+      <div class="manager-layout">
+        <article class="chart-card wide"><div class="card-head"><div><span>COMPARATIVO</span><h3>Real 2026 vs Presupuesto</h3></div></div><div class="chart-wrap"><canvas id="comparisonChart"></canvas></div></article>
+        <article class="alerts-card"><div class="card-head"><div><span>LECTURA AUTOMÁTICA</span><h3>Conclusión ejecutiva</h3></div></div><div id="comparisonNarrative" class="alerts-list"></div></article>
+      </div>
     </section>
 
     <section id="resultados" class="panel hidden">

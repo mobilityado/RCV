@@ -30,3 +30,7 @@ El procesamiento se realiza localmente en el navegador. Los archivos cargados no
 ## Nota
 
 La lógica de generación reconstruye los cálculos en JavaScript y no depende de complementos externos como XLCubed. Para igualar al 100% reportes históricos específicos, pueden requerirse ajustes adicionales a reglas de negocio o formatos particulares de las plantillas originales.
+
+
+## Intelligence Edition
+Esta edición añade Pulso RCV 0-100, centro de alertas, bloque “Qué cambió”, comparador de gerencias y modo presentación. Las funciones trabajan sobre los datos procesados localmente y no requieren backend.

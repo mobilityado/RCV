@@ -289,6 +289,7 @@ function renderExtendedSuite(costRows,expenseRows,xpvRows,cutoff){
   renderXpvModule(xpvRows);
   renderTrendModule([...costRows,...expenseRows],cutoff);
   renderSmartModule(costRows,expenseRows,xpvRows,managers);
+  renderIntelligenceEdition(costRows,expenseRows,xpvRows,cutoff,managers);
 }
 
 function renderFinancialModule(kind,rows,kpiId,managerChartId,detailChartId,detailKey){
@@ -383,3 +384,93 @@ function renderSmartModule(costRows,expenseRows,xpvRows,managers){
     {t:'4 · Cerrar ciclo de reporte',p:'Descargar los archivos finales después de validar los focos críticos y documentar las variaciones relevantes.'}
   ].filter(Boolean).map(a=>`<div class="alert-item"><strong>${a.t}</strong><p>${a.p}</p></div>`).join('');
 }
+
+
+/* ===== REPORT.IA RCV · Intelligence Edition ===== */
+function clamp(n,min,max){return Math.min(max,Math.max(min,n))}
+function managerSnapshot(manager){
+  const a=state.analysis||{};
+  const fin=[...(a.costRows||[]),...(a.expenseRows||[])].filter(r=>r.manager===manager);
+  const xp=(a.xpvRows||[]).filter(r=>r.manager===manager);
+  const real=sum(fin,'real26'), budget=sum(fin,'budget26'), real25=sum(fin,'real25');
+  const xr=sum(xp,'real'), xb=sum(xp,'budget');
+  return {manager,real,budget,real25,varPct:budget?(real-budget)/budget:0,varValue:real-budget,yoy:real25?(real-real25)/real25:0,xpvReal:xr,xpvBudget:xb,xpvVar:xb?(xr-xb)/xb:0};
+}
+function renderIntelligenceEdition(costRows,expenseRows,xpvRows,cutoff,managers){
+  ['pulso','comparador'].forEach(id=>document.getElementById(id)?.classList.remove('hidden'));
+  const fin=[...costRows,...expenseRows];
+  const totalR=sum(fin,'real26'), totalB=sum(fin,'budget26'), total25=sum(fin,'real25');
+  const budgetVar=totalB?(totalR-totalB)/totalB:0, yoy=total25?(totalR-total25)/total25:0;
+  const xr=sum(xpvRows,'real'),xb=sum(xpvRows,'budget'),xpvVar=xb?(xr-xb)/xb:0;
+  const snaps=managers.map(managerSnapshot);
+  const favorable=snaps.filter(x=>x.varPct<=0).length;
+  const critical=snaps.filter(x=>x.varPct>.05).length;
+  const budgetScore=clamp(100-(Math.max(0,budgetVar)*240),0,100);
+  const coverageScore=snaps.length?clamp((favorable/snaps.length)*100,0,100):50;
+  const trendScore=clamp(75-(Math.max(0,yoy)*100)+Math.max(0,-yoy)*60,0,100);
+  const xpvScore=clamp(75+(xpvVar*120),0,100);
+  const score=Math.round(budgetScore*.38+coverageScore*.22+trendScore*.18+xpvScore*.22);
+  const ring=$('#pulseRing'); if(ring) ring.style.setProperty('--score',score);
+  $('#pulseScore').textContent=score;
+  const label=score>=85?'Desempeño sólido':score>=70?'Operación estable':score>=55?'Atención preventiva':'Intervención prioritaria';
+  $('#pulseLabel').textContent=label;
+  $('#pulseDescription').textContent=`${favorable} de ${snaps.length} gerencias se encuentran dentro o por debajo del presupuesto; ${critical} requieren atención crítica. El XPV presenta ${pct(xpvVar)} frente al objetivo.`;
+  const hour=new Date().getHours(); const greeting=hour<12?'Buenos días':hour<19?'Buenas tardes':'Buenas noches';
+  $('#executiveGreeting').textContent=`${greeting}. El Pulso RCV se encuentra en ${score}/100.`;
+  $('#executiveHeadline').textContent=budgetVar>0?`La operación está ${pct(Math.abs(budgetVar))} por encima del presupuesto consolidado. REPORT.IA detectó ${critical} focos críticos.`:`La operación está ${pct(Math.abs(budgetVar))} por debajo del presupuesto consolidado y mantiene ${favorable} gerencias en posición favorable.`;
+  renderWhatChanged(fin,xpvRows,cutoff);
+  renderAlertCenter(snaps);
+  setupComparator(managers);
+}
+function renderWhatChanged(fin,xpvRows,cutoff){
+  const rank=monthRank(cutoff), current=fin.filter(r=>monthRank(r.period)===rank), prev=fin.filter(r=>monthRank(r.period)===rank-1);
+  const curR=sum(current,'real26'),prevR=sum(prev,'real26'),change=prevR?(curR-prevR)/Math.abs(prevR):0;
+  const curB=sum(current,'budget26'),budgetV=curB?(curR-curB)/curB:0;
+  const curXp=xpvRows.filter(r=>monthRank(r.period)===rank),prevXp=xpvRows.filter(r=>monthRank(r.period)===rank-1);
+  const cx=sum(curXp,'real'),px=sum(prevXp,'real'),xchange=px?(cx-px)/Math.abs(px):0;
+  const curMap=aggregate(current,['manager'],['real26','budget26']).map(addVariance);
+  const prevMap=aggregate(prev,['manager'],['real26','budget26']).map(addVariance);
+  const prevDict=Object.fromEntries(prevMap.map(x=>[x.manager,severityFromVariance(x.varBudgetPct||0)]));
+  const worsened=curMap.filter(x=>prevDict[x.manager]&&severityFromVariance(x.varBudgetPct||0)==='bad'&&prevDict[x.manager]!=='bad').length;
+  $('#changeList').innerHTML=[
+    ['↕','Movimiento mensual',`${money(curR-prevR)} (${pct(change)}) frente al mes anterior.`],
+    ['◎','Presupuesto del mes',`${pct(Math.abs(budgetV))} ${budgetV>0?'por encima':'por debajo'} del presupuesto del periodo.`],
+    ['↗','Productividad XPV',`XPV cambió ${pct(xchange)} respecto al mes anterior.`],
+    ['⚑','Cambio de semáforo',`${worsened} gerencias entraron a condición crítica este periodo.`]
+  ].map(x=>`<div class="change-row"><div class="change-icon">${x[0]}</div><div><strong>${x[1]}</strong><p>${x[2]}</p></div></div>`).join('');
+}
+function renderAlertCenter(snaps){
+  const alerts=[];
+  [...snaps].sort((a,b)=>b.varPct-a.varPct).slice(0,4).forEach(s=>{if(s.varPct>.05)alerts.push({s:'bad',m:s.manager,t:'Desviación crítica',p:`${s.manager} supera el presupuesto en ${pct(s.varPct)} (${money(s.varValue)}).`});else if(s.varPct>0)alerts.push({s:'warn',m:s.manager,t:'Presión presupuestal',p:`${s.manager} está ${pct(s.varPct)} por encima del presupuesto.`})});
+  const weakXpv=[...snaps].filter(s=>s.xpvBudget&&s.xpvVar<-.05).sort((a,b)=>a.xpvVar-b.xpvVar).slice(0,2);
+  weakXpv.forEach(s=>alerts.push({s:'warn',m:s.manager,t:'XPV bajo objetivo',p:`${s.manager} registra ${pct(s.xpvVar)} contra el presupuesto XPV.`}));
+  const best=[...snaps].sort((a,b)=>a.varPct-b.varPct)[0]; if(best)alerts.push({s:'good',m:best.manager,t:'Mejor posición',p:`${best.manager} destaca con ${pct(best.varPct)} frente al presupuesto.`});
+  $('#alertCount').textContent=alerts.filter(a=>a.s!=='good').length;
+  $('#intelligenceAlerts').innerHTML=alerts.length?alerts.map(a=>`<div class="intelligence-alert ${a.s}" data-manager="${escapeHtml(a.m)}"><strong>${a.t} · ${escapeHtml(a.m)}</strong><p>${a.p}</p></div>`).join(''):'<div class="intelligence-alert good"><strong>Sin alertas relevantes</strong><p>No se detectaron focos críticos con los criterios actuales.</p></div>';
+  document.querySelectorAll('.intelligence-alert[data-manager]').forEach(el=>el.onclick=()=>{const m=el.dataset.manager;$('#managerSelect').value=m;renderManagerDetail(m);document.getElementById('gerencias').scrollIntoView({behavior:'smooth'})});
+}
+function setupComparator(managers){
+  const a=$('#compareA'),b=$('#compareB'); if(!a||!b)return;
+  const options=managers.map(m=>`<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+  a.innerHTML=options;b.innerHTML=options;if(managers.length>1)b.selectedIndex=1;
+  const redraw=()=>renderComparison(a.value,b.value);a.onchange=redraw;b.onchange=redraw;if(managers.length)redraw();
+}
+function renderComparison(ma,mb){
+  const A=managerSnapshot(ma),B=managerSnapshot(mb);
+  const side=s=>`<article class="comparison-side"><h3>${escapeHtml(s.manager)}</h3>${[['Real 2026',money(s.real)],['Presupuesto',money(s.budget)],['Desviación',`${money(s.varValue)} · ${pct(s.varPct)}`],['Vs 2025',pct(s.yoy)],['XPV',money(s.xpvReal)],['XPV vs objetivo',pct(s.xpvVar)]].map(x=>`<div class="comparison-metric"><span>${x[0]}</span><strong>${x[1]}</strong></div>`).join('')}</article>`;
+  $('#comparisonCards').innerHTML=side(A)+'<div class="versus-badge">VS</div>'+side(B);
+  const old=Chart.getChart(document.getElementById('comparisonChart'));if(old)old.destroy();
+  safeChart('comparisonChart',{type:'bar',data:{labels:['Real 2026','Presupuesto','XPV Real','XPV Presupuesto'],datasets:[{label:A.manager,data:[A.real,A.budget,A.xpvReal,A.xpvBudget]},{label:B.manager,data:[B.real,B.budget,B.xpvReal,B.xpvBudget]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>shortMoney(v)}}}}});
+  const winner=A.varPct<=B.varPct?A:B, other=winner===A?B:A;
+  $('#comparisonNarrative').innerHTML=[
+    {t:'🏆 Mejor control presupuestal',p:`${winner.manager} presenta la mejor posición relativa: ${pct(winner.varPct)} vs ${pct(other.varPct)}.`},
+    {t:'📊 Brecha de ejecución',p:`La diferencia entre los resultados reales de ambas gerencias es ${money(Math.abs(A.real-B.real))}.`},
+    {t:'🚌 Lectura XPV',p:`${A.xpvVar>=B.xpvVar?A.manager:B.manager} muestra la mejor posición de XPV frente a su objetivo.`}
+  ].map(a=>`<div class="alert-item"><strong>${a.t}</strong><p>${a.p}</p></div>`).join('');
+}
+(function bindIntelligenceControls(){
+  document.addEventListener('DOMContentLoaded',()=>{
+    const p=document.getElementById('presentationBtn'); if(p)p.onclick=()=>{document.body.classList.toggle('presentation-mode');p.textContent=document.body.classList.contains('presentation-mode')?'✕ Salir de presentación':'▶ Modo presentación'};
+    const f=document.getElementById('focusBtn'); if(f)f.onclick=()=>document.getElementById('inteligencia')?.scrollIntoView({behavior:'smooth'});
+  });
+})();
