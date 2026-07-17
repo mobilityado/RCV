@@ -847,3 +847,122 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.key==='Escape'&&document.body.classList.contains('committee-mode'))exitCommitteeMode();
   });
 });
+
+
+// ===== REPORT.IA RCV · ENTERPRISE EDITION 6.0 =====
+const AUTH_ENDPOINT=window.REPORTIA_CONFIG?.authEndpoint||"https://script.google.com/macros/s/AKfycbxUhENeMAGaVJx2Gs4yR_qncJJxHyq8NlFFSfa9qu7XBDgcDu4L9HasfrzZSQBOKgwp/exec";
+const SESSION_KEY='reportia_rcv_enterprise_session_v1';
+
+function getSession(){
+  try{return JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null')}catch(e){return null}
+}
+function setSession(s){sessionStorage.setItem(SESSION_KEY,JSON.stringify(s));}
+function clearSession(){sessionStorage.removeItem(SESSION_KEY);}
+
+function normalizeLoginResponse(data,username){
+  const ok=Boolean(data?.ok ?? data?.success ?? data?.acceso ?? data?.autorizado ?? data?.valid);
+  const user=data?.usuario ?? data?.user ?? data?.nombre ?? data?.name ?? username;
+  const role=data?.tipo ?? data?.role ?? data?.perfil ?? data?.rango ?? 'USUARIO';
+  return {ok,user:String(user||username),role:String(role||'USUARIO').toUpperCase()};
+}
+
+async function loginEnterprise(){
+  const user=document.getElementById('loginUser')?.value.trim();
+  const pass=document.getElementById('loginPassword')?.value;
+  const status=document.getElementById('loginStatus');
+  if(!user||!pass){status.textContent='Ingresa usuario y contraseña.';status.className='login-status error';return;}
+  status.textContent='Validando acceso...';status.className='login-status loading';
+  try{
+    const url=new URL(AUTH_ENDPOINT);
+    url.searchParams.set('accion','login');
+    url.searchParams.set('usuario',user);
+    url.searchParams.set('contrasena',pass);
+    const res=await fetch(url.toString(),{method:'GET',cache:'no-store'});
+    const text=await res.text();
+    let data; try{data=JSON.parse(text)}catch(e){throw new Error('El Apps Script no devolvió JSON válido.');}
+    const auth=normalizeLoginResponse(data,user);
+    if(!auth.ok)throw new Error(data?.mensaje||data?.message||'Usuario o contraseña incorrectos.');
+    const session={name:auth.user,role:auth.role,loginAt:new Date().toISOString()};
+    setSession(session);applySession(session);showApp();
+  }catch(err){
+    status.textContent=err.message||'No fue posible validar el acceso.';
+    status.className='login-status error';
+  }
+}
+
+function initials(name){
+  return String(name||'U').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+}
+function applySession(session){
+  const name=session?.name||'Usuario',role=session?.role||'USUARIO';
+  const sn=document.getElementById('sessionName'); if(sn)sn.textContent=name;
+  const sr=document.getElementById('sessionRole'); if(sr)sr.textContent=role;
+  const av=document.getElementById('sessionAvatar'); if(av)av.textContent=initials(name);
+  const sideName=document.querySelector('.mockup-user strong'); if(sideName)sideName.textContent=name;
+  const sideRole=document.querySelector('.mockup-user span'); if(sideRole)sideRole.textContent=role;
+  const sideAvatar=document.querySelector('.mockup-avatar'); if(sideAvatar)sideAvatar.textContent=initials(name);
+  const greet=document.querySelector('.mockup-greeting h1'); if(greet)greet.textContent=`👋 Hola, ${name.split(/\s+/)[0]}.`;
+  applyRolePermissions(role);
+}
+function applyRolePermissions(role){
+  const isAdmin=role.includes('ADMIN');
+  document.body.dataset.role=role;
+  document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('role-hidden',!isAdmin));
+  // Enterprise policy: non-admin can analyze and export, but uploader remains available unless a future role policy says otherwise.
+}
+function showApp(){
+  document.getElementById('enterpriseLogin')?.classList.add('login-hidden');
+  document.body.classList.add('authenticated');
+  showRoute('enterpriseHome');
+}
+function showLogin(){
+  document.getElementById('enterpriseLogin')?.classList.remove('login-hidden');
+  document.body.classList.remove('authenticated');
+}
+function showRoute(id){
+  const routeIds=['enterpriseHome','dashboard','prioridades','gerencias','costos','gastos','xpv','tendencias','comparador','inteligencia','explorador','historial','copiloto','informePro','cierreEjecutivo','resultados'];
+  routeIds.forEach(r=>{
+    const el=document.getElementById(r); if(!el)return;
+    el.classList.toggle('enterprise-route-hidden',r!==id);
+  });
+  document.querySelectorAll('.mockup-nav a[data-route]').forEach(a=>a.classList.toggle('active',a.dataset.route===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderEnterpriseHome(){
+  const s=typeof proSnapshot==='function'?proSnapshot():null;
+  if(!s)return;
+  const fin=typeof proFinancialRows==='function'?proFinancialRows():[];
+  const managers=aggregate(fin,['manager'],['real26','budget26']).map(addVariance).sort((a,b)=>b.varBudgetPct-a.varBudgetPct);
+  const worst=managers[0],second=managers[1],best=managers[managers.length-1];
+  document.getElementById('enterpriseGreeting').textContent=`${s.score>=80?'Excelente lectura del periodo':'Resumen ejecutivo del periodo'} · ${s.label}`;
+  document.getElementById('enterpriseSummary').textContent=executiveSummaryText()||'El análisis ya está disponible.';
+  document.getElementById('homePulse').textContent=`${s.score}/100`;
+  document.getElementById('homePulseText').textContent=s.score>=85?'Desempeño sólido':s.score>=70?'Desempeño estable':s.score>=55?'Requiere atención':'Prioridad crítica';
+  document.getElementById('homePriority1').textContent=worst?`${worst.manager} · ${pct(worst.varBudgetPct||0)}`:'Sin focos críticos';
+  document.getElementById('homePriority2').textContent=second?`${second.manager} · ${pct(second.varBudgetPct||0)}`:'Sin segunda prioridad';
+  document.getElementById('homeOpportunity').textContent=best?`${best.manager} · ${pct(best.varBudgetPct||0)}`:'Sin oportunidad destacada';
+}
+const _oldRenderProEdition=typeof renderProEdition==='function'?renderProEdition:null;
+if(_oldRenderProEdition){
+  renderProEdition=function(...args){
+    _oldRenderProEdition(...args);
+    renderEnterpriseHome();
+    document.getElementById('enterpriseHome')?.classList.remove('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const session=getSession();
+  if(session){applySession(session);showApp();} else showLogin();
+
+  document.getElementById('loginBtn')?.addEventListener('click',loginEnterprise);
+  document.getElementById('loginPassword')?.addEventListener('keydown',e=>{if(e.key==='Enter')loginEnterprise();});
+  document.getElementById('togglePassword')?.addEventListener('click',()=>{
+    const p=document.getElementById('loginPassword'); if(p)p.type=p.type==='password'?'text':'password';
+  });
+  document.getElementById('sessionUserBtn')?.addEventListener('click',()=>document.getElementById('sessionMenu')?.classList.toggle('hidden'));
+  document.getElementById('logoutBtn')?.addEventListener('click',()=>{clearSession();location.reload();});
+
+  document.querySelectorAll('.mockup-nav a[data-route]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showRoute(a.dataset.route);}));
+  document.querySelectorAll('.home-launch[data-go]').forEach(b=>b.addEventListener('click',()=>showRoute(b.dataset.go)));
+});

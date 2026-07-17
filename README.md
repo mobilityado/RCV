@@ -105,3 +105,12 @@ Nuevas funciones:
 - Copiloto REPORT.IA con preguntas en lenguaje natural sobre los datos cargados.
 - Cierre Ejecutivo automático del periodo.
 - Modo Comité para presentación limpia de Resumen, Prioridades, Gerencias, Tendencias y Conclusión.
+
+
+## Enterprise Edition 6.0
+- Login conectado a Google Apps Script.
+- Sesión activa y cierre de sesión.
+- Saludo personalizado y rol de usuario.
+- Home Ejecutiva simplificada.
+- Navegación por módulos para evitar saturación visual.
+- Archivo de ejemplo de Apps Script para autenticación.

@@ -8,6 +8,46 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="executive-layout-v21">
+
+<div id="enterpriseLogin" class="enterprise-login">
+  <div class="login-visual">
+    <div class="login-brand">
+      <div class="login-logo">R</div>
+      <div><strong>REPORT.IA RCV</strong><span>Enterprise Edition 6.0</span></div>
+    </div>
+    <div class="login-copy">
+      <span class="login-kicker">CENTRO DE INTELIGENCIA EJECUTIVA</span>
+      <h1>Decisiones más claras.<br>Resultados más visibles.</h1>
+      <p>Analiza costos, gastos, productividad y tendencias desde un solo portal ejecutivo.</p>
+      <div class="login-features">
+        <div><b>01</b><span>Dashboard ejecutivo</span></div>
+        <div><b>02</b><span>Copiloto REPORT.IA</span></div>
+        <div><b>03</b><span>Reportes PDF y Excel</span></div>
+      </div>
+    </div>
+    <div class="login-security">🔒 Procesamiento local de reportes · Acceso controlado</div>
+  </div>
+  <div class="login-panel">
+    <div class="login-card">
+      <span class="login-kicker">BIENVENIDO</span>
+      <h2>Iniciar sesión</h2>
+      <p>Ingresa con las credenciales autorizadas en RCV.</p>
+      <label>Usuario
+        <input id="loginUser" type="text" autocomplete="username" placeholder="Nombre de usuario" />
+      </label>
+      <label>Contraseña
+        <div class="password-wrap">
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" />
+          <button id="togglePassword" type="button" aria-label="Mostrar contraseña">◉</button>
+        </div>
+      </label>
+      <button id="loginBtn" class="login-submit">Entrar a REPORT.IA</button>
+      <div id="loginStatus" class="login-status">Conectado al control de acceso RCV.</div>
+      <div class="login-foot">Acceso administrado mediante Google Sheets / Apps Script.</div>
+    </div>
+  </div>
+</div>
+
   
   
   
@@ -16,28 +56,28 @@
     <div class="mockup-logo">R</div>
     <div>
       <strong>REPORT.IA RCV</strong>
-      <span>Pro Edition 5.0</span>
+      <span>Enterprise Edition 6.0</span>
     </div>
   </div>
 
   <nav class="mockup-nav">
-    <a class="active" href="#dashboard"><span>⌂</span>Inicio</a>
-    <a href="#dashboard"><span>▥</span>Resumen Ejecutivo</a>
-    <a href="#gerencias"><span>♟</span>Gerencias</a>
-    <a href="#costos"><span>$</span>Costos</a>
-    <a href="#gastos"><span>▣</span>Gastos</a>
-    <a href="#xpv"><span>↗</span>Productividad XPV</a>
-    <a href="#tendencias"><span>⌁</span>Tendencias</a>
-    <a href="#comparador"><span>⇄</span>Comparador</a>
-    <a href="#pulso"><span>!</span>Alertas <b class="mockup-alert-badge">5</b></a>
-    <a href="#inteligencia"><span>✺</span>Resumen Inteligente</a>
-    <a href="#explorador"><span>⌕</span>Explorador</a>
-    <a href="#historial"><span>◷</span>Historial</a>
-    <a href="#prioridades"><span>◆</span>Prioridades</a>
-    <a href="#copiloto"><span>✦</span>Copiloto REPORT.IA</a>
-    <a href="#informePro"><span>✦</span>Informe Ejecutivo</a>
-    <a href="#cierreEjecutivo"><span>✓</span>Cierre Ejecutivo</a>
-    <a href="#resultados"><span>▤</span>Reportes Ejecutivos</a>
+    <a class="active" href="#enterpriseHome" data-route="enterpriseHome"><span>⌂</span>Inicio</a>
+    <a href="#dashboard" data-route="dashboard"><span>▥</span>Resumen Ejecutivo</a>
+    <a href="#gerencias" data-route="gerencias"><span>♟</span>Gerencias</a>
+    <a href="#costos" data-route="costos"><span>$</span>Costos</a>
+    <a href="#gastos" data-route="gastos"><span>▣</span>Gastos</a>
+    <a href="#xpv" data-route="xpv"><span>↗</span>Productividad XPV</a>
+    <a href="#tendencias" data-route="tendencias"><span>⌁</span>Tendencias</a>
+    <a href="#comparador" data-route="comparador"><span>⇄</span>Comparador</a>
+    <a href="#pulso" data-route="pulso"><span>!</span>Alertas <b class="mockup-alert-badge">5</b></a>
+    <a href="#inteligencia" data-route="inteligencia"><span>✺</span>Resumen Inteligente</a>
+    <a href="#explorador" data-route="explorador"><span>⌕</span>Explorador</a>
+    <a href="#historial" data-route="historial"><span>◷</span>Historial</a>
+    <a href="#prioridades" data-route="prioridades"><span>◆</span>Prioridades</a>
+    <a href="#copiloto" data-route="copiloto"><span>✦</span>Copiloto REPORT.IA</a>
+    <a href="#informePro" data-route="informePro"><span>✦</span>Informe Ejecutivo</a>
+    <a href="#cierreEjecutivo" data-route="cierreEjecutivo"><span>✓</span>Cierre Ejecutivo</a>
+    <a href="#resultados" data-route="resultados"><span>▤</span>Reportes Ejecutivos</a>
   </nav>
 
   <div class="mockup-separator"></div>
@@ -83,7 +123,16 @@
     </div>
     <button id="presentationBtn" class="mockup-refresh">Actualizar datos ⟳</button>
     <button id="committeeBtn" class="mockup-committee">◉ Modo Comité</button>
-    <div class="mockup-top-avatar">JH</div>
+    <div class="session-user">
+      <button id="sessionUserBtn" class="session-user-btn">
+        <div class="mockup-top-avatar" id="sessionAvatar">JH</div>
+        <div class="session-user-copy"><strong id="sessionName">Usuario</strong><span id="sessionRole">—</span></div>
+        <span>⌄</span>
+      </button>
+      <div id="sessionMenu" class="session-menu hidden">
+        <button id="logoutBtn">Cerrar sesión</button>
+      </div>
+    </div>
   </div>
 </header>
 <section id="carga" class="workspace-upload-card">
@@ -145,6 +194,35 @@
   <button class="pro-command accent" data-target="informePro">
     <span>✦</span><div><strong>Generar informe</strong><small>Narrativa ejecutiva automática</small></div>
   </button>
+</section>
+
+
+<section id="enterpriseHome" class="enterprise-home hidden">
+  <div class="enterprise-hero">
+    <div>
+      <span class="eyebrow">REPORT.IA RCV · ENTERPRISE EDITION</span>
+      <h2 id="enterpriseGreeting">Buenos días.</h2>
+      <p id="enterpriseSummary">Carga y procesa tus reportes para obtener una lectura ejecutiva del periodo.</p>
+    </div>
+    <div class="hero-pulse">
+      <span>PULSO RCV</span>
+      <strong id="homePulse">—</strong>
+      <small id="homePulseText">Pendiente de análisis</small>
+    </div>
+  </div>
+
+  <div class="home-priority-row">
+    <article class="home-focus-card critical"><span>PRIORIDAD 1</span><strong id="homePriority1">Sin análisis</strong><p>Principal foco del periodo.</p></article>
+    <article class="home-focus-card attention"><span>PRIORIDAD 2</span><strong id="homePriority2">Sin análisis</strong><p>Segunda revisión sugerida.</p></article>
+    <article class="home-focus-card good"><span>OPORTUNIDAD</span><strong id="homeOpportunity">Sin análisis</strong><p>Mejor desempeño detectado.</p></article>
+  </div>
+
+  <div class="home-launch-grid">
+    <button class="home-launch primary" data-go="dashboard"><span>▥</span><div><strong>Analizar operación</strong><small>KPIs, tendencias y alertas</small></div><b>→</b></button>
+    <button class="home-launch" data-go="gerencias"><span>♟</span><div><strong>Revisar gerencias</strong><small>Desempeño y detalle ejecutivo</small></div><b>→</b></button>
+    <button class="home-launch" data-go="explorador"><span>⌕</span><div><strong>Explorar desviaciones</strong><small>Gerencia → agrupador → cuenta</small></div><b>→</b></button>
+    <button class="home-launch" data-go="resultados"><span>▤</span><div><strong>Generar reportes</strong><small>PDF, Excel y paquete ejecutivo</small></div><b>→</b></button>
+  </div>
 </section>
 
 <section id="dashboard" class="dashboard hidden">
@@ -390,7 +468,7 @@
   </div>
   <div class="pro-report-layout">
     <article class="pro-report-cover">
-      <span class="report-badge">PRO EDITION 5.0</span>
+      <span class="report-badge">ENTERPRISE EDITION 6.0</span>
       <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
       <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
       <div id="proReportScore" class="report-score">—</div>
@@ -412,7 +490,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">PRO EDITION 5.0</span>
+    <span class="eyebrow">ENTERPRISE EDITION 6.0</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>
@@ -432,6 +510,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
