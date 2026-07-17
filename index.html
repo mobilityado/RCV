@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#6d28d9" />
+  <title>REPORT.IA RCV</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">R</div>
+      <div><strong>REPORT.IA</strong><span>RCV · Automatización</span></div>
+    </div>
+    <nav>
+      <a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
+      <a href="#validacion">✓ <span>Validación</span></a>
+      <a href="#resultados">⇩ <span>Resultados</span></a>
+    </nav>
+    <div class="privacy">🔒 Procesamiento local<br><small>Tus archivos no se envían a ningún servidor.</small></div>
+  </aside>
+
+  <main>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">CENTRO DE AUTOMATIZACIÓN RCV</p>
+        <h1>¿Qué reportes deseas generar hoy?</h1>
+        <p>Carga un Excel con pestañas JD o varios archivos por separado. REPORT.IA detectará, validará y procesará la información.</p>
+      </div>
+      <div class="month-box">
+        <label for="month">Mes de corte</label>
+        <select id="month"></select>
+      </div>
+    </header>
+
+    <section id="carga" class="panel">
+      <div class="section-title">
+        <div><span class="step">01</span><h2>Carga de información</h2></div>
+        <button id="clearBtn" class="ghost">Limpiar</button>
+      </div>
+      <div id="dropZone" class="drop-zone" tabindex="0">
+        <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
+        <div class="upload-icon">⇧</div>
+        <h3>Arrastra aquí tus archivos</h3>
+        <p>Un solo Excel con pestañas o archivos separados.</p>
+        <button id="browseBtn" class="primary">Seleccionar archivos</button>
+        <small>Formatos admitidos: XLSX, XLS y XLSM</small>
+      </div>
+      <div id="fileList" class="file-list"></div>
+    </section>
+
+    <section id="validacion" class="panel">
+      <div class="section-title"><div><span class="step">02</span><h2>Validación automática</h2></div></div>
+      <div id="validationGrid" class="validation-grid">
+        <div class="empty-state">Aún no has cargado información.</div>
+      </div>
+    </section>
+
+    <section class="actions">
+      <button id="processBtn" class="process" disabled>✨ Procesar y generar reportes</button>
+      <p id="statusText">Carga los reportes requeridos para continuar.</p>
+    </section>
+
+    <section id="resultados" class="panel hidden">
+      <div class="section-title"><div><span class="step success">03</span><h2>Reportes generados</h2></div></div>
+      <div class="success-banner">
+        <div class="success-icon">✓</div>
+        <div><h3>¡Excelente trabajo!</h3><p>Los reportes RCV fueron procesados correctamente.</p></div>
+      </div>
+      <div id="downloadGrid" class="download-grid"></div>
+      <button id="zipBtn" class="zip-button">📦 Descargar paquete FINAL.zip</button>
+    </section>
+
+    <footer>REPORT.IA RCV · Automatización local de reportes · Mobility ADO</footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
