@@ -1,48 +1,32 @@
-# REPORT.IA RCV
+# REPORT.IA RCV · Executive Suite
 
-Aplicación web estática para automatizar la generación de reportes RCV desde archivos JD.
+Portal web 100% del lado del navegador para cargar reportes JD, analizarlos y generar reportes RCV.
 
-## Funciones
+## Módulos
 
-- Acepta un solo Excel con las pestañas:
-  - `CATALOGO DE GERENTES`
-  - `JD COSTO RCV`
-  - `JD XPV RCV`
-  - `JD GASTOS RCV`
-- También acepta los archivos por separado.
-- Detecta y valida automáticamente las fuentes.
-- Permite seleccionar el mes de corte.
-- Genera:
-  - `COSTO RCV 2026.xlsx`
-  - `Gastos RCV 2026.xlsx`
-  - `Productividad XPV [mes] 26 RCV.xlsx`
-  - `FINAL.zip`
-- Todo se procesa localmente en el navegador.
+- Carga de Excel consolidado por pestañas o archivos separados.
+- Detección automática de JD COSTO RCV, JD XPV RCV, JD GASTOS RCV y catálogo de gerentes.
+- Resumen Ejecutivo con KPIs y desviaciones.
+- Análisis por Gerencia con ficha ejecutiva, semáforo, tendencia, drivers y XPV.
+- Módulo de Costos.
+- Módulo de Gastos.
+- Módulo de Productividad XPV.
+- Tendencias acumuladas 2025 / Presupuesto 2026 / Real 2026.
+- Resumen Inteligente y mapa ejecutivo de gerencias.
+- Descarga individual de reportes y paquete FINAL.zip.
 
 ## Publicar en GitHub Pages
 
 1. Crea un repositorio nuevo en GitHub.
-2. Sube `index.html`, `styles.css` y `app.js` a la raíz.
-3. En **Settings → Pages**, selecciona **Deploy from a branch**.
-4. Selecciona la rama `main` y la carpeta `/ (root)`.
-5. Guarda y abre la URL publicada por GitHub Pages.
+2. Sube `index.html`, `styles.css`, `app.js`, `README.md` y `.gitignore` a la raíz.
+3. En Settings > Pages selecciona Deploy from a branch.
+4. Selecciona la rama `main` y carpeta `/root`.
+5. Guarda y abre la URL publicada.
 
-## Dependencias
+## Privacidad
 
-La aplicación carga SheetJS y JSZip desde CDN. Por ello, al abrirla se requiere conexión a internet para cargar esas dos librerías. Los archivos Excel del usuario no se envían a esas librerías ni a un servidor: el procesamiento ocurre en el navegador.
+El procesamiento se realiza localmente en el navegador. Los archivos cargados no se envían a un servidor por esta aplicación.
 
-## Lógica actual de generación
+## Nota
 
-Para Costos y Gastos se toman los campos de JD y se acumulan hasta el mes seleccionado:
-
-- 2025 = `REAL GESTION` del año 2025.
-- PTTO. 2026 = `PRESUPUESTO GESTION` del año 2026.
-- 2026 = `REAL GESTION` del año 2026.
-- Se calculan diferencias 25 vs 26 y PTTO vs 26.
-- Se aplica el catálogo de gerentes cuando está disponible.
-
-En Costos se generan las hojas `COSTOS OPERATIVOS`, `COSTO MANTTO`, `premisas 26` y `SMO` con reglas de clasificación incorporadas.
-
-## Nota de compatibilidad con el FINAL histórico
-
-Esta versión reconstruye la lógica de cálculo directamente en JavaScript y no depende del complemento XLCubed. Debido a que los archivos históricos contienen pivotes/conexiones y estructuras propias de Excel/XLCubed, pueden existir diferencias de presentación o de reglas específicas frente al archivo histórico. La app está preparada para ajustar esas reglas en `app.js` sin cambiar la interfaz.
+La lógica de generación reconstruye los cálculos en JavaScript y no depende de complementos externos como XLCubed. Para igualar al 100% reportes históricos específicos, pueden requerirse ajustes adicionales a reglas de negocio o formatos particulares de las plantillas originales.

@@ -15,9 +15,14 @@
     </div>
     <nav>
       <a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
-      <a href="#validacion">✓ <span>Validación</span></a>
-      <a href="#dashboard">◫ <span>Dashboard</span></a>
-      <a href="#resultados">⇩ <span>Descargas</span></a>
+      <a href="#dashboard">⌂ <span>Resumen Ejecutivo</span></a>
+      <a href="#gerencias">🏢 <span>Gerencias</span></a>
+      <a href="#costos">💰 <span>Costos</span></a>
+      <a href="#gastos">📊 <span>Gastos</span></a>
+      <a href="#xpv">🚌 <span>Productividad XPV</span></a>
+      <a href="#tendencias">📈 <span>Tendencias</span></a>
+      <a href="#inteligencia">🧠 <span>Resumen Inteligente</span></a>
+      <a href="#resultados">📑 <span>Generar Reportes</span></a>
     </nav>
     <div class="privacy">🔒 Procesamiento local<br><small>La información permanece en tu equipo.</small></div>
   </aside>
@@ -93,6 +98,53 @@
           <div id="alertsList" class="alerts-list"></div>
         </article>
       </div>
+    </section>
+
+
+    <section id="gerencias" class="analytics-section hidden">
+      <div class="module-head">
+        <div><p class="eyebrow">ANÁLISIS POR GERENCIA</p><h2>Ficha ejecutiva de desempeño</h2><p>Selecciona una gerencia para entender su resultado, tendencia y principales impulsores.</p></div>
+        <div class="manager-picker"><label for="managerSelect">Gerencia</label><select id="managerSelect"></select></div>
+      </div>
+      <div id="managerKpis" class="kpi-grid"></div>
+      <div class="manager-layout">
+        <article class="chart-card wide"><div class="card-head"><div><span>TENDENCIA</span><h3>Real vs Presupuesto por mes</h3></div><div id="managerStatus" class="status-chip"></div></div><div class="chart-wrap"><canvas id="managerTrendChart"></canvas></div></article>
+        <article class="chart-card"><div class="card-head"><div><span>XPV</span><h3>Productividad de la gerencia</h3></div></div><div class="chart-wrap"><canvas id="managerXpvChart"></canvas></div></article>
+      </div>
+      <div class="executive-grid">
+        <article class="table-card"><div class="card-head"><div><span>DRIVERS</span><h3>Cuentas con mayor impacto</h3></div></div><div class="table-scroll"><table><thead><tr><th>Cuenta / Agrupador</th><th>Real</th><th>Presupuesto</th><th>Desviación</th></tr></thead><tbody id="managerDrivers"></tbody></table></div></article>
+        <article class="alerts-card"><div class="card-head"><div><span>DIAGNÓSTICO</span><h3>Lectura ejecutiva</h3></div></div><div id="managerNarrative" class="alerts-list"></div></article>
+      </div>
+    </section>
+
+    <section id="costos" class="analytics-section hidden">
+      <div class="module-head"><div><p class="eyebrow">COSTOS</p><h2>Control ejecutivo de costos</h2><p>Distribución, presupuesto y principales focos de desviación.</p></div></div>
+      <div id="costKpis" class="kpi-grid"></div>
+      <div class="insight-grid"><article class="chart-card wide"><div class="card-head"><div><span>GERENCIAS</span><h3>Costo real vs presupuesto</h3></div></div><div class="chart-wrap tall"><canvas id="costManagerChart"></canvas></div></article><article class="chart-card"><div class="card-head"><div><span>CONCENTRACIÓN</span><h3>Top agrupadores</h3></div></div><div class="chart-wrap"><canvas id="costGroupChart"></canvas></div></article></div>
+    </section>
+
+    <section id="gastos" class="analytics-section hidden">
+      <div class="module-head"><div><p class="eyebrow">GASTOS</p><h2>Panorama de gasto RCV</h2><p>Identifica rápidamente dónde se concentra el gasto y qué gerencias requieren atención.</p></div></div>
+      <div id="expenseKpis" class="kpi-grid"></div>
+      <div class="insight-grid"><article class="chart-card wide"><div class="card-head"><div><span>GERENCIAS</span><h3>Gasto real vs presupuesto</h3></div></div><div class="chart-wrap tall"><canvas id="expenseManagerChart"></canvas></div></article><article class="chart-card"><div class="card-head"><div><span>CUENTAS</span><h3>Mayores desviaciones</h3></div></div><div class="chart-wrap"><canvas id="expenseAccountChart"></canvas></div></article></div>
+    </section>
+
+    <section id="xpv" class="analytics-section hidden">
+      <div class="module-head"><div><p class="eyebrow">PRODUCTIVIDAD XPV</p><h2>Desempeño de productividad por gerencia</h2><p>Comparativo directo del resultado real contra el presupuesto.</p></div></div>
+      <div id="xpvKpis" class="kpi-grid"></div>
+      <article class="chart-card"><div class="card-head"><div><span>RANKING</span><h3>XPV real vs presupuesto por gerencia</h3></div></div><div class="chart-wrap x-tall"><canvas id="xpvFullChart"></canvas></div></article>
+    </section>
+
+    <section id="tendencias" class="analytics-section hidden">
+      <div class="module-head"><div><p class="eyebrow">TENDENCIAS</p><h2>Evolución financiera del periodo</h2><p>Compara 2025, presupuesto 2026 y ejecución real 2026 para anticipar desviaciones.</p></div></div>
+      <article class="chart-card"><div class="card-head"><div><span>ACUMULADO MENSUAL</span><h3>Trayectoria consolidada</h3></div></div><div class="chart-wrap x-tall"><canvas id="cumulativeChart"></canvas></div></article>
+      <div id="trendCards" class="trend-cards"></div>
+    </section>
+
+    <section id="inteligencia" class="analytics-section hidden">
+      <div class="module-head"><div><p class="eyebrow">RESUMEN INTELIGENTE</p><h2>Lo que REPORT.IA considera prioritario</h2><p>Hallazgos automáticos para orientar la conversación ejecutiva.</p></div></div>
+      <div id="smartSummary" class="smart-summary"></div>
+      <div class="executive-grid"><article class="table-card"><div class="card-head"><div><span>SEMÁFORO</span><h3>Mapa ejecutivo de gerencias</h3></div></div><div id="managerMap" class="manager-map"></div></article><article class="alerts-card"><div class="card-head"><div><span>PRIORIDADES</span><h3>Acciones sugeridas</h3></div></div><div id="actionList" class="alerts-list"></div></article></div>
     </section>
 
     <section id="resultados" class="panel hidden">

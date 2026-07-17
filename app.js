@@ -38,7 +38,7 @@ async function loadFiles(files){
 }
 
 function removeFile(i){state.files.splice(i,1);renderFiles();parseSources()}
-function reset(){state.files=[];state.sources={};state.outputs={};destroyCharts();$('#fileInput').value='';renderFiles();renderValidation();$('#dashboard').classList.add('hidden');$('#resultados').classList.add('hidden')}
+function reset(){state.files=[];state.sources={};state.outputs={};state.analysis=null;destroyCharts();$('#fileInput').value='';renderFiles();renderValidation();['dashboard','gerencias','costos','gastos','xpv','tendencias','inteligencia','resultados'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
 function renderFiles(){
   $('#fileList').innerHTML=state.files.map((f,i)=>`<div class="file-item"><div class="file-meta"><div class="file-badge">XLS</div><div><strong>${escapeHtml(f.name)}</strong><small>${formatBytes(f.size)}</small></div></div><button class="remove" data-i="${i}" title="Quitar">×</button></div>`).join('');
   document.querySelectorAll('.remove').forEach(b=>b.onclick=()=>removeFile(+b.dataset.i));
@@ -188,6 +188,7 @@ async function processAll(){
       [`Productividad XPV ${label} 26 RCV.xlsx`]:wbBlob(xpvWb)
     };
     renderExecutiveDashboard(costRows,expenseRows,xpvRows,cutoff);
+    renderExtendedSuite(costRows,expenseRows,xpvRows,cutoff);
     renderDownloads();
     $('#dashboard').classList.remove('hidden');
     $('#resultados').classList.remove('hidden');
@@ -255,4 +256,130 @@ function renderExecutiveDashboard(costRows,expenseRows,xpvRows,cutoff){
   alerts.push({t:'🏢 Distribución por gerencias',p:`${over} gerencias se encuentran por encima del presupuesto y ${under} se mantienen en línea o por debajo.`});
   if(bestXpv)alerts.push({t:'📈 Señal XPV',p:`${bestXpv.manager} destaca en el comparativo XPV con una diferencia de ${money(bestXpv.real-bestXpv.budget)} frente al presupuesto.`});
   $('#alertsList').innerHTML=alerts.map(a=>`<div class="alert-item"><strong>${a.t}</strong><p>${a.p}</p></div>`).join('');
+}
+
+/* ===== REPORT.IA Executive Suite: módulos avanzados ===== */
+function severityFromVariance(v){
+  if(v<=0) return 'good';
+  if(v<=0.05) return 'warn';
+  return 'bad';
+}
+function severityLabel(v){
+  const s=severityFromVariance(v); return s==='good'?'🟢 FAVORABLE':s==='warn'?'🟡 ATENCIÓN':'🔴 CRÍTICO';
+}
+function safeChart(canvasId,config){
+  const el=document.getElementById(canvasId); if(!el) return null;
+  const c=new Chart(el,config); state.charts.push(c); return c;
+}
+function topByAbs(rows,key,n=8){return [...rows].sort((a,b)=>Math.abs(num(b[key]))-Math.abs(num(a[key]))).slice(0,n)}
+function cumulative(values){let a=0;return values.map(v=>a+=num(v))}
+
+function renderExtendedSuite(costRows,expenseRows,xpvRows,cutoff){
+  state.analysis={costRows,expenseRows,xpvRows,cutoff};
+  ['gerencias','costos','gastos','xpv','tendencias','inteligencia'].forEach(id=>document.getElementById(id)?.classList.remove('hidden'));
+  const managers=[...new Set([...costRows,...expenseRows,...xpvRows].map(r=>r.manager).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const sel=$('#managerSelect');
+  if(sel){
+    sel.innerHTML=managers.map(m=>`<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+    sel.onchange=()=>renderManagerDetail(sel.value);
+    if(managers.length) renderManagerDetail(managers[0]);
+  }
+  renderFinancialModule('cost',costRows,'costKpis','costManagerChart','costGroupChart','group');
+  renderFinancialModule('expense',expenseRows,'expenseKpis','expenseManagerChart','expenseAccountChart','account');
+  renderXpvModule(xpvRows);
+  renderTrendModule([...costRows,...expenseRows],cutoff);
+  renderSmartModule(costRows,expenseRows,xpvRows,managers);
+}
+
+function renderFinancialModule(kind,rows,kpiId,managerChartId,detailChartId,detailKey){
+  const real25=sum(rows,'real25'),budget=sum(rows,'budget26'),real=sum(rows,'real26');
+  const vB=budget?(real-budget)/budget:0, vY=real25?(real-real25)/real25:0;
+  const managerAgg=aggregate(rows,['manager'],['budget26','real26']).map(addVariance).sort((a,b)=>Math.abs(b.varBudget)-Math.abs(a.varBudget));
+  const detailAgg=aggregate(rows,[detailKey],['budget26','real26']).map(addVariance);
+  const kpi=document.getElementById(kpiId);
+  if(kpi) kpi.innerHTML=[
+    ['REAL 2026',money(real),`${pct(vY)} vs 2025`,trendClass(vY,true)],
+    ['PRESUPUESTO',money(budget),`${money(real-budget)} de desviación`,trendClass(vB,true)],
+    ['VARIACIÓN',pct(vB),vB>0?'Por encima del presupuesto':'Dentro / debajo del presupuesto',trendClass(vB,true)],
+    ['GERENCIAS',new Set(rows.map(r=>r.manager)).size.toLocaleString('es-MX'),`${rows.length.toLocaleString('es-MX')} registros`,'neutral']
+  ].map(x=>`<article class="kpi-card"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${x[1]}</div><div class="kpi-detail">${x[2]}</div><span class="kpi-trend ${x[3]}">${kind==='cost'?'Control de costos':'Control de gastos'}</span></article>`).join('');
+  const topM=managerAgg.slice(0,10);
+  safeChart(managerChartId,{type:'bar',data:{labels:topM.map(x=>x.manager),datasets:[{label:'Real 2026',data:topM.map(x=>x.real26)},{label:'Presupuesto',data:topM.map(x=>x.budget26)}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{position:'bottom'}},scales:{x:{ticks:{callback:v=>shortMoney(v)}}}}});
+  const topD=topByAbs(detailAgg,'varBudget',8);
+  safeChart(detailChartId,{type:'bar',data:{labels:topD.map(x=>String(x[detailKey]||'Sin clasificar').slice(0,28)),datasets:[{label:'Desviación $',data:topD.map(x=>x.varBudget)}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>shortMoney(v)}}}}});
+}
+
+function renderXpvModule(rows){
+  const real=sum(rows,'real'),budget=sum(rows,'budget'),v=budget?(real-budget)/budget:0;
+  const agg=aggregate(rows,['manager'],['real','budget']).map(r=>({...r,varBudget:r.real-r.budget,varBudgetPct:r.budget?(r.real-r.budget)/r.budget:0})).sort((a,b)=>(b.real-b.budget)-(a.real-a.budget));
+  $('#xpvKpis').innerHTML=[
+    ['XPV REAL',money(real),'Resultado acumulado'],['XPV PRESUPUESTO',money(budget),'Objetivo acumulado'],['DESVIACIÓN XPV',money(real-budget),pct(v)],['MEJOR GERENCIA',agg[0]?.manager||'—',agg[0]?money(agg[0].varBudget):'Sin datos']
+  ].map(x=>`<article class="kpi-card"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${x[1]}</div><div class="kpi-detail">${x[2]}</div></article>`).join('');
+  safeChart('xpvFullChart',{type:'bar',data:{labels:agg.map(x=>x.manager),datasets:[{label:'Real XPV',data:agg.map(x=>x.real)},{label:'Presupuesto',data:agg.map(x=>x.budget)}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{position:'bottom'}},scales:{x:{ticks:{callback:v=>shortMoney(v)}}}}});
+}
+
+function renderTrendModule(financial,cutoff){
+  const monthly=MONTHS.map(([value,label])=>{
+    const rows=financial.filter(r=>monthRank(r.period)===monthRank(value));
+    return {label,real25:sum(rows,'real25'),budget:sum(rows,'budget26'),real:sum(rows,'real26')};
+  }).filter((_,i)=>i<=monthRank(cutoff));
+  const c25=cumulative(monthly.map(x=>x.real25)), cb=cumulative(monthly.map(x=>x.budget)), cr=cumulative(monthly.map(x=>x.real));
+  safeChart('cumulativeChart',{type:'line',data:{labels:monthly.map(x=>x.label),datasets:[{label:'Acumulado 2025',data:c25,tension:.3},{label:'Presupuesto 2026',data:cb,tension:.3,borderDash:[6,5]},{label:'Acumulado 2026',data:cr,tension:.3,borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>shortMoney(v)}}}}});
+  const last=monthly.length-1;
+  const lastMonth=monthly[last]||{real:0,budget:0,real25:0};
+  const prev=monthly[last-1]||{real:0};
+  const mom=prev.real?(lastMonth.real-prev.real)/Math.abs(prev.real):0;
+  const budgetVar=lastMonth.budget?(lastMonth.real-lastMonth.budget)/lastMonth.budget:0;
+  const yoy=lastMonth.real25?(lastMonth.real-lastMonth.real25)/lastMonth.real25:0;
+  $('#trendCards').innerHTML=[['VARIACIÓN MENSUAL',pct(mom),'Cambio del último mes vs mes previo'],['VS PRESUPUESTO DEL MES',pct(budgetVar),budgetVar>0?'Presión presupuestal':'Resultado favorable'],['VS MISMO PERIODO 2025',pct(yoy),'Comparativo interanual']].map(x=>`<article class="trend-card"><span>${x[0]}</span><strong>${x[1]}</strong><p>${x[2]}</p></article>`).join('');
+}
+
+function managerFinancial(manager){
+  const a=state.analysis||{};
+  return [...(a.costRows||[]),...(a.expenseRows||[])].filter(r=>r.manager===manager);
+}
+function renderManagerDetail(manager){
+  if(!state.analysis)return;
+  const rows=managerFinancial(manager), xpv=(state.analysis.xpvRows||[]).filter(r=>r.manager===manager), cutoff=state.analysis.cutoff;
+  const r25=sum(rows,'real25'),budget=sum(rows,'budget26'),real=sum(rows,'real26'),vb=budget?(real-budget)/budget:0,vy=r25?(real-r25)/r25:0;
+  const xr=sum(xpv,'real'),xb=sum(xpv,'budget'),xv=xb?(xr-xb)/xb:0;
+  $('#managerKpis').innerHTML=[['REAL 2026',money(real),`${pct(vy)} vs 2025`],['PRESUPUESTO',money(budget),`${money(real-budget)} desviación`],['VARIACIÓN',pct(vb),severityLabel(vb)],['XPV',money(xr),`${pct(xv)} vs presupuesto`]].map(x=>`<article class="kpi-card"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${x[1]}</div><div class="kpi-detail">${x[2]}</div></article>`).join('');
+  const status=$('#managerStatus'); status.textContent=severityLabel(vb); status.className='status-chip '+severityFromVariance(vb);
+  // destroy only manager detail charts before redraw
+  ['managerTrendChart','managerXpvChart'].forEach(id=>{const el=document.getElementById(id);const existing=Chart.getChart(el);if(existing){existing.destroy();state.charts=state.charts.filter(c=>c!==existing)}});
+  const monthly=MONTHS.map(([value,label])=>{const rr=rows.filter(r=>monthRank(r.period)===monthRank(value));return {label,b:sum(rr,'budget26'),r:sum(rr,'real26')}}).filter((_,i)=>i<=monthRank(cutoff));
+  safeChart('managerTrendChart',{type:'line',data:{labels:monthly.map(x=>x.label),datasets:[{label:'Real 2026',data:monthly.map(x=>x.r),tension:.35,borderWidth:3},{label:'Presupuesto',data:monthly.map(x=>x.b),tension:.35,borderDash:[6,5]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{ticks:{callback:v=>shortMoney(v)}}}}});
+  safeChart('managerXpvChart',{type:'doughnut',data:{labels:['Real XPV','Brecha a presupuesto'],datasets:[{data:[Math.max(xr,0),Math.max(xb-xr,0)]}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom'}}}});
+  const drivers=topByAbs(aggregate(rows,['account','group'],['real26','budget26']).map(addVariance),'varBudget',10);
+  $('#managerDrivers').innerHTML=drivers.map(d=>`<tr><td><strong>${escapeHtml(d.account||d.group||'Sin clasificar')}</strong><br><small>${escapeHtml(d.group||'')}</small></td><td class="num">${money(d.real26)}</td><td class="num">${money(d.budget26)}</td><td class="num"><span class="pill ${d.varBudget>0?'bad':'good'}">${money(d.varBudget)}</span></td></tr>`).join('')||'<tr><td colspan="4">Sin información suficiente.</td></tr>';
+  const biggest=drivers[0];
+  $('#managerNarrative').innerHTML=[
+    {t:severityLabel(vb)+' · Posición presupuestal',p:`${manager} se encuentra ${pct(Math.abs(vb))} ${vb>0?'por encima':'por debajo'} del presupuesto acumulado.`},
+    {t:'📊 Comparativo interanual',p:`El resultado 2026 presenta una variación de ${pct(vy)} frente al periodo comparable de 2025.`},
+    {t:'🚌 Productividad XPV',p:`La productividad registra ${money(xr)} frente a un presupuesto de ${money(xb)} (${pct(xv)} de variación).`},
+    biggest?{t:'🎯 Principal impulsor',p:`La cuenta ${biggest.account||biggest.group} explica una desviación de ${money(biggest.varBudget)} y debe revisarse como primer foco.`}:null
+  ].filter(Boolean).map(a=>`<div class="alert-item"><strong>${a.t}</strong><p>${a.p}</p></div>`).join('');
+}
+
+function renderSmartModule(costRows,expenseRows,xpvRows,managers){
+  const fin=[...costRows,...expenseRows];
+  const managerAgg=aggregate(fin,['manager'],['real25','budget26','real26']).map(addVariance).sort((a,b)=>b.varBudgetPct-a.varBudgetPct);
+  const favorable=managerAgg.filter(x=>x.varBudget<=0).length, critical=managerAgg.filter(x=>x.varBudgetPct>0.05).length;
+  const totalB=sum(fin,'budget26'),totalR=sum(fin,'real26'),v=totalB?(totalR-totalB)/totalB:0;
+  const top=managerAgg[0], best=[...managerAgg].sort((a,b)=>a.varBudgetPct-b.varBudgetPct)[0];
+  const accountAgg=aggregate(fin,['account'],['budget26','real26']).map(addVariance);const driver=topByAbs(accountAgg,'varBudget',1)[0];
+  $('#smartSummary').innerHTML=[
+    ['🧭','POSICIÓN GENERAL',`El consolidado está ${pct(Math.abs(v))} ${v>0?'por encima':'por debajo'} del presupuesto.`],
+    ['🏢','GERENCIAS FAVORABLES',`${favorable} de ${managerAgg.length} gerencias están en línea o por debajo de presupuesto.`],
+    ['🚨','FOCOS CRÍTICOS',`${critical} gerencias superan en más de 5% su presupuesto acumulado.`],
+    ['🎯','PRINCIPAL DRIVER',driver?`${driver.account} concentra una desviación de ${money(driver.varBudget)}.`:'No se identificó un driver dominante.']
+  ].map(x=>`<article class="smart-card"><div class="smart-icon">${x[0]}</div><h3>${x[1]}</h3><p>${x[2]}</p></article>`).join('');
+  $('#managerMap').innerHTML=managerAgg.map(m=>{const s=severityFromVariance(m.varBudgetPct||0);return `<div class="manager-tile" data-manager="${escapeHtml(m.manager)}"><div class="top"><strong>${escapeHtml(m.manager)}</strong><span class="dot ${s}"></span></div><small>${pct(m.varBudgetPct||0)} · ${money(m.varBudget)} vs presupuesto</small></div>`}).join('');
+  document.querySelectorAll('.manager-tile').forEach(t=>t.onclick=()=>{const m=t.dataset.manager;$('#managerSelect').value=m;renderManagerDetail(m);document.getElementById('gerencias').scrollIntoView({behavior:'smooth'})});
+  $('#actionList').innerHTML=[
+    top?{t:'1 · Revisar desviación prioritaria',p:`Analizar ${top.manager}, actualmente con ${pct(top.varBudgetPct||0)} frente al presupuesto.`}:null,
+    driver?{t:'2 · Validar cuenta de mayor impacto',p:`Revisar movimientos y supuestos de ${driver.account}, con impacto de ${money(driver.varBudget)}.`}:null,
+    best?{t:'3 · Replicar mejor práctica',p:`Tomar como referencia el comportamiento de ${best.manager}, con ${pct(best.varBudgetPct||0)} vs presupuesto.`}:null,
+    {t:'4 · Cerrar ciclo de reporte',p:'Descargar los archivos finales después de validar los focos críticos y documentar las variaciones relevantes.'}
+  ].filter(Boolean).map(a=>`<div class="alert-item"><strong>${a.t}</strong><p>${a.p}</p></div>`).join('');
 }
