@@ -548,25 +548,143 @@ function rcvToast(message,type=''){
       if(confirm('No se pudo iniciar el exportador PDF. ¿Deseas abrir la ventana de impresión para guardar esta vista como PDF?')) window.print();
       return;
     }
-    rcvToast('Generando PDF…');
-    const canvas=await html2canvas(element,{scale:1.6,useCORS:true,backgroundColor:'#ffffff',logging:false});
-    const img=canvas.toDataURL('image/jpeg',0.92);
-    const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF('p','mm','a4');
-    const pw=210, ph=297, margin=10, header=18;
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(15); pdf.text(title,margin,11);
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.text('REPORT.IA RCV · Intelligence Edition 2.0',margin,16);
-    const iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
-    let y=header, remaining=ih, sy=0;
-    while(remaining>0){
-      const pageH=ph-y-margin;
-      const sliceH=Math.min(pageH,remaining);
-      // Use same image with negative y clipping per page
-      pdf.addImage(img,'JPEG',margin,y-sy,iw,ih);
-      remaining-=sliceH; sy+=sliceH;
-      if(remaining>0){ pdf.addPage(); y=margin; }
+
+    try{
+      rcvToast('Preparando contenido del reporte…');
+
+      // Identificador temporal para localizar el mismo nodo dentro del DOM clonado.
+      const hadId=!!element.id;
+      if(!hadId) element.id='rcv-pdf-capture-root';
+
+      // Espera a que fuentes e imágenes visibles terminen de cargar.
+      if(document.fonts?.ready){
+        try{ await document.fonts.ready; }catch(_){}
+      }
+      const imgs=[...element.querySelectorAll('img')];
+      await Promise.all(imgs.map(img=>{
+        if(img.complete) return Promise.resolve();
+        return new Promise(resolve=>{
+          img.addEventListener('load',resolve,{once:true});
+          img.addEventListener('error',resolve,{once:true});
+          setTimeout(resolve,2500);
+        });
+      }));
+
+      // Llevar temporalmente el elemento al inicio evita capturas vacías
+      // cuando el usuario está desplazado hacia otra parte del dashboard.
+      const oldScrollX=window.scrollX, oldScrollY=window.scrollY;
+      window.scrollTo(0,0);
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+      rcvToast('Generando captura del reporte…');
+      const canvas=await html2canvas(element,{
+        scale:1.5,
+        useCORS:true,
+        allowTaint:false,
+        backgroundColor:'#ffffff',
+        logging:false,
+        imageTimeout:12000,
+        scrollX:0,
+        scrollY:0,
+        windowWidth:Math.max(document.documentElement.clientWidth, element.scrollWidth),
+        windowHeight:Math.max(document.documentElement.clientHeight, element.scrollHeight),
+        onclone:(doc)=>{
+          // Ocultar componentes flotantes que no deben aparecer en el informe.
+          doc.querySelectorAll(
+            '.rcv-v9-toolbar,.rcv-v9-panel,.v10-fab-stack,.v10-sheet,'+
+            '#exportSuite,.modal,.toast,[role="dialog"]'
+          ).forEach(el=>el.style.display='none');
+
+          const cloned=doc.querySelector('#'+CSS.escape(element.id||''));
+          if(cloned){
+            cloned.style.transform='none';
+            cloned.style.filter='none';
+            cloned.style.opacity='1';
+          }
+        }
+      });
+
+      window.scrollTo(oldScrollX,oldScrollY);
+
+      if(!canvas || canvas.width<10 || canvas.height<10){
+        throw new Error('La captura del reporte no contiene información visible.');
+      }
+
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
+      const pw=210, ph=297, margin=10, header=22, footer=8;
+      const usableW=pw-margin*2;
+      const usableH=ph-header-footer-margin;
+
+      // Relación px/mm de la captura al ajustar al ancho del A4.
+      const pxPerMm=canvas.width/usableW;
+      const pageSlicePx=Math.max(1,Math.floor(usableH*pxPerMm));
+
+      let sourceY=0;
+      let page=1;
+
+      while(sourceY<canvas.height){
+        const sliceHeight=Math.min(pageSlicePx,canvas.height-sourceY);
+
+        // Crear una imagen distinta por página en lugar de reutilizar
+        // una imagen gigante con coordenadas negativas.
+        const slice=document.createElement('canvas');
+        slice.width=canvas.width;
+        slice.height=sliceHeight;
+        const ctx=slice.getContext('2d',{alpha:false});
+        ctx.fillStyle='#ffffff';
+        ctx.fillRect(0,0,slice.width,slice.height);
+        ctx.drawImage(
+          canvas,
+          0,sourceY,canvas.width,sliceHeight,
+          0,0,slice.width,sliceHeight
+        );
+
+        if(page>1) pdf.addPage();
+
+        pdf.setTextColor(15,23,42);
+        pdf.setFont('helvetica','bold');
+        pdf.setFontSize(14);
+        pdf.text(title,margin,11);
+
+        pdf.setFont('helvetica','normal');
+        pdf.setFontSize(8);
+        pdf.setTextColor(100,116,139);
+        pdf.text('REPORT.IA RCV · Intelligence Decision 10.1',margin,16);
+        pdf.text(
+          new Date().toLocaleString('es-MX'),
+          pw-margin,
+          16,
+          {align:'right'}
+        );
+
+        const imgData=slice.toDataURL('image/jpeg',0.94);
+        const renderH=sliceHeight/pxPerMm;
+        pdf.addImage(imgData,'JPEG',margin,header,usableW,renderH,'','FAST');
+
+        pdf.setFontSize(7);
+        pdf.setTextColor(148,163,184);
+        pdf.text(`Página ${page}`,pw-margin,ph-5,{align:'right'});
+
+        sourceY+=sliceHeight;
+        page++;
+      }
+
+      pdf.save(filename);
+      if(!hadId) element.removeAttribute('id');
+      rcvToast('PDF generado correctamente.','ok');
+
+    }catch(err){
+      try{ if(typeof hadId!=='undefined' && !hadId) element.removeAttribute('id'); }catch(_){}
+      console.error('Error generando PDF:',err);
+      rcvToast('No fue posible generar el PDF automáticamente.','error');
+      if(confirm(
+        'El exportador encontró un problema al capturar la vista. '+
+        '¿Deseas usar Imprimir → Guardar como PDF como alternativa?'
+      )){
+        window.print();
+      }
     }
-    pdf.save(filename); rcvToast('PDF generado correctamente.','ok');
   }
   async function pdfVista(){
     await exportPdf(visibleReportRoot(),`REPORTIA_RCV_Vista_${stamp()}.pdf`,'Informe Ejecutivo · Vista actual');
