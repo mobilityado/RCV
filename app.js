@@ -982,13 +982,25 @@ async function loadAuthorizedUsers(){
   }
 
   try{
-    const url=new URL(AUTH_ENDPOINT);
-    url.searchParams.set('accion','usuarios');
-    const res=await fetch(url.toString(),{method:'GET',cache:'no-store'});
-    const text=await res.text();
-    let data;
-    try{ data=JSON.parse(text); }
-    catch(e){ throw new Error('El Apps Script no devolvió JSON válido para la lista de usuarios.'); }
+    let data=null;
+
+    // 1) Intento normal con fetch.
+    try{
+      const url=new URL(AUTH_ENDPOINT);
+      url.searchParams.set('accion','usuarios');
+      const res=await fetch(url.toString(),{method:'GET',cache:'no-store',redirect:'follow'});
+      if(res.ok){
+        const text=await res.text();
+        try{ data=JSON.parse(text); }catch(e){}
+      }
+    }catch(fetchError){
+      console.warn('Fetch directo no disponible; usando JSONP.',fetchError);
+    }
+
+    // 2) Fallback JSONP: evita bloqueos CORS/redirect de Apps Script.
+    if(!data || !data.ok){
+      data=await loadUsersViaJsonp();
+    }
 
     const users=Array.isArray(data?.usuarios)?data.usuarios:[];
     if(!data?.ok || users.length===0){
@@ -1001,6 +1013,7 @@ async function loadAuthorizedUsers(){
         const role=typeof u==='string'?'':(u.tipo||u.role||u.rango||'');
         return `<option value="${escapeHtml(username)}" data-role="${escapeHtml(role)}">${escapeHtml(username)}</option>`;
       }).join('');
+
     select.disabled=false;
 
     if(status){
@@ -1011,11 +1024,45 @@ async function loadAuthorizedUsers(){
     select.innerHTML='<option value="">No fue posible cargar usuarios</option>';
     select.disabled=true;
     if(status){
-      status.textContent=err.message||'No fue posible cargar la lista de usuarios.';
+      status.textContent=(err && err.message) ? err.message : 'No fue posible cargar la lista de usuarios.';
       status.className='login-status error';
     }
   }
+
   updateLoginSelectedAvatar();
+}
+
+function loadUsersViaJsonp(){
+  return new Promise((resolve,reject)=>{
+    const callback='reportiaUsersCallback_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+    const timeout=setTimeout(()=>{
+      cleanup();
+      reject(new Error('Tiempo de espera agotado al cargar usuarios.'));
+    },12000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      delete window[callback];
+      script.remove();
+    }
+
+    window[callback]=(data)=>{
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror=()=>{
+      cleanup();
+      reject(new Error('No fue posible conectar con el servicio de usuarios.'));
+    };
+
+    const url=new URL(AUTH_ENDPOINT);
+    url.searchParams.set('accion','usuarios');
+    url.searchParams.set('callback',callback);
+    script.src=url.toString();
+    document.head.appendChild(script);
+  });
 }
 
 function updateLoginSelectedAvatar(){
@@ -1030,4 +1077,5 @@ function updateLoginSelectedAvatar(){
 document.addEventListener('DOMContentLoaded',()=>{
   loadAuthorizedUsers();
   document.getElementById('loginUser')?.addEventListener('change',updateLoginSelectedAvatar);
+  document.getElementById('reloadUsersBtn')?.addEventListener('click',loadAuthorizedUsers);
 });

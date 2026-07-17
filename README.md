@@ -120,3 +120,9 @@ Nuevas funciones:
 - Avatar dinámico con iniciales del usuario seleccionado.
 - Contraseña permanece separada y nunca se lista desde la hoja.
 - Apps Script corregido para evitar el error `e.parameter` al ejecutar manualmente `doGet`.
+
+## Enterprise Edition 6.2
+- Corregida la carga de usuarios desde GitHub Pages.
+- Intenta `fetch` y usa JSONP automáticamente como respaldo.
+- Apps Script actualizado con soporte `callback`.
+- Botón para recargar usuarios en la pantalla de acceso.
