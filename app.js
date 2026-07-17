@@ -566,7 +566,7 @@ function rcvToast(message,type=''){
       clone.style.margin='0';clone.style.width='100%';clone.style.maxWidth='none';clone.style.transform='none';
 
       clone.querySelectorAll(
-        '#rcvSmartImport,.rcv-smart-import,.upload-section,.upload-panel,.file-drop,.drop-zone,'+
+        '#carga,.generator-studio,#rcvSmartImport,.rcv-smart-import,.upload-section,.upload-panel,.file-drop,.drop-zone,'+
         '[class*="upload"],input[type="file"],.sidebar,.exec-topbar,.rcv-v9-toolbar,.rcv-v9-panel,'+
         '.v10-fab-stack,.v10-sheet,.modal,.toast,[role="dialog"]'
       ).forEach(el=>el.remove());

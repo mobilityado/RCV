@@ -114,47 +114,102 @@
   <div class="layout-intro__badge">RCV Intelligence</div>
 </div>
 
-    <header class="hero">
-      <div>
-        <p class="eyebrow">CENTRO EJECUTIVO DE REPORTES RCV</p>
-        <h1>REPORT.IA transforma tus JD en decisiones.</h1>
-        <p>Carga la información, valida las fuentes y analiza resultados, tendencias y desviaciones antes de generar el paquete final.</p>
-      </div>
-      <div class="hero-actions">
-        <div class="month-box">
-          <label for="month">Mes de corte</label>
-          <select id="month"></select>
-        </div>
-        <button id="presentationBtn" class="presentation-btn" type="button">▶ Modo presentación</button>
-      </div>
-    </header>
+    
+<section class="generator-studio no-print" id="carga">
+  <div class="generator-story">
+    <div class="generator-brand-row">
+      <span class="generator-badge">REPORT.IA RCV · GENERADOR AUTOMÁTICO</span>
+      <span class="generator-local">Procesamiento local en tu navegador</span>
+    </div>
 
-    <section id="carga" class="panel compact-panel">
-      <div class="section-title">
-        <div><span class="step">01</span><div><h2>Carga de información</h2><p>Excel consolidado por pestañas o archivos individuales.</p></div></div>
-        <button id="clearBtn" class="ghost">Limpiar</button>
+    <p class="eyebrow">CENTRO EJECUTIVO DE REPORTES RCV</p>
+    <h1>De los reportes JD al paquete FINAL, en un solo proceso.</h1>
+    <p class="generator-lead">
+      REPORT.IA RCV recibe las fuentes originales de <strong>Costos, Gastos, Productividad XPV</strong>
+      y el <strong>Catálogo de Gerentes</strong>. Puedes cargarlas como archivos independientes o
+      dentro de un solo Excel por pestañas; el sistema identifica cada fuente, consolida la información
+      hasta el mes de corte y genera automáticamente los reportes finales listos para descargar.
+    </p>
+
+    <div class="generator-flow">
+      <div class="flow-card">
+        <span class="flow-number">01</span>
+        <div><strong>Carga las fuentes</strong><small>JD COSTO RCV · JD GASTOS RCV · JD XPV RCV · Catálogo</small></div>
       </div>
-      <div id="dropZone" class="drop-zone" tabindex="0">
-        <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
-        <div class="upload-icon">⇧</div>
-        <div><h3>Arrastra aquí tus archivos</h3><p>REPORT.IA identificará automáticamente cada fuente JD.</p></div>
-        <button id="browseBtn" class="primary">Seleccionar archivos</button>
+      <div class="flow-arrow">→</div>
+      <div class="flow-card">
+        <span class="flow-number">02</span>
+        <div><strong>REPORT.IA procesa</strong><small>Detecta pestañas, clasifica gerencias, agrupa y calcula variaciones.</small></div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-card">
+        <span class="flow-number">03</span>
+        <div><strong>Genera el FINAL</strong><small>Tres libros Excel y análisis ejecutivo del periodo.</small></div>
+      </div>
+    </div>
+
+    <div class="generator-outputs">
+      <div class="output-pill"><span>📘</span><div><strong>COSTO RCV 2026.xlsx</strong><small>Operativos · Mantto · Premisas · SMO</small></div></div>
+      <div class="output-pill"><span>📗</span><div><strong>Gastos RCV 2026.xlsx</strong><small>Detalle + Resumen por Gerencia</small></div></div>
+      <div class="output-pill"><span>📙</span><div><strong>Productividad XPV</strong><small>Reporte mensual RCV</small></div></div>
+    </div>
+  </div>
+
+  <div class="generator-upload-card">
+    <div class="upload-card-top">
+      <div>
+        <span class="smart-label">SMART IMPORT</span>
+        <h2>Cargar información</h2>
+        <p>Un Excel con las cuatro pestañas o los archivos por separado.</p>
+      </div>
+      <button id="clearBtn" class="ghost compact-clear" type="button">Limpiar</button>
+    </div>
+
+    <div class="upload-control-row">
+      <div class="month-box compact-month">
+        <label for="month">Mes de corte</label>
+        <select id="month"></select>
+      </div>
+      <div class="source-hint">
+        <span class="source-dot"></span>
+        <span>Detección automática de fuentes JD</span>
+      </div>
+    </div>
+
+    <div id="dropZone" class="drop-zone compact-drop" tabindex="0">
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
+      <div class="upload-icon compact-icon">⇧</div>
+      <div class="drop-copy">
+        <h3>Arrastra tus Excel aquí</h3>
+        <p>Consolidado por pestañas o archivos independientes.</p>
         <small>XLSX · XLS · XLSM</small>
       </div>
-      <div id="fileList" class="file-list"></div>
-    </section>
+      <button id="browseBtn" class="primary compact-browse" type="button">Seleccionar archivos</button>
+    </div>
 
-    <section id="validacion" class="panel">
+    <div id="fileList" class="file-list compact-file-list"></div>
+
+    <div class="generator-status">
+      <div>
+        <span class="status-kicker">ESTADO</span>
+        <p id="statusText">Carga los reportes requeridos para continuar.</p>
+      </div>
+      <button id="processBtn" class="process compact-process" disabled type="button">
+        ✨ Analizar y generar FINAL
+      </button>
+    </div>
+
+    <button id="presentationBtn" class="presentation-btn compact-presentation" type="button">
+      ▶ Modo presentación
+    </button>
+  </div>
+</section>
+
+<section id="validacion" class="panel">
       <div class="section-title"><div><span class="step">02</span><div><h2>Control de fuentes</h2><p>Verifica que la información necesaria esté disponible.</p></div></div></div>
       <div id="validationGrid" class="validation-grid"><div class="empty-state">Aún no has cargado información.</div></div>
     </section>
-
-    <section class="actions">
-      <button id="processBtn" class="process" disabled>✨ Analizar y generar reportes</button>
-      <p id="statusText">Carga los reportes requeridos para continuar.</p>
-    </section>
-
-    <section id="dashboard" class="dashboard hidden">
+<section id="dashboard" class="dashboard hidden">
       <div class="dashboard-head">
         <div><p class="eyebrow">RESULTADOS DEL PERIODO</p><h2>Resumen ejecutivo RCV</h2><p id="dashboardSubtitle">Información consolidada del periodo seleccionado.</p></div>
         <div class="dashboard-badge">ANÁLISIS COMPLETADO</div>
