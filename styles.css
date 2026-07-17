@@ -628,3 +628,152 @@ body.executive-layout-v21 main{
 .rcv-smart-backup{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;border:0;background:transparent;color:#334155;font:700 12px system-ui;cursor:pointer}
 @media(max-width:1050px){.rcv-smart-import{grid-template-columns:1fr}.rcv-smart-side{margin:0 18px 18px}.rcv-smart-hero{min-height:auto;padding:28px}}
 @media(max-width:650px){.rcv-smart-options{grid-template-columns:1fr}.rcv-smart-card h3{font-size:18px}}
+
+/* ===== REPORT.IA RCV 10.3 · Rediseño de la carga original ===== */
+
+/* Detecta y moderniza el bloque de carga original sin duplicarlo */
+.upload-section,
+.upload-panel,
+.file-upload-section,
+.import-section,
+.source-upload,
+[class*="upload-container"],
+[class*="import-container"]{
+  position:relative;
+}
+
+/* Contenedor principal de la carga existente */
+.upload-section,
+.file-upload-section,
+.import-section,
+.source-upload{
+  border-radius:28px !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  border:1px solid rgba(255,255,255,.55) !important;
+  background:
+    radial-gradient(circle at 80% 15%,rgba(103,232,249,.18),transparent 28%),
+    linear-gradient(135deg,#1e1b4b 0%,#4f46e5 48%,#06b6d4 100%) !important;
+  box-shadow:0 28px 60px rgba(37,99,235,.18) !important;
+}
+
+/* Si el proyecto usa una tarjeta interior, darle apariencia blanca ejecutiva */
+.upload-section > .card,
+.file-upload-section > .card,
+.import-section > .card,
+.source-upload > .card,
+.upload-panel{
+  background:rgba(255,255,255,.96) !important;
+  border-radius:22px !important;
+  border:1px solid rgba(219,234,254,.95) !important;
+  box-shadow:0 18px 40px rgba(15,23,42,.12) !important;
+}
+
+/* Encabezados de la zona de carga */
+.upload-section h2,
+.upload-section h3,
+.file-upload-section h2,
+.file-upload-section h3,
+.import-section h2,
+.import-section h3,
+.source-upload h2,
+.source-upload h3,
+.upload-panel h2,
+.upload-panel h3{
+  color:#172033 !important;
+  font-weight:800 !important;
+}
+
+/* Drop zones y áreas de arrastre */
+.drop-zone,
+.file-drop,
+.upload-dropzone,
+[class*="drop-zone"],
+[class*="dropzone"],
+[class*="file-drop"]{
+  border:1.5px dashed #93c5fd !important;
+  border-radius:16px !important;
+  background:linear-gradient(135deg,#f8fbff,#f5f3ff) !important;
+  padding:22px !important;
+  transition:.18s ease !important;
+}
+.drop-zone:hover,
+.file-drop:hover,
+.upload-dropzone:hover,
+[class*="drop-zone"]:hover,
+[class*="dropzone"]:hover,
+[class*="file-drop"]:hover{
+  border-color:#6366f1 !important;
+  background:linear-gradient(135deg,#eef2ff,#ecfeff) !important;
+  transform:translateY(-1px);
+}
+
+/* Botones de selección/carga */
+.upload-section button,
+.file-upload-section button,
+.import-section button,
+.source-upload button,
+.upload-panel button{
+  border-radius:12px !important;
+}
+.upload-section button:not(.secondary):not(.ghost),
+.file-upload-section button:not(.secondary):not(.ghost),
+.import-section button:not(.secondary):not(.ghost),
+.source-upload button:not(.secondary):not(.ghost){
+  background:linear-gradient(135deg,#7c3aed,#2563eb,#06b6d4) !important;
+  color:#fff !important;
+  border:0 !important;
+  box-shadow:0 10px 24px rgba(37,99,235,.18) !important;
+}
+
+/* Tarjetas/selector de modalidad si ya existen */
+.upload-option,
+.import-option,
+.source-option,
+[class*="upload-option"],
+[class*="import-option"]{
+  border:1px solid #dbeafe !important;
+  background:#f8fafc !important;
+  border-radius:15px !important;
+  padding:14px !important;
+  transition:.18s ease !important;
+}
+.upload-option:hover,
+.import-option:hover,
+.source-option:hover,
+[class*="upload-option"]:hover,
+[class*="import-option"]:hover{
+  border-color:#93c5fd !important;
+  background:linear-gradient(135deg,#eef2ff,#f0fdfa) !important;
+}
+
+/* Archivos ya cargados */
+.uploaded-file,
+.file-item,
+.selected-file,
+[class*="file-item"],
+[class*="uploaded-file"]{
+  border-radius:12px !important;
+  border:1px solid #dbeafe !important;
+  background:#fff !important;
+  box-shadow:0 6px 18px rgba(15,23,42,.05) !important;
+}
+
+/* Etiquetas y textos secundarios */
+.upload-section small,
+.file-upload-section small,
+.import-section small,
+.source-upload small,
+.upload-panel small{
+  color:#64748b !important;
+}
+
+/* Mantener responsive */
+@media(max-width:900px){
+  .upload-section,
+  .file-upload-section,
+  .import-section,
+  .source-upload{
+    border-radius:20px !important;
+  }
+}
