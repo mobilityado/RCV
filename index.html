@@ -9,47 +9,48 @@
 </head>
 <body class="executive-layout-v21">
   
-  <aside class="sidebar premium-sidebar">
-    <div class="brand premium-brand">
-      <div class="brand-mark">R</div>
-      <div>
+  
+  <aside class="sidebar premium-sidebar reference-sidebar">
+    <div class="brand premium-brand reference-brand">
+      <div class="brand-icon-wrap">
+        <div class="brand-mark">R</div>
+      </div>
+      <div class="brand-copy">
         <strong>REPORT.IA RCV</strong>
-        <span>Intelligence Edition 3.0</span>
+        <span>Intelligence Edition 3.1</span>
       </div>
     </div>
 
-    <nav class="premium-nav">
-      <a class="active" href="#dashboard">⌂ <span>Inicio</span></a>
-      <a href="#dashboard">▥ <span>Resumen Ejecutivo</span></a>
-      <a href="#gerencias">♟ <span>Gerencias</span></a>
-      <a href="#costos">$ <span>Costos</span></a>
-      <a href="#gastos">▣ <span>Gastos</span></a>
-      <a href="#xpv">↗ <span>Productividad XPV</span></a>
-      <a href="#tendencias">⌁ <span>Tendencias</span></a>
-      <a href="#comparador">⇄ <span>Comparador</span></a>
-      <a href="#pulso">! <span>Alertas</span><b class="nav-badge">5</b></a>
-      <a href="#inteligencia">✺ <span>Resumen Inteligente</span></a>
-      <a href="#resultados">▤ <span>Reportes Ejecutivos</span><b class="new-badge">NUEVO</b></a>
+    <nav class="premium-nav reference-nav">
+      <a class="active" href="#dashboard"><span class="nav-ico">⌂</span><span>Inicio</span></a>
+      <a href="#dashboard"><span class="nav-ico">▥</span><span>Resumen Ejecutivo</span></a>
+      <a href="#gerencias"><span class="nav-ico">♟</span><span>Gerencias</span></a>
+      <a href="#costos"><span class="nav-ico">$</span><span>Costos</span></a>
+      <a href="#gastos"><span class="nav-ico">▣</span><span>Gastos</span></a>
+      <a href="#xpv"><span class="nav-ico">↗</span><span>Productividad XPV</span></a>
+      <a href="#tendencias"><span class="nav-ico">⌁</span><span>Tendencias</span></a>
+      <a href="#comparador"><span class="nav-ico">⇄</span><span>Comparador</span></a>
+      <a href="#pulso"><span class="nav-ico">!</span><span>Alertas</span><b class="nav-badge">5</b></a>
+      <a href="#inteligencia"><span class="nav-ico">✺</span><span>Resumen Inteligente</span></a>
+      <a href="#resultados"><span class="nav-ico">▤</span><span>Reportes Ejecutivos</span></a>
     </nav>
 
     <div class="sidebar-divider"></div>
 
-    <section id="carga" class="compact-upload">
+    <section id="carga" class="compact-upload reference-upload">
       <div class="compact-upload-head">
         <div>
           <span>CARGA DE ARCHIVOS</span>
-          <small>Actualiza la información del portal</small>
         </div>
-        <button id="clearBtn" class="mini-clear" title="Limpiar archivos">×</button>
+        <span class="upload-info">ⓘ</span>
       </div>
 
-      <div id="dropZone" class="mini-drop-zone" tabindex="0">
+      <div id="dropZone" class="mini-drop-zone reference-drop" tabindex="0">
         <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
         <div class="mini-upload-icon">⇧</div>
-        <strong>Arrastra tus reportes aquí</strong>
-        <span>o haz clic para seleccionarlos</span>
-        <button id="browseBtn" class="mini-browse" type="button">Seleccionar archivos</button>
-        <small>.xlsx · .xls · .xlsm</small>
+        <strong>Arrastra y suelta los archivos aquí</strong>
+        <span>o haz clic para seleccionar</span>
+        <small>Formatos permitidos: .xlsx, .xls, .xlsm</small>
       </div>
 
       <div id="fileList" class="file-list compact-file-list"></div>
@@ -60,17 +61,30 @@
         </div>
       </div>
 
-      <button id="processBtn" class="process compact-process" disabled>Procesar reportes</button>
+      <div class="upload-actions-row">
+        <button id="browseBtn" class="mini-browse" type="button">Seleccionar</button>
+        <button id="clearBtn" class="mini-clear" title="Limpiar archivos">Limpiar</button>
+      </div>
+
+      <button id="processBtn" class="process compact-process" disabled>▣ Procesar Reportes</button>
       <p id="statusText" class="sidebar-status">Carga los reportes requeridos.</p>
     </section>
 
-    <div class="sidebar-user">
+    <div class="sidebar-user reference-user">
       <div class="avatar">JH</div>
-      <div><strong>José Hernández</strong><span>Administrador</span></div>
+      <div class="user-copy">
+        <strong>José Hernández</strong>
+        <span>Administrador</span>
+      </div>
+      <span class="user-chevron">⌄</span>
     </div>
 
-    <div class="privacy">© 2026 REPORT.IA RCV<br><small>Procesamiento local y seguro.</small></div>
+    <div class="privacy reference-privacy">
+      © 2026 REPORT.IA RCV<br>
+      <small>Todos los derechos reservados.</small>
+    </div>
   </aside>
+
 
 
   <main>
@@ -92,27 +106,12 @@
             <option>Real 2025</option>
           </select>
         </div>
-        <button id="presentationBtn" class="update-btn" type="button">▶ Presentación</button>
+        <button id="presentationBtn" class="update-btn" type="button">Actualizar datos ⟳</button>
         <div class="top-avatar">JH</div>
       </div>
     </header>
 
-    <section class="pre-analysis-card" id="preAnalysisCard">
-      <div>
-        <span class="eyebrow">REPORT.IA RCV · INTELLIGENCE EDITION 3.0</span>
-        <h2>Tu centro de inteligencia financiera está listo.</h2>
-        <p>Carga los reportes desde el panel lateral y REPORT.IA organizará costos, gastos, productividad, tendencias y reportes ejecutivos.</p>
-      </div>
-      <div class="pre-analysis-steps">
-        <div><b>1</b><span>Carga</span></div>
-        <i></i>
-        <div><b>2</b><span>Procesa</span></div>
-        <i></i>
-        <div><b>3</b><span>Analiza</span></div>
-        <i></i>
-        <div><b>4</b><span>Exporta</span></div>
-      </div>
-    </section>
+    
 
 
 
@@ -244,7 +243,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">INTELLIGENCE EDITION 3.0</span>
+    <span class="eyebrow">INTELLIGENCE EDITION 3.1</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>

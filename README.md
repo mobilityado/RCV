@@ -66,3 +66,11 @@ Rediseño visual completo inspirado en dashboards ejecutivos BI:
 - Centro de Reportes Ejecutivos en tarjetas.
 - PDFs, Excel Ejecutivo y paquete ZIP.
 - Diseño responsive y modo presentación.
+
+
+## Versión 3.1 — Diseño final de publicación
+- Sidebar inspirado en el mockup ejecutivo aprobado.
+- Carga de archivos compacta y discreta.
+- Dashboard visible desde el primer momento.
+- Navegación más sobria y profesional.
+- Preparado para GitHub Pages.
