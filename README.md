@@ -73,3 +73,9 @@ Nota: la reproducción 1:1 de plantillas Excel con componentes propietarios (por
 - Fetch + JSONP para GitHub Pages.
 - Login también usa fallback JSONP.
 - Mantiene PDF Fix.
+
+## Login estilo AVA
+- Capa de acceso reconstruida desde cero.
+- Flujo simple: desplegable > contraseña > validación.
+- Tres niveles para cargar nombres: Apps Script, Google Sheets público y fallback local.
+- Contraseñas solo se validan mediante Apps Script.

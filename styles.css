@@ -486,3 +486,17 @@ body.executive-layout-v21 canvas{max-height:330px!important}
   main,.main-content{margin:0!important;padding:0!important;width:100%!important;max-width:none!important}
   .chart-card,.card,.table-card,.kpi-card{break-inside:avoid;page-break-inside:avoid}
 }
+
+/* AVA-style login compatibility */
+.login-fallback-note{
+  margin-top:8px;
+  padding:7px 9px;
+  border:1px solid #eadffb;
+  border-radius:8px;
+  background:#faf7ff;
+  color:#6c4aa0;
+  font-size:7.5px;
+  line-height:1.4;
+  text-align:center;
+}
+.login-fallback-note.hidden{display:none!important}
