@@ -1,3 +1,3 @@
 window.REPORTIA_CONFIG = {
-  API_URL: "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT_EXEC"
+  API_URL: https://script.google.com/macros/s/AKfycbxUhENeMAGaVJx2Gs4yR_qncJJxHyq8NlFFSfa9qu7XBDgcDu4L9HasfrzZSQBOKgwp/exec
 };
