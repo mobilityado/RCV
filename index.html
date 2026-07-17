@@ -80,6 +80,33 @@
 
   <main>
 
+<section class="rcv-smart-import" id="rcvSmartImport">
+  <div class="rcv-smart-hero">
+    <span class="rcv-smart-badge">INGRESOS 360</span>
+    <h2>Concentrado general y análisis por marca</h2>
+    <p>Procesa las fuentes y genera una lectura ejecutiva lista para presentar, comparar y exportar.</p>
+  </div>
+  <div class="rcv-smart-side">
+    <div class="rcv-smart-sheetbar">
+      <div><strong>Actualizar Google Sheets</strong><div style="font-size:11px;opacity:.8">Leer las fuentes configuradas</div></div>
+      <button type="button" id="rcvSmartRefresh">↻ Actualizar</button>
+    </div>
+    <div class="rcv-smart-card">
+      <div class="rcv-smart-card-head">
+        <div><div class="rcv-smart-kicker">Smart Import</div><h3>¿Cómo deseas cargar la información?</h3></div>
+        <span class="rcv-smart-status" id="rcvSmartStatus">Sin archivos</span>
+      </div>
+      <div class="rcv-smart-options">
+        <button type="button" class="rcv-smart-option active" data-smart-mode="consolidated"><span class="rcv-smart-icon">▤</span><span><strong>Un solo archivo</strong><span>Consolidado con todas las pestañas requeridas.</span></span></button>
+        <button type="button" class="rcv-smart-option" data-smart-mode="multi"><span class="rcv-smart-icon">▦</span><span><strong>Cuatro archivos</strong><span>Un archivo independiente por cada fuente.</span></span></button>
+      </div>
+      <div class="rcv-smart-drop" id="rcvSmartDrop"><strong>Seleccionar archivo consolidado</strong><span>También puedes arrastrar aquí tus archivos</span></div>
+      <button type="button" class="rcv-smart-backup" id="rcvSmartBackup">＋ Cargar respaldo Excel</button>
+    </div>
+  </div>
+</section>
+
+
 <header class="exec-topbar">
   <div class="exec-greeting">
     <h1 id="execGreeting">👋 Hola.</h1>

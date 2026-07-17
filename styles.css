@@ -603,3 +603,28 @@ body.executive-layout-v21 main{
   .v10-sheet{padding:0}.v10-window{border-radius:0;min-height:100vh}.v10-head{align-items:flex-start}
   .v10-fab-stack{right:12px;bottom:78px}
 }
+
+/* ===== REPORT.IA RCV 10.2 · Smart Import + Executive PDF ===== */
+.rcv-smart-import{margin:18px 0 22px;border-radius:28px;overflow:hidden;display:grid;grid-template-columns:minmax(280px,.95fr) minmax(520px,1.45fr);background:radial-gradient(circle at 75% 15%,rgba(103,232,249,.22),transparent 30%),linear-gradient(135deg,#1e1b4b 0%,#4f46e5 45%,#06b6d4 100%);box-shadow:0 28px 60px rgba(37,99,235,.18);border:1px solid rgba(255,255,255,.55)}
+.rcv-smart-hero{padding:38px 38px 34px;color:#fff;display:flex;flex-direction:column;justify-content:center;min-height:285px}
+.rcv-smart-badge{display:inline-flex;align-self:flex-start;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.24);font:800 11px/1 system-ui;letter-spacing:.06em}
+.rcv-smart-hero h2{margin:18px 0 10px;font:800 clamp(28px,3.2vw,44px)/1.04 system-ui;max-width:560px}
+.rcv-smart-hero p{margin:0;color:rgba(255,255,255,.82);font:500 15px/1.55 system-ui;max-width:560px}
+.rcv-smart-side{margin:24px 24px 24px 0;background:rgba(255,255,255,.94);backdrop-filter:blur(18px);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.rcv-smart-sheetbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#0ea5e9);color:#fff}
+.rcv-smart-sheetbar button{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:8px 11px;font:700 12px system-ui;cursor:pointer}
+.rcv-smart-card{border:1px solid #dbeafe;border-radius:18px;background:#fff;padding:18px}
+.rcv-smart-card-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.rcv-smart-kicker{font:800 10px/1 system-ui;letter-spacing:.13em;color:#8b5cf6;text-transform:uppercase}
+.rcv-smart-card h3{margin:5px 0 0;font:800 22px/1.2 system-ui;color:#172033}
+.rcv-smart-status{padding:7px 11px;border-radius:999px;background:#eef2ff;color:#475569;font:800 11px system-ui;white-space:nowrap}
+.rcv-smart-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rcv-smart-option{border:1px solid #dbeafe;background:#f8fafc;border-radius:15px;padding:14px;cursor:pointer;transition:.18s ease;text-align:left;display:flex;gap:11px;align-items:flex-start;color:#0f172a}
+.rcv-smart-option:hover,.rcv-smart-option.active{border-color:#93c5fd;background:linear-gradient(135deg,#eef2ff,#f0fdfa);transform:translateY(-1px)}
+.rcv-smart-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#eef2ff;color:#6366f1;font-size:16px;flex:0 0 auto}
+.rcv-smart-option strong{display:block;font:800 13px system-ui}.rcv-smart-option span{display:block;margin-top:3px;color:#64748b;font:11px/1.35 system-ui}
+.rcv-smart-drop{margin-top:10px;border:1.5px dashed #bfdbfe;border-radius:15px;padding:20px;text-align:center;background:#f8fbff;cursor:pointer}
+.rcv-smart-drop strong{display:block;font:800 13px system-ui;color:#334155}.rcv-smart-drop span{display:block;margin-top:4px;color:#94a3b8;font:11px system-ui}
+.rcv-smart-backup{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;border:0;background:transparent;color:#334155;font:700 12px system-ui;cursor:pointer}
+@media(max-width:1050px){.rcv-smart-import{grid-template-columns:1fr}.rcv-smart-side{margin:0 18px 18px}.rcv-smart-hero{min-height:auto;padding:28px}}
+@media(max-width:650px){.rcv-smart-options{grid-template-columns:1fr}.rcv-smart-card h3{font-size:18px}}

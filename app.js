@@ -544,148 +544,77 @@ function rcvToast(message,type=''){
     rcvToast('Preparando motor de PDF…');
     const libsReady=await rcvEnsurePdfLibraries();
     if(!libsReady){
-      rcvToast('No fue posible cargar el motor de PDF. Puedes usar Imprimir → Guardar como PDF como alternativa.','error');
-      if(confirm('No se pudo iniciar el exportador PDF. ¿Deseas abrir la ventana de impresión para guardar esta vista como PDF?')) window.print();
+      rcvToast('No fue posible cargar el motor de PDF.','error');
+      if(confirm('¿Deseas usar Imprimir → Guardar como PDF?')) window.print();
       return;
     }
-
+    let host=null;
     try{
-      rcvToast('Preparando contenido del reporte…');
+      rcvToast('Preparando reporte ejecutivo…');
+      if(document.fonts?.ready){try{await document.fonts.ready;}catch(_){}}
 
-      // Identificador temporal para localizar el mismo nodo dentro del DOM clonado.
-      const hadId=!!element.id;
-      if(!hadId) element.id='rcv-pdf-capture-root';
+      // Elegir el contenido analítico real. La zona de carga se excluye del PDF.
+      const source=document.querySelector('#dashboard')
+        || document.querySelector('.dashboard')
+        || document.querySelector('.main-content')
+        || document.querySelector('main')
+        || element;
 
-      // Espera a que fuentes e imágenes visibles terminen de cargar.
-      if(document.fonts?.ready){
-        try{ await document.fonts.ready; }catch(_){}
-      }
-      const imgs=[...element.querySelectorAll('img')];
-      await Promise.all(imgs.map(img=>{
-        if(img.complete) return Promise.resolve();
-        return new Promise(resolve=>{
-          img.addEventListener('load',resolve,{once:true});
-          img.addEventListener('error',resolve,{once:true});
-          setTimeout(resolve,2500);
-        });
-      }));
+      host=document.createElement('div');
+      host.style.cssText='position:fixed;left:-20000px;top:0;width:1360px;background:#fff;padding:24px;z-index:-1;box-sizing:border-box;color:#0f172a;';
+      const clone=source.cloneNode(true);
+      clone.style.margin='0';clone.style.width='100%';clone.style.maxWidth='none';clone.style.transform='none';
 
-      // Llevar temporalmente el elemento al inicio evita capturas vacías
-      // cuando el usuario está desplazado hacia otra parte del dashboard.
-      const oldScrollX=window.scrollX, oldScrollY=window.scrollY;
-      window.scrollTo(0,0);
+      clone.querySelectorAll(
+        '#rcvSmartImport,.rcv-smart-import,.upload-section,.upload-panel,.file-drop,.drop-zone,'+
+        '[class*="upload"],input[type="file"],.sidebar,.exec-topbar,.rcv-v9-toolbar,.rcv-v9-panel,'+
+        '.v10-fab-stack,.v10-sheet,.modal,.toast,[role="dialog"]'
+      ).forEach(el=>el.remove());
+
+      // Los canvas clonados quedan vacíos: reemplazarlos con imágenes de los canvas originales.
+      const originals=[...source.querySelectorAll('canvas')];
+      const cloned=[...clone.querySelectorAll('canvas')];
+      cloned.forEach((c,i)=>{
+        const orig=originals[i];if(!orig)return;
+        try{
+          const img=document.createElement('img');
+          img.src=orig.toDataURL('image/png');
+          const rect=orig.getBoundingClientRect();
+          img.style.width=(rect.width||orig.width)+'px';img.style.maxWidth='100%';img.style.height='auto';
+          c.replaceWith(img);
+        }catch(_){}
+      });
+      clone.querySelectorAll('svg').forEach(svg=>{svg.style.maxWidth='100%';});
+
+      host.appendChild(clone);document.body.appendChild(host);
       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
-      rcvToast('Generando captura del reporte…');
-      const canvas=await html2canvas(element,{
-        scale:1.5,
-        useCORS:true,
-        allowTaint:false,
-        backgroundColor:'#ffffff',
-        logging:false,
-        imageTimeout:12000,
-        scrollX:0,
-        scrollY:0,
-        windowWidth:Math.max(document.documentElement.clientWidth, element.scrollWidth),
-        windowHeight:Math.max(document.documentElement.clientHeight, element.scrollHeight),
-        onclone:(doc)=>{
-          // Ocultar componentes flotantes que no deben aparecer en el informe.
-          doc.querySelectorAll(
-            '.rcv-v9-toolbar,.rcv-v9-panel,.v10-fab-stack,.v10-sheet,'+
-            '#exportSuite,.modal,.toast,[role="dialog"]'
-          ).forEach(el=>el.style.display='none');
-
-          const cloned=doc.querySelector('#'+CSS.escape(element.id||''));
-          if(cloned){
-            cloned.style.transform='none';
-            cloned.style.filter='none';
-            cloned.style.opacity='1';
-          }
-        }
-      });
-
-      window.scrollTo(oldScrollX,oldScrollY);
-
-      if(!canvas || canvas.width<10 || canvas.height<10){
-        throw new Error('La captura del reporte no contiene información visible.');
-      }
+      const canvas=await html2canvas(host,{scale:1.4,useCORS:true,allowTaint:false,backgroundColor:'#fff',logging:false,imageTimeout:12000,width:host.scrollWidth,height:host.scrollHeight,windowWidth:1360,scrollX:0,scrollY:0});
+      if(!canvas||canvas.width<50||canvas.height<50)throw new Error('Captura vacía');
 
       const {jsPDF}=window.jspdf;
       const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
-      const pw=210, ph=297, margin=10, header=22, footer=8;
-      const usableW=pw-margin*2;
-      const usableH=ph-header-footer-margin;
-
-      // Relación px/mm de la captura al ajustar al ancho del A4.
-      const pxPerMm=canvas.width/usableW;
-      const pageSlicePx=Math.max(1,Math.floor(usableH*pxPerMm));
-
-      let sourceY=0;
-      let page=1;
-
-      while(sourceY<canvas.height){
-        const sliceHeight=Math.min(pageSlicePx,canvas.height-sourceY);
-
-        // Crear una imagen distinta por página en lugar de reutilizar
-        // una imagen gigante con coordenadas negativas.
-        const slice=document.createElement('canvas');
-        slice.width=canvas.width;
-        slice.height=sliceHeight;
-        const ctx=slice.getContext('2d',{alpha:false});
-        ctx.fillStyle='#ffffff';
-        ctx.fillRect(0,0,slice.width,slice.height);
-        ctx.drawImage(
-          canvas,
-          0,sourceY,canvas.width,sliceHeight,
-          0,0,slice.width,sliceHeight
-        );
-
-        if(page>1) pdf.addPage();
-
-        pdf.setTextColor(15,23,42);
-        pdf.setFont('helvetica','bold');
-        pdf.setFontSize(14);
-        pdf.text(title,margin,11);
-
-        pdf.setFont('helvetica','normal');
-        pdf.setFontSize(8);
-        pdf.setTextColor(100,116,139);
-        pdf.text('REPORT.IA RCV · Intelligence Decision 10.1',margin,16);
-        pdf.text(
-          new Date().toLocaleString('es-MX'),
-          pw-margin,
-          16,
-          {align:'right'}
-        );
-
-        const imgData=slice.toDataURL('image/jpeg',0.94);
-        const renderH=sliceHeight/pxPerMm;
-        pdf.addImage(imgData,'JPEG',margin,header,usableW,renderH,'','FAST');
-
-        pdf.setFontSize(7);
-        pdf.setTextColor(148,163,184);
-        pdf.text(`Página ${page}`,pw-margin,ph-5,{align:'right'});
-
-        sourceY+=sliceHeight;
-        page++;
+      const pw=210,ph=297,margin=9,header=22,footer=8,usableW=pw-margin*2,usableH=ph-header-footer-margin;
+      const pxPerMm=canvas.width/usableW,slicePx=Math.max(1,Math.floor(usableH*pxPerMm));
+      let sy=0,page=1;
+      while(sy<canvas.height){
+        const sh=Math.min(slicePx,canvas.height-sy);
+        const slice=document.createElement('canvas');slice.width=canvas.width;slice.height=sh;
+        const ctx=slice.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
+        if(page>1)pdf.addPage();
+        pdf.setTextColor(15,23,42);pdf.setFont('helvetica','bold');pdf.setFontSize(14);pdf.text(title,margin,11);
+        pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(100,116,139);pdf.text('REPORT.IA RCV · Intelligence Decision 10.2',margin,16);pdf.text(new Date().toLocaleString('es-MX'),pw-margin,16,{align:'right'});
+        pdf.addImage(slice.toDataURL('image/jpeg',.94),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
+        pdf.setFontSize(7);pdf.setTextColor(148,163,184);pdf.text(`Página ${page}`,pw-margin,ph-4,{align:'right'});
+        sy+=sh;page++;
       }
-
-      pdf.save(filename);
-      if(!hadId) element.removeAttribute('id');
-      rcvToast('PDF generado correctamente.','ok');
-
+      pdf.save(filename);rcvToast('PDF ejecutivo generado correctamente.','ok');
     }catch(err){
-      try{ if(typeof hadId!=='undefined' && !hadId) element.removeAttribute('id'); }catch(_){}
-      console.error('Error generando PDF:',err);
-      rcvToast('No fue posible generar el PDF automáticamente.','error');
-      if(confirm(
-        'El exportador encontró un problema al capturar la vista. '+
-        '¿Deseas usar Imprimir → Guardar como PDF como alternativa?'
-      )){
-        window.print();
-      }
-    }
+      console.error('PDF ejecutivo:',err);rcvToast('No fue posible generar el PDF automáticamente.','error');
+      if(confirm('¿Deseas usar Imprimir → Guardar como PDF?'))window.print();
+    }finally{try{host?.remove();}catch(_){}}
   }
+
   async function pdfVista(){
     await exportPdf(visibleReportRoot(),`REPORTIA_RCV_Vista_${stamp()}.pdf`,'Informe Ejecutivo · Vista actual');
   }
@@ -857,3 +786,25 @@ document.addEventListener('DOMContentLoaded',()=>{
     dst.addEventListener('change',()=>{src.value=dst.value;src.dispatchEvent(new Event('change'))});
   }
 });
+
+
+// ===== REPORT.IA RCV 10.2 Smart Import bridge =====
+(function(){
+  function inputs(){return [...document.querySelectorAll('input[type="file"]')];}
+  function trigger(index=0){const list=inputs();if(list[index]){list[index].click();return true;}return false;}
+  function status(){const files=inputs().flatMap(i=>[...(i.files||[])]);const s=document.getElementById('rcvSmartStatus');if(s)s.textContent=files.length?`${files.length} archivo${files.length===1?'':'s'}`:'Sin archivos';}
+  document.addEventListener('change',e=>{if(e.target.matches('input[type="file"]'))status();});
+  document.addEventListener('click',e=>{
+    const m=e.target.closest('[data-smart-mode]');
+    if(m){document.querySelectorAll('[data-smart-mode]').forEach(x=>x.classList.remove('active'));m.classList.add('active');const d=document.querySelector('#rcvSmartDrop strong');if(d)d.textContent=m.dataset.smartMode==='multi'?'Seleccionar archivos por fuente':'Seleccionar archivo consolidado';return;}
+    if(e.target.closest('#rcvSmartDrop')){const a=document.querySelector('[data-smart-mode].active');trigger(a?.dataset.smartMode==='multi'?1:0);return;}
+    if(e.target.closest('#rcvSmartBackup')){const l=inputs();trigger(Math.max(0,l.length-1));return;}
+    if(e.target.closest('#rcvSmartRefresh')){const b=[...document.querySelectorAll('button')].find(x=>/actualizar google|sincron|leer.*pesta/i.test(x.textContent||'')&&x.id!=='rcvSmartRefresh');if(b)b.click();else location.reload();}
+  });
+  addEventListener('DOMContentLoaded',()=>{
+    const d=document.getElementById('rcvSmartDrop');if(!d)return;
+    ['dragenter','dragover'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.style.background='#eef6ff';}));
+    ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.style.background='';}));
+    d.addEventListener('drop',e=>{const i=inputs()[0];if(!i)return;try{const dt=new DataTransfer();[...e.dataTransfer.files].forEach(f=>dt.items.add(f));i.files=dt.files;i.dispatchEvent(new Event('change',{bubbles:true}));}catch(_){}});
+  });
+})();
