@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>REPORT.IA RCV · Validated Engine v21.2</title>
+  <title>REPORT.IA RCV · Validated Engine v21.3</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -64,7 +64,7 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v21.2</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v21.3</div>
 
     <nav id="nav">
       <button class="active" data-view="home">⌂ <span>Inicio Ejecutivo</span></button>
@@ -72,7 +72,7 @@
       <button data-view="analysis">⌁ <span>Análisis</span></button>
       <button data-view="comparisons">▥ <span>Comparativos</span></button>
       <button data-view="managers">▣ <span>Gerencias</span></button>
-      <button data-view="reports">▤ <span>Reportes</span></button>
+      <button data-view="trends">↗ <span>Tendencias</span></button><button data-view="reports">▤ <span>Reportes</span></button>
       <button data-view="reconciliation">✓ <span>Conciliación RP vs FINAL</span></button><button data-view="settings">⚙ <span>Configuración</span></button>
     </nav>
 
@@ -85,7 +85,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v21.2</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v21.3</b></div>
     </div>
   </aside>
 
@@ -116,7 +116,7 @@
 
       <div class="grid-top">
         <article class="card trend-card">
-          <div class="card-head"><div><small>RENDIMIENTO GENERAL</small><h3>Costos y gastos 2026 · XPV del periodo</h3></div><span id="periodLabel">Sin datos</span></div>
+          <div class="card-head"><div><small>RENDIMIENTO GENERAL</small><h3>Costos, gastos y productividad del periodo</h3></div><span id="periodLabel">Sin datos</span></div>
           <canvas id="trendChart" width="900" height="300"></canvas>
         </article>
         <article class="card">
@@ -206,7 +206,34 @@
       <article class="table-card"><div class="table-wrap"><table><thead><tr><th>Gerencia</th><th>Costos 2026</th><th>Gastos 2026</th><th>Total</th><th>Estado</th></tr></thead><tbody id="managerTable"></tbody></table></div></article>
     </section>
 
-    <section class="view" data-view="reports">
+    
+<section class="view" data-view="trends">
+  <header class="section-title">
+    <span>TENDENCIAS</span>
+    <h2>Evolución y variaciones</h2>
+    <p id="trendsSubtitle">Compara el comportamiento real disponible según el modo de carga.</p>
+  </header>
+
+  <div class="trend-kpis">
+    <article><span>VARIACIÓN COSTO</span><strong id="trendCostPct">0%</strong><small id="trendCostDir">Sin datos</small></article>
+    <article><span>VARIACIÓN GASTO</span><strong id="trendExpensePct">0%</strong><small id="trendExpenseDir">Sin datos</small></article>
+    <article><span>MEJOR GERENCIA</span><strong id="trendBestManager">—</strong><small id="trendBestValue">Sin datos</small></article>
+    <article><span>MAYOR PRESIÓN</span><strong id="trendWorstManager">—</strong><small id="trendWorstValue">Sin datos</small></article>
+  </div>
+
+  <div class="trends-grid">
+    <article class="card">
+      <div class="card-head"><div><small>TENDENCIA PRINCIPAL</small><h3 id="trendMainTitle">Sin información procesada</h3></div></div>
+      <canvas id="trendDetailChart" width="900" height="340"></canvas>
+    </article>
+    <article class="card">
+      <div class="card-head"><div><small>LECTURA DE TENDENCIAS</small><h3>Gerencias con cambio relevante</h3></div></div>
+      <div id="trendMovers" class="trend-movers"><div class="empty">Procesa información para ver tendencias.</div></div>
+    </article>
+  </div>
+</section>
+
+<section class="view" data-view="reports">
       <header class="section-title"><span>CENTRO DE REPORTES</span><h2>Reportes FINAL y Ejecutivos</h2><p>Los tres archivos operativos se generan con la misma lógica validada contra los FINAL proporcionados.</p></header>
       <div class="report-groups">
         <article><h3>Reportes FINAL</h3><p>Archivos Excel operativos.</p><div class="report-buttons"><button data-action="downloadCost">COSTO RCV 2026.xlsx</button><button data-action="downloadExpense">Gastos RCV 2026.xlsx</button><button data-action="downloadXpv">Productividad XPV RCV.xlsx</button><button class="primary" data-action="downloadAll">📦 Paquete FINAL.zip</button></div></article>

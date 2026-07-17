@@ -467,17 +467,47 @@ function clearDashboard(){
   drawTrend();
 }
 function drawTrend(){
-  const c=$("trendChart"),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
-  ctx.strokeStyle="#e8eef7";ctx.lineWidth=1;for(let i=1;i<5;i++){const y=i*h/5;ctx.beginPath();ctx.moveTo(45,y);ctx.lineTo(w-15,y);ctx.stroke();}
-  if(!state.model){ctx.fillStyle="#94a3b8";ctx.font="16px system-ui";ctx.textAlign="center";ctx.fillText("Procesa los JD para visualizar tendencias reales",w/2,h/2);return;}
-  const upto=state.periodIndex+1;
-  const cost=state.model.costMonthly.slice(0,upto).map(x=>Math.abs(x.y2026));
-  const exp=state.model.expenseMonthly.slice(0,upto).map(x=>Math.abs(x.y2026));
-  const all=[...cost,...exp];const max=Math.max(...all,1);
-  [[cost,"#1f6feb"],[exp,"#5b4ae8"]].forEach(([arr,color])=>{ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();arr.forEach((v,i)=>{const x=55+i*(w-100)/Math.max(1,arr.length-1),y=h-35-v/max*(h-70);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();});
-  ctx.fillStyle="#64748b";ctx.font="11px system-ui";ctx.textAlign="center";MONTH_LABELS.slice(0,upto).forEach((m,i)=>{const x=55+i*(w-100)/Math.max(1,upto-1);ctx.fillText(m,x,h-12);});
-}
+  const c=$("trendChart"),ctx=c.getContext("2d"),w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle="#e8eef7";ctx.lineWidth=1;
+  for(let i=1;i<5;i++){const y=i*h/5;ctx.beginPath();ctx.moveTo(45,y);ctx.lineTo(w-15,y);ctx.stroke();}
+  if(!state.model){
+    ctx.fillStyle="#94a3b8";ctx.font="16px system-ui";ctx.textAlign="center";
+    ctx.fillText("Procesa los archivos para visualizar tendencias reales",w/2,h/2);return;
+  }
 
+  // JD mode: monthly trend. RP mode: real 2025 vs 2026 by top managers.
+  if(state.inputMode==="JD"){
+    const upto=state.periodIndex+1;
+    const cost=state.model.costMonthly.slice(0,upto).map(x=>Math.abs(x.y2026));
+    const exp=state.model.expenseMonthly.slice(0,upto).map(x=>Math.abs(x.y2026));
+    const all=[...cost,...exp];const max=Math.max(...all,1);
+    const series=[[cost,"#2563eb"],[exp,"#7c3aed"]];
+    series.forEach(([arr,color])=>{
+      ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();
+      arr.forEach((v,i)=>{const x=55+i*(w-100)/Math.max(1,arr.length-1),y=h-35-v/max*(h-70);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+      ctx.stroke();
+      arr.forEach((v,i)=>{const x=55+i*(w-100)/Math.max(1,arr.length-1),y=h-35-v/max*(h-70);ctx.beginPath();ctx.fillStyle=color;ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();});
+    });
+    ctx.fillStyle="#64748b";ctx.font="11px system-ui";ctx.textAlign="center";
+    MONTH_LABELS.slice(0,upto).forEach((m,i)=>{const x=55+i*(w-100)/Math.max(1,upto-1);ctx.fillText(m,x,h-12);});
+  }else{
+    const rows=state.model.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026)).slice(0,6);
+    const max=Math.max(...rows.flatMap(r=>[Math.abs(r.y2025),Math.abs(r.y2026)]),1);
+    const groupW=(w-110)/Math.max(1,rows.length);
+    rows.forEach((r,i)=>{
+      const x=60+i*groupW;
+      const h25=Math.abs(r.y2025)/max*(h-95);
+      const h26=Math.abs(r.y2026)/max*(h-95);
+      ctx.fillStyle="#22c55e";ctx.fillRect(x,h-38-h25,groupW*.26,h25);
+      ctx.fillStyle="#f97316";ctx.fillRect(x+groupW*.31,h-38-h26,groupW*.26,h26);
+      ctx.fillStyle="#64748b";ctx.font="10px system-ui";ctx.textAlign="center";
+      ctx.fillText((r.manager||"").slice(0,12),x+groupW*.28,h-14);
+    });
+    ctx.fillStyle="#22c55e";ctx.fillRect(55,12,12,12);ctx.fillStyle="#475569";ctx.textAlign="left";ctx.fillText("2025",72,22);
+    ctx.fillStyle="#f97316";ctx.fillRect(115,12,12,12);ctx.fillStyle="#475569";ctx.fillText("2026",132,22);
+  }
+}
 function renderFilters(){
   if(!state.model)return;
   const managers=[...new Set([...state.model.costSummary.map(x=>x.manager),...state.model.expenseSummary.map(x=>x.manager)])].sort();
@@ -508,7 +538,69 @@ function renderManagers(){
   const managers=[...new Set([...cost.keys(),...exp.keys()])].sort();
   $("managerTable").innerHTML=managers.map(m=>{const c=cost.get(m)||0,e=exp.get(m)||0,total=Math.abs(c)+Math.abs(e);return `<tr><td>${m}</td><td>${money(c)}</td><td>${money(e)}</td><td>${money(total)}</td><td><span class="pill low">Procesado</span></td></tr>`;}).join("");
 }
-function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();buildExecutiveIntelligence();}
+
+function trendSummary(){
+  if(!state.model)return null;
+  const sum=(arr,k)=>arr.reduce((s,x)=>s+(x[k]||0),0);
+  const cost25=sum(state.model.costSummary,"y2025"),cost26=sum(state.model.costSummary,"y2026");
+  const exp25=sum(state.model.expenseSummary,"y2025"),exp26=sum(state.model.expenseSummary,"y2026");
+  const costPct=pct(cost26-cost25,cost25),expPct=pct(exp26-exp25,exp25);
+  const combined=[...state.model.costSummary.map(x=>({...x,type:"Costo"})),...state.model.expenseSummary.map(x=>({...x,type:"Gasto"}))].filter(x=>x.pct2526!=null);
+  const best=combined.slice().sort((a,b)=>a.pct2526-b.pct2526)[0];
+  const worst=combined.slice().sort((a,b)=>b.pct2526-a.pct2526)[0];
+  return {cost25,cost26,exp25,exp26,costPct,expPct,best,worst,combined};
+}
+function renderTrends(){
+  const t=trendSummary();
+  if(!t){
+    ["trendCostPct","trendExpensePct"].forEach(id=>$(id).textContent="0%");
+    $("trendBestManager").textContent="—";$("trendWorstManager").textContent="—";
+    $("trendMovers").innerHTML='<div class="empty">Procesa información para ver tendencias.</div>';
+    drawTrendDetail();return;
+  }
+  $("trendCostPct").textContent=pctText(t.costPct);
+  $("trendExpensePct").textContent=pctText(t.expPct);
+  $("trendCostDir").textContent=t.costPct==null?"Sin base":(t.costPct>0?"↑ Aumenta vs 2025":"↓ Disminuye vs 2025");
+  $("trendExpenseDir").textContent=t.expPct==null?"Sin base":(t.expPct>0?"↑ Aumenta vs 2025":"↓ Disminuye vs 2025");
+  $("trendBestManager").textContent=t.best?.manager||"—";
+  $("trendBestValue").textContent=t.best?`${t.best.type} ${pctText(t.best.pct2526)}`:"Sin datos";
+  $("trendWorstManager").textContent=t.worst?.manager||"—";
+  $("trendWorstValue").textContent=t.worst?`${t.worst.type} ${pctText(t.worst.pct2526)}`:"Sin datos";
+  $("trendsSubtitle").textContent=state.inputMode==="JD"?"Tendencia mensual real desde los JD y comparativo 2025 vs 2026.":"Tendencia comparativa real 2025 vs 2026 a partir de los archivos RP.";
+  const movers=t.combined.slice().sort((a,b)=>Math.abs(b.pct2526)-Math.abs(a.pct2526)).slice(0,8);
+  $("trendMovers").innerHTML=movers.map(x=>`<div class="trend-mover ${x.pct2526>0?"up":"down"}"><span>${x.type}</span><strong>${x.manager}</strong><em>${pctText(x.pct2526)}</em></div>`).join("");
+  drawTrendDetail();
+}
+function drawTrendDetail(){
+  const c=$("trendDetailChart");if(!c)return;
+  const ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle="#e8eef7";for(let i=1;i<5;i++){let y=i*h/5;ctx.beginPath();ctx.moveTo(50,y);ctx.lineTo(w-20,y);ctx.stroke();}
+  if(!state.model){ctx.fillStyle="#94a3b8";ctx.font="16px system-ui";ctx.textAlign="center";ctx.fillText("Sin datos procesados",w/2,h/2);return;}
+  if(state.inputMode==="JD"){
+    $("trendMainTitle").textContent="Evolución mensual acumulada";
+    const upto=state.periodIndex+1;
+    const cost=state.model.costMonthly.slice(0,upto).map(x=>Math.abs(x.y2026));
+    const exp=state.model.expenseMonthly.slice(0,upto).map(x=>Math.abs(x.y2026));
+    const max=Math.max(...cost,...exp,1);
+    [[cost,"#2563eb"],[exp,"#a855f7"]].forEach(([arr,color])=>{
+      ctx.strokeStyle=color;ctx.lineWidth=4;ctx.beginPath();
+      arr.forEach((v,i)=>{let x=60+i*(w-110)/Math.max(1,arr.length-1),y=h-40-v/max*(h-85);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+    });
+  }else{
+    $("trendMainTitle").textContent="Comparativo 2025 vs 2026 por gerencia";
+    const rows=trendSummary().combined.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026)).slice(0,8);
+    const max=Math.max(...rows.flatMap(r=>[Math.abs(r.y2025),Math.abs(r.y2026)]),1);
+    const gw=(w-100)/Math.max(1,rows.length);
+    rows.forEach((r,i)=>{
+      const x=55+i*gw,h25=Math.abs(r.y2025)/max*(h-90),h26=Math.abs(r.y2026)/max*(h-90);
+      ctx.fillStyle="#14b8a6";ctx.fillRect(x,h-38-h25,gw*.28,h25);
+      ctx.fillStyle="#f97316";ctx.fillRect(x+gw*.32,h-38-h26,gw*.28,h26);
+      ctx.fillStyle="#64748b";ctx.font="9px system-ui";ctx.textAlign="center";ctx.fillText((r.manager||"").slice(0,10),x+gw*.28,h-12);
+    });
+  }
+}
+
+function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();}
 
 function tableSheet(title, headers, data, period) {
   const aoa=[["REPORT.IA RCV"],[title],["Periodo",period],[],headers,...data];
@@ -556,7 +648,7 @@ async function downloadAll(){
   zip.file("COSTO RCV 2026.xlsx",workbookBlob(makeCostWorkbook()));
   zip.file("Gastos RCV 2026.xlsx",workbookBlob(makeExpenseWorkbook()));
   zip.file(`Productividad XPV ${state.model.month} 26 RCV.xlsx`,workbookBlob(makeXpvWorkbook()));
-  zip.file("LEEME.txt","REPORT.IA RCV 21.2 · Archivos generados directamente desde los JD procesados.");
+  zip.file("LEEME.txt","REPORT.IA RCV 21.3 · Archivos generados directamente desde los JD procesados.");
   saveBlob(await zip.generateAsync({type:"blob"}),`FINAL_${state.model.month}_2026.zip`);
 }
 
