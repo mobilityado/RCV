@@ -30,3 +30,62 @@
 #freshUploadStatus[data-kind="error"]{background:#fef2f2;color:#b91c1c}
 #freshUploadStatus[data-kind="ok"]{background:#ecfdf5;color:#047857}
 #freshUploadStatus[data-kind="working"]{background:#eff6ff;color:#1d4ed8}
+
+/* REPORT.IA RCV 18.3 — Full Reporting Center */
+.fresh-report-groups{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+.fresh-report-group{
+  padding:17px;
+  border:1px solid #e5eaf2;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 8px 24px rgba(15,23,42,.04);
+}
+.fresh-report-group-head{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:13px;
+}
+.fresh-report-group-head>span{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:9px;
+  background:#eff6ff;
+  color:#1d4ed8;
+  font-size:9px;
+  font-weight:850;
+}
+.fresh-report-group-head h3{
+  margin:0 0 4px;
+  color:#102a56;
+  font-size:14px;
+}
+.fresh-report-group-head p{
+  margin:0;
+  color:#64748b;
+  font-size:9px;
+  line-height:1.4;
+}
+.fresh-report-group .fresh-report-buttons{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  margin:0;
+}
+.fresh-report-group .fresh-report-buttons button{
+  min-height:48px;
+  text-align:left;
+}
+.fresh-report-specialized .master-report{
+  grid-column:1/-1;
+  background:linear-gradient(135deg,#102a56,#1d4ed8,#4f46e5);
+}
+@media(max-width:900px){
+  .fresh-report-groups{grid-template-columns:1fr}
+  .fresh-report-group .fresh-report-buttons{grid-template-columns:1fr}
+}

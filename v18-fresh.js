@@ -1,5 +1,5 @@
 
-// REPORT.IA RCV 18.2 — Fresh Frontend Adapter FIX
+// REPORT.IA RCV 18.3 — Fresh Frontend Adapter FIX
 (function(){
   const $=id=>document.getElementById(id);
   const qa=s=>[...document.querySelectorAll(s)];
@@ -270,10 +270,41 @@
     if(e.target.closest('#freshProcess'))processFiles();
     if(e.target.closest('#freshClear'))clearFiles();
 
+
+    const legacyAction=e.target.closest('[data-legacy-action]');
+    if(legacyAction){
+      const id=legacyAction.dataset.legacyAction;
+      const btn=legacy(id);
+      if(!btn){
+        status('No se encontró la función "'+id+'" en el motor interno.','error');
+        return;
+      }
+
+      // Some executive downloads require their reports to be built first.
+      if(['downloadBriefBtn','downloadVarianceBtn','downloadManagerialBtn','downloadExecutiveBundleBtn'].includes(id)){
+        const build=legacy('buildExecutiveReportsBtn');
+        if(build)build.click();
+        setTimeout(()=>{
+          const target=legacy(id);
+          if(target){
+            target.disabled=false;
+            target.click();
+          }
+        },250);
+      }else if(id==='generateFinalPackageBtn'){
+        btn.disabled=false;
+        btn.click();
+      }else{
+        btn.disabled=false;
+        btn.click();
+      }
+    }
+
     const rp=e.target.closest('[data-legacy-report]');
     if(rp){
       showView('reports');
-      const legacyBtn=document.querySelector('#legacyEngineRoot [data-r16="'+rp.dataset.legacyReport+'"]');
+      const legacyBtn=document.querySelector('#legacyEngineRoot [data-r16="'+rp.dataset.legacyReport+'"]') ||
+        document.querySelector('[data-r16="'+rp.dataset.legacyReport+'"]');
       if(legacyBtn){
         legacyBtn.click();
         setTimeout(()=>{

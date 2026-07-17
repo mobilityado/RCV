@@ -1,422 +1,652 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#4c1d95" />
-  <title>REPORT.IA RCV · Centro Ejecutivo</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="./css/executive-v9.css">
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#4c1d95" name="theme-color"/>
+<title>REPORT.IA RCV · Centro Ejecutivo</title>
+<link href="styles.css" rel="stylesheet"/>
+<link href="./css/executive-v9.css" rel="stylesheet"/>
+<link href="v18-clean.css" rel="stylesheet">
+</link>  <link rel="stylesheet" href="v18-fresh.css">
 </head>
-<body class="executive-layout-v21">
-
-<div id="secureLogin" class="secure-login">
-  <div class="secure-login-left">
-    <div class="secure-brand">
-      <div class="secure-logo">R</div>
-      <div><strong>REPORT.IA RCV</strong><span>Intelligence Edition 2.1</span></div>
-    </div>
-    <div class="secure-copy">
-      <span>PLATAFORMA EJECUTIVA RCV</span>
-      <h1>Inteligencia financiera para decisiones más claras.</h1>
-      <p>Costos, gastos, productividad, tendencias y reportes ejecutivos desde una sola experiencia.</p>
-      <div class="secure-points">
-        <div><b>01</b><span>Dashboard Ejecutivo</span></div>
-        <div><b>02</b><span>Análisis por Gerencia</span></div>
-        <div><b>03</b><span>PDF · Excel · ZIP</span></div>
-      </div>
-    </div>
-    <small>🔒 Acceso controlado · Procesamiento local</small>
-  </div>
-  <div class="secure-login-right">
-    <div class="secure-login-card">
-      <span class="secure-kicker">BIENVENIDO</span>
-      <h2>Iniciar sesión</h2>
-      <p>Selecciona tu usuario autorizado e ingresa tu contraseña.</p>
-
-      <label>Usuario
+<body>
+<div class="secure-login" id="secureLogin">
+<div class="secure-login-left">
+<div class="secure-brand">
+<div class="secure-logo">
+<svg aria-label="REPORT.IA" class="reportia-logo-svg" viewbox="0 0 64 64">
+<defs>
+<lineargradient id="riaGrad" x1="0" x2="1" y1="0" y2="1">
+<stop offset="0%" stop-color="#d71920"></stop>
+<stop offset="52%" stop-color="#7a2ca6"></stop>
+<stop offset="100%" stop-color="#4b1d6f"></stop>
+</lineargradient>
+</defs>
+<rect fill="url(#riaGrad)" height="56" rx="17" width="56" x="4" y="4"></rect>
+<path d="M18 43V20h14c7 0 12 3.6 12 9 0 4.2-2.7 7.2-7 8.3L46 43h-8l-7.5-5H26v5h-8Zm8-11h6c2.9 0 4.7-1.2 4.7-3.1 0-2-1.8-3.2-4.7-3.2h-6V32Z" fill="#fff"></path>
+<path d="M43 17l3.4 3.2 4.6-5.2" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path>
+<path d="M42 17h9v9" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="2.6"></path>
+</svg>
+</div>
+<div><strong>REPORT.IA RCV</strong><span>Intelligence Edition 2.1</span></div>
+</div>
+<div class="secure-copy">
+<span>PLATAFORMA EJECUTIVA RCV</span>
+<h1>Inteligencia financiera para decisiones más claras.</h1>
+<p>Costos, gastos, productividad, tendencias y reportes ejecutivos desde una sola experiencia.</p>
+<div class="secure-points">
+<div><b>01</b><span>Dashboard Ejecutivo</span></div>
+<div><b>02</b><span>Análisis por Gerencia</span></div>
+<div><b>03</b><span>PDF · Excel · ZIP</span></div>
+</div>
+</div>
+<small>🔒 Acceso controlado · Procesamiento local</small>
+</div>
+<div class="secure-login-right">
+<div class="secure-login-card">
+<span class="secure-kicker">BIENVENIDO</span>
+<h2>Iniciar sesión</h2>
+<p>Selecciona tu usuario autorizado e ingresa tu contraseña.</p>
+<label>Usuario
         <div class="secure-user-select">
-          <div id="loginAvatar" class="secure-avatar">?</div>
-          <select id="loginUser">
-            <option value="">Cargando usuarios...</option>
-          </select>
-        </div>
-      </label>
-
-      <label>Contraseña
+<div class="secure-avatar" id="loginAvatar">?</div>
+<select id="loginUser">
+<option value="">Cargando usuarios...</option>
+</select>
+</div>
+</label>
+<label>Contraseña
         <div class="secure-password">
-          <input id="loginPassword" type="password" placeholder="••••••••" />
-          <button id="togglePassword" type="button">◉</button>
-        </div>
-      </label>
-
-      <button id="loginBtn" class="secure-login-btn">Entrar a REPORT.IA</button>
-      <div id="loginStatus" class="secure-login-status">Cargando usuarios autorizados...</div>
-      <button id="reloadUsersBtn" class="secure-reload" type="button">↻ Recargar usuarios</button>
-    </div>
-  </div>
+<input id="loginPassword" placeholder="••••••••" type="password"/>
+<button id="togglePassword" type="button">◉</button>
+</div>
+</label>
+<button class="secure-login-btn" id="loginBtn">Entrar a REPORT.IA</button>
+<div class="secure-login-status" id="loginStatus">Cargando usuarios autorizados...</div>
+<button class="secure-reload" id="reloadUsersBtn" type="button">↻ Recargar usuarios</button>
+</div>
+</div>
 </div>
 
-  <aside class="sidebar executive-sidebar">
-    <div class="brand">
-      <div class="brand-icon">R</div>
+<div class="fresh-app" id="freshApp">
+  <aside class="fresh-sidebar">
+    <div class="fresh-brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1d4ed8"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs>
+        <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#fg)"/>
+        <path d="M17 44V19h15c7.6 0 12.5 3.9 12.5 9.5 0 4.1-2.5 7.2-6.8 8.5L47 44h-8.5l-8-6H25v6h-8Zm8-12h6.6c3 0 4.9-1.3 4.9-3.3 0-2.1-1.9-3.4-4.9-3.4H25V32Z" fill="#fff"/>
+        <path d="M42 27l4-5 4 3 5-8" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>
+      </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Centro Ejecutivo</span></div>
     </div>
-    <nav>
-      <a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
-      <a href="#dashboard">⌂ <span>Resumen Ejecutivo</span></a>
-      <a href="#pulso">◉ <span>Pulso RCV</span></a>
-      <a href="#gerencias">🏢 <span>Gerencias</span></a>
-      <a href="#costos">💰 <span>Costos</span></a>
-      <a href="#gastos">📊 <span>Gastos</span></a>
-      <a href="#xpv">🚌 <span>Productividad XPV</span></a>
-      <a href="#tendencias">📈 <span>Tendencias</span></a>
-      <a href="#inteligencia">🧠 <span>Resumen Inteligente</span></a>
-      <a href="#comparador">⇄ <span>Comparador</span></a>
-      <a href="#resultados">📑 <span>Generar Reportes</span></a>
+    <div class="fresh-badge">EXECUTIVE COMMAND CENTER</div>
+
+    <nav class="fresh-nav">
+      <button class="active" data-fresh-view="home">⌂ <span>Inicio Ejecutivo</span></button>
+      <button data-fresh-view="upload">⇩ <span>Cargar reportes</span></button>
+      <button data-fresh-view="analysis">⌁ <span>Análisis</span></button>
+      <button data-fresh-view="reports">▤ <span>Reportes</span></button>
+      <button data-fresh-view="decisions">◎ <span>Centro de Decisiones</span></button>
+      <button data-fresh-view="insights">◉ <span>Insights 360</span></button>
     </nav>
-    <div class="privacy">🔒 Procesamiento local<br><small>La información permanece en tu equipo.</small></div>
+
+    <div class="fresh-side-bottom">
+      <div class="fresh-user"><div id="freshAvatar">AD</div><span><strong id="freshUser">Administrador</strong><small id="freshRole">Administrador del sistema</small></span></div>
+      <div class="fresh-online"><i></i><span>Sistema en línea</span><b>v18.1</b></div>
+    </div>
   </aside>
 
-  <main>
-<header class="exec-topbar">
-  <div class="exec-greeting">
-    <h1 id="execGreeting">👋 Hola.</h1>
-    <p>Aquí tienes el resumen ejecutivo de RCV.</p>
-  </div>
-  <div class="exec-controls">
-    <div class="exec-control">
-      <span>Periodo analizado</span>
-      <select id="execMonth"></select>
-    </div>
-    <div class="exec-control">
-      <span>Comparar con</span>
-      <select id="execCompare">
-        <option>Presupuesto 2026</option>
-        <option>Real 2025</option>
-      </select>
-    </div>
-    <button id="refreshDataBtn" class="exec-refresh">Actualizar datos ⟳</button>
-    <div class="exec-user">
-      <div id="execUserAvatar" class="exec-user-avatar">U</div>
-      <div><strong id="execUserName">Usuario</strong><span id="execUserRole">—</span></div>
-      <button id="logoutBtn" title="Cerrar sesión">⎋</button>
-    </div>
-  </div>
-</header>
+  <main class="fresh-main">
+    <section class="fresh-view active" data-view="home">
+      <header class="fresh-header">
+        <div><span class="fresh-kicker">BIENVENIDO</span><h1>Centro de Mando Ejecutivo</h1><p>Inteligencia para decisiones que generan resultados.</p></div>
+        <div class="fresh-header-actions">
+          <label>Periodo seleccionado<select id="freshPeriod"><option>Periodo actual</option><option>Mes anterior</option><option>Últimos 6 meses</option></select></label>
+          <button id="freshRefresh">↻ Actualizar datos</button>
+        </div>
+      </header>
 
-<div class="layout-intro no-print">
-  <div>
-    <span class="eyebrow">REPORT.IA RCV · INTELLIGENCE EDITION 2.1 · SECURE EXECUTIVE</span>
-    <h1>Centro de Inteligencia Ejecutiva</h1>
-    <p>Una sola vista para analizar, comparar, explicar y exportar resultados.</p>
-  </div>
-  <div class="layout-intro__badge">RCV Intelligence</div>
-</div>
+      <div class="fresh-filters">
+        <label>Gerencia Regional<select id="freshManager"><option>Todas las gerencias</option></select></label>
+        <label>Marca<select><option>Todas</option><option>ADO</option><option>TRT</option><option>SUR</option></select></label>
+        <label>Tipo de reporte<select><option>Todos</option><option>Costos</option><option>Gastos</option><option>Productividad XPV</option></select></label>
+        <label>Buscar<input placeholder="Buscar gerencia..."></label>
+      </div>
+
+      <div class="fresh-kpis">
+        <article><i class="i-blue">$</i><div><small>COSTO TOTAL</small><strong id="freshCost">$0</strong><span>vs Mes anterior</span></div></article>
+        <article><i class="i-violet">▤</i><div><small>GASTO TOTAL</small><strong id="freshExpense">$0</strong><span>vs Mes anterior</span></div></article>
+        <article><i class="i-cyan">↗</i><div><small>PRODUCTIVIDAD XPV</small><strong id="freshXpv">0%</strong><span>Indicador ejecutivo</span></div></article>
+        <article><i class="i-teal">●</i><div><small>GERENCIAS ACTIVAS</small><strong id="freshManagers">0</strong><span>Unidades detectadas</span></div></article>
+        <article><i class="i-amber">⚠</i><div><small>ALERTAS CRÍTICAS</small><strong id="freshCritical">0</strong><span>Requieren atención</span></div></article>
+      </div>
+
+      <div class="fresh-grid-top">
+        <article class="fresh-card">
+          <div class="fresh-card-head"><div><small>RENDIMIENTO GENERAL</small><h3>Costos, gastos y XPV</h3></div><select><option>Últimos 6 meses</option></select></div>
+          <canvas id="freshTrend" width="820" height="300"></canvas>
+        </article>
+        <article class="fresh-card">
+          <div class="fresh-card-head"><div><small>TOP 5 GERENCIAS POR COSTO</small><h3>Ranking ejecutivo</h3></div></div>
+          <div id="freshRanking" class="fresh-ranking"></div>
+        </article>
+        <article class="fresh-card fresh-gauge-card">
+          <div class="fresh-card-head"><div><small>CUMPLIMIENTO DEL PERIODO</small><h3>Índice ejecutivo</h3></div></div>
+          <div class="fresh-gauge" id="freshGauge"><strong id="freshGaugeValue">0%</strong><span>Cumplimiento</span></div>
+          <p>Basado en indicadores y calidad de datos</p>
+        </article>
+      </div>
+
+      <div class="fresh-grid-bottom">
+        <article class="fresh-card"><div class="fresh-card-head"><div><small>DESVIACIONES CRÍTICAS</small><h3>Qué requiere atención</h3></div></div><div id="freshDeviations" class="fresh-list"></div></article>
+        <article class="fresh-card"><div class="fresh-card-head"><div><small>HALLAZGOS PRINCIPALES (IA)</small><h3>Lectura automática</h3></div></div><div id="freshFindings" class="fresh-list"></div></article>
+        <article class="fresh-card"><div class="fresh-card-head"><div><small>ACCESOS RÁPIDOS</small><h3>Reportes especializados</h3></div></div>
+          <div class="fresh-quick">
+            <button data-fresh-view="reports">📚 Centro de Reportes Completo</button>
+            <button data-legacy-action="zipBtn">📦 Paquete FINAL.zip</button>
+            <button data-legacy-action="btnPdfVista">📄 PDF Ejecutivo</button>
+            <button data-legacy-report="deviations">Desviaciones y Excepciones</button>
+            <button data-legacy-report="savings">Oportunidades de Ahorro</button>
+            <button data-legacy-report="efficiency">Eficiencia Gerencial</button>
+            <button data-legacy-report="variations">Variaciones Periodo vs Periodo</button>
+            <button data-legacy-report="pareto">Pareto 80/20</button>
+            <button data-legacy-report="actions">Plan de Acción Ejecutivo</button>
+            <button class="wide" data-legacy-report="master">Reporte Maestro Ejecutivo</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="fresh-view" data-view="upload">
+      <header class="fresh-section-title"><span>CARGA DE INFORMACIÓN</span><h2>Generar reportes FINAL</h2><p>Carga un Excel consolidado por pestañas o los archivos fuente por separado.</p></header>
+      <div class="fresh-upload-card">
+        <div class="fresh-upload-copy"><h3>Fuentes JD → Procesamiento → Reportes FINAL</h3><p>REPORT.IA detecta JD COSTO RCV, JD GASTOS RCV, JD XPV RCV y el Catálogo de Gerentes.</p></div>
+        <div class="fresh-upload-controls">
+          <button id="freshBrowse">Seleccionar archivos Excel</button>
+          <button id="freshProcess">Procesar y generar reportes</button>
+          <button id="freshClear">Limpiar</button>
+        </div>
+        <div id="freshUploadStatus" class="fresh-status">Aún no has cargado archivos.</div>
+      </div>
+    </section>
+
+    <section class="fresh-view" data-view="analysis">
+      <header class="fresh-section-title"><span>ANÁLISIS EJECUTIVO</span><h2>Lectura consolidada</h2><p>Resumen de calidad, alertas, variaciones y recomendaciones.</p></header>
+      <div id="freshAnalysis" class="fresh-analysis-grid"></div>
+    </section>
 
     
-<section class="generator-studio no-print" id="carga">
-  <div class="generator-story">
-    <div class="generator-brand-row">
-      <span class="generator-badge">REPORT.IA RCV · GENERADOR AUTOMÁTICO</span>
-      <span class="generator-local">Procesamiento local en tu navegador</span>
-    </div>
+<section class="fresh-view" data-view="reports">
+  <header class="fresh-section-title">
+    <span>CENTRO DE REPORTES</span>
+    <h2>Todos los reportes y entregables</h2>
+    <p>Conserva los reportes FINAL originales y toda la capa ejecutiva desarrollada.</p>
+  </header>
 
-    <p class="eyebrow">CENTRO EJECUTIVO DE REPORTES RCV</p>
-    <h1>De los reportes JD al paquete FINAL, en un solo proceso.</h1>
-    <p class="generator-lead">
+  <div class="fresh-report-groups">
+    <article class="fresh-report-group">
+      <div class="fresh-report-group-head">
+        <span>01</span>
+        <div><h3>Reportes FINAL operativos</h3><p>Los archivos originales generados por el motor RCV.</p></div>
+      </div>
+      <div class="fresh-report-buttons">
+        <button data-legacy-action="zipBtn">📦 Descargar paquete FINAL.zip</button>
+        <button data-legacy-action="generateFinalPackageBtn">📚 Generar paquete FINAL ampliado</button>
+      </div>
+    </article>
+
+    <article class="fresh-report-group">
+      <div class="fresh-report-group-head">
+        <span>02</span>
+        <div><h3>Exportación Ejecutiva</h3><p>PDF, Excel y entregables para comité.</p></div>
+      </div>
+      <div class="fresh-report-buttons">
+        <button data-legacy-action="btnPdfVista">📄 PDF de la vista actual</button>
+        <button data-legacy-action="btnExcelEjecutivo">📊 Excel Ejecutivo</button>
+        <button data-legacy-action="btnPdfGerencia">🏢 PDF por Gerencia</button>
+        <button data-legacy-action="btnPaqueteEjecutivo">📦 Paquete Ejecutivo</button>
+      </div>
+    </article>
+
+    <article class="fresh-report-group">
+      <div class="fresh-report-group-head">
+        <span>03</span>
+        <div><h3>Executive Reporting</h3><p>Brief, variaciones y reporte gerencial.</p></div>
+      </div>
+      <div class="fresh-report-buttons">
+        <button data-legacy-action="buildExecutiveReportsBtn">✨ Construir reportes ejecutivos</button>
+        <button data-legacy-action="downloadBriefBtn">🧠 Descargar Brief Ejecutivo</button>
+        <button data-legacy-action="downloadVarianceBtn">⚖️ Descargar Variaciones</button>
+        <button data-legacy-action="downloadManagerialBtn">📈 Descargar Reporte Gerencial</button>
+        <button data-legacy-action="downloadExecutiveBundleBtn">📦 Descargar Paquete Ejecutivo Completo</button>
+      </div>
+    </article>
+
+    <article class="fresh-report-group">
+      <div class="fresh-report-group-head">
+        <span>04</span>
+        <div><h3>Advanced Reporting Suite</h3><p>Siete reportes especializados para análisis y toma de decisiones.</p></div>
+      </div>
+      <div class="fresh-report-buttons fresh-report-specialized">
+        <button data-legacy-report="deviations">Desviaciones y Excepciones</button>
+        <button data-legacy-report="savings">Oportunidades de Ahorro</button>
+        <button data-legacy-report="efficiency">Eficiencia Gerencial</button>
+        <button data-legacy-report="variations">Variaciones Periodo vs Periodo</button>
+        <button data-legacy-report="pareto">Pareto 80/20</button>
+        <button data-legacy-report="actions">Plan de Acción Ejecutivo</button>
+        <button class="master-report" data-legacy-report="master">★ Reporte Maestro Ejecutivo</button>
+      </div>
+    </article>
+  </div>
+
+  <div id="freshReportPreview" class="fresh-report-preview">
+    Selecciona un reporte especializado para visualizarlo aquí. Los reportes de descarga se generan directamente.
+  </div>
+</section>
+
+<section class="fresh-view" data-view="decisions">
+      <header class="fresh-section-title"><span>CENTRO DE DECISIONES</span><h2>Hallazgos y seguimiento</h2><p>Convierte observaciones en acciones concretas.</p></header>
+      <div id="freshDecisions" class="fresh-report-preview">Las decisiones registradas se sincronizan con el motor interno.</div>
+    </section>
+
+    <section class="fresh-view" data-view="insights">
+      <header class="fresh-section-title"><span>INSIGHTS 360</span><h2>Interpretación ejecutiva</h2><p>Riesgos, oportunidades y puntos para reunión.</p></header>
+      <div id="freshInsights" class="fresh-analysis-grid"></div>
+    </section>
+  </main>
+
+  <div class="fresh-copilot" id="freshCopilot">
+    <button class="fresh-copilot-toggle" id="freshCopilotToggle">🤖 <span><strong>Copiloto Ejecutivo</strong><small>Pregúntame cualquier cosa</small></span></button>
+    <div class="fresh-copilot-panel">
+      <div class="fresh-copilot-head"><strong>Copiloto REPORT.IA</strong><button id="freshCopilotClose">×</button></div>
+      <div id="freshChat" class="fresh-chat"><div class="bot">Hola. Puedo ayudarte con riesgos, costos, gastos, productividad, prioridades y reportes.</div></div>
+      <div class="fresh-prompts"><button>Dame un resumen</button><button>¿Qué revisar primero?</button><button>¿Cuál es el principal riesgo?</button></div>
+      <div class="fresh-chat-input"><input id="freshQuestion" placeholder="Escribe tu pregunta..."><button id="freshAsk">Enviar</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="legacyEngineRoot" aria-hidden="true">
+<section class="report16 no-print" id="report16">
+<header class="r16-head">
+<div><span>REPORT.IA RCV 16 · ADVANCED REPORTING SUITE</span><h2>Suite de Reportes Ejecutivos</h2><p>Siete entregables especializados para convertir el análisis en decisiones, seguimiento y presentación directiva.</p></div>
+<div class="r16-badge"><small>REPORTES DISPONIBLES</small><strong>7</strong></div>
+</header>
+<div class="r16-grid">
+<article class="r16-card"><i>01</i><h3>Desviaciones y Excepciones</h3><p>Identifica valores fuera de patrón, severidad y focos que requieren revisión.</p><button data-r16="deviations">Generar reporte</button></article>
+<article class="r16-card"><i>02</i><h3>Oportunidades de Ahorro</h3><p>Prioriza rubros y unidades con potencial de optimización económica.</p><button data-r16="savings">Generar reporte</button></article>
+<article class="r16-card"><i>03</i><h3>Eficiencia Gerencial</h3><p>Compara costos, gastos y productividad sin ocultar las variables de origen.</p><button data-r16="efficiency">Generar reporte</button></article>
+<article class="r16-card"><i>04</i><h3>Variaciones Periodo contra Periodo</h3><p>Resume cambios, brechas y principales movimientos entre indicadores disponibles.</p><button data-r16="variations">Generar reporte</button></article>
+<article class="r16-card"><i>05</i><h3>Pareto 80/20</h3><p>Detecta la concentración de impacto para enfocar la atención en pocos elementos clave.</p><button data-r16="pareto">Generar reporte</button></article>
+<article class="r16-card"><i>06</i><h3>Plan de Acción Ejecutivo</h3><p>Convierte decisiones registradas en un documento formal de seguimiento.</p><button data-r16="actions">Generar reporte</button></article>
+<article class="r16-card master"><i>★</i><h3>Reporte Maestro Ejecutivo</h3><p>Consolida resumen, KPIs, anomalías, Pareto, eficiencia, ahorro, riesgos y plan de acción.</p><button data-r16="master">Generar Reporte Maestro</button></article>
+</div>
+<div class="r16-preview" id="r16Preview">
+<div class="r16-empty"><strong>Selecciona un reporte</strong><span>Aquí aparecerá la vista previa antes de imprimir o guardar como PDF.</span></div>
+</div>
+<div class="r16-actions" hidden="" id="r16Actions"><button id="r16Print">Imprimir / Guardar PDF</button><button id="r16Close">Cerrar vista previa</button></div>
+</section>
+
+
+
+<div class="v18-shell">
+<aside class="sidebar executive-sidebar">
+<div class="brand">
+<div aria-label="REPORT.IA" class="brand-icon brand-icon-custom">
+<svg class="reportia-logo-svg-blue" role="img" viewbox="0 0 64 64">
+<defs>
+<lineargradient id="reportiaBlueGrad" x1="0" x2="1" y1="0" y2="1">
+<stop offset="0%" stop-color="#1d4ed8"></stop>
+<stop offset="48%" stop-color="#2563eb"></stop>
+<stop offset="100%" stop-color="#4338ca"></stop>
+</lineargradient>
+</defs>
+<rect fill="url(#reportiaBlueGrad)" height="58" rx="18" width="58" x="3" y="3"></rect>
+<path d="M17 44V19h15c7.6 0 12.5 3.9 12.5 9.5 0 4.1-2.5 7.2-6.8 8.5L47 44h-8.5l-8-6H25v6h-8Zm8-12h6.6c3 0 4.9-1.3 4.9-3.3 0-2.1-1.9-3.4-4.9-3.4H25V32Z" fill="#fff"></path>
+<path d="M41 18h10v10" fill="none" stroke="#bfdbfe" stroke-linecap="round" stroke-width="2.7"></path>
+<path d="M40 27l5-5 4 3 5-7" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8"></path>
+</svg>
+</div>
+<div><strong>REPORT.IA</strong><span>RCV · Centro Ejecutivo</span></div>
+</div>
+<nav class="ecc17-sidebar-nav" id="ecc17SidebarNav">
+<button class="active" data-target="ecc17">⌂ <span>Inicio Ejecutivo</span></button>
+<button data-target="command15">⌁ <span>Análisis</span></button>
+<button data-target="story14">▥ <span>Comparativos</span></button>
+<button data-target="insight360Center">▣ <span>Gerencias</span></button>
+<button data-target="report16">▤ <span>Reportes</span></button>
+<button data-target="automationCenter">⚙ <span>Configuración</span></button>
+<div class="ecc17-side-sep"></div>
+<small>ACCESOS RÁPIDOS</small>
+<button data-target="carga">⇩ <span>Cargar reportes</span></button>
+<button data-target="command15">◎ <span>Centro de Decisiones</span></button>
+<button data-target="insight360Center">◉ <span>Insights 360</span></button>
+<button data-target="story14">◫ <span>Storytelling IA</span></button>
+<button data-target="report16">▧ <span>Generar PDF Ejecutivo</span></button>
+</nav>
+<nav>
+<a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
+<a href="#dashboard">⌂ <span>Resumen Ejecutivo</span></a>
+<a href="#pulso">◉ <span>Pulso RCV</span></a>
+<a href="#gerencias">🏢 <span>Gerencias</span></a>
+<a href="#costos">💰 <span>Costos</span></a>
+<a href="#gastos">📊 <span>Gastos</span></a>
+<a href="#xpv">🚌 <span>Productividad XPV</span></a>
+<a href="#tendencias">📈 <span>Tendencias</span></a>
+<a href="#inteligencia">🧠 <span>Resumen Inteligente</span></a>
+<a href="#comparador">⇄ <span>Comparador</span></a>
+<a href="#resultados">📑 <span>Generar Reportes</span></a>
+</nav>
+<div class="privacy">🔒 Procesamiento local<br/><small>La información permanece en tu equipo.</small></div>
+</aside>
+<main>
+<header class="exec-topbar">
+<div class="exec-greeting">
+<h1 id="execGreeting">👋 Hola.</h1>
+<p>Aquí tienes el resumen ejecutivo de RCV.</p>
+</div>
+<div class="exec-controls">
+<div class="exec-control">
+<span>Periodo analizado</span>
+<select id="execMonth"></select>
+</div>
+<div class="exec-control">
+<span>Comparar con</span>
+<select id="execCompare">
+<option>Presupuesto 2026</option>
+<option>Real 2025</option>
+</select>
+</div>
+<button class="exec-refresh" id="refreshDataBtn">Actualizar datos ⟳</button>
+<div class="exec-user">
+<div class="exec-user-avatar" id="execUserAvatar">U</div>
+<div><strong id="execUserName">Usuario</strong><span id="execUserRole">—</span></div>
+<button id="logoutBtn" title="Cerrar sesión">⎋</button>
+</div>
+</div>
+</header>
+<div class="layout-intro no-print">
+<div>
+<span class="eyebrow">REPORT.IA RCV · INTELLIGENCE EDITION 2.1 · SECURE EXECUTIVE</span>
+<h1>Centro de Inteligencia Ejecutiva</h1>
+<p>Una sola vista para analizar, comparar, explicar y exportar resultados.</p>
+</div>
+<div class="layout-intro__badge">RCV Intelligence</div>
+</div>
+<section class="generator-studio no-print" id="carga">
+<div class="generator-story">
+<div class="generator-brand-row">
+<span class="generator-badge">REPORT.IA RCV · GENERADOR AUTOMÁTICO</span>
+<span class="generator-local">Procesamiento local en tu navegador</span>
+</div>
+<p class="eyebrow">CENTRO EJECUTIVO DE REPORTES RCV</p>
+<h1>De los reportes JD al paquete FINAL, en un solo proceso.</h1>
+<p class="generator-lead">
       REPORT.IA RCV recibe las fuentes originales de <strong>Costos, Gastos, Productividad XPV</strong>
       y el <strong>Catálogo de Gerentes</strong>. Puedes cargarlas como archivos independientes o
       dentro de un solo Excel por pestañas; el sistema identifica cada fuente, consolida la información
       hasta el mes de corte y genera automáticamente los reportes finales listos para descargar.
     </p>
-
-    <div class="generator-flow">
-      <div class="flow-card">
-        <span class="flow-number">01</span>
-        <div><strong>Carga las fuentes</strong><small>JD COSTO RCV · JD GASTOS RCV · JD XPV RCV · Catálogo</small></div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-card">
-        <span class="flow-number">02</span>
-        <div><strong>REPORT.IA procesa</strong><small>Detecta pestañas, clasifica gerencias, agrupa y calcula variaciones.</small></div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-card">
-        <span class="flow-number">03</span>
-        <div><strong>Genera el FINAL</strong><small>Tres libros Excel y análisis ejecutivo del periodo.</small></div>
-      </div>
-    </div>
-
-    <div class="generator-outputs">
-      <div class="output-pill"><span>📘</span><div><strong>COSTO RCV 2026.xlsx</strong><small>Operativos · Mantto · Premisas · SMO</small></div></div>
-      <div class="output-pill"><span>📗</span><div><strong>Gastos RCV 2026.xlsx</strong><small>Detalle + Resumen por Gerencia</small></div></div>
-      <div class="output-pill"><span>📙</span><div><strong>Productividad XPV</strong><small>Reporte mensual RCV</small></div></div>
-    </div>
-  </div>
-
-  <div class="generator-upload-card">
-    <div class="upload-card-top">
-      <div>
-        <span class="smart-label">SMART IMPORT</span>
-        <h2>Cargar información</h2>
-        <p>Un Excel con las cuatro pestañas o los archivos por separado.</p>
-      </div>
-      <button id="clearBtn" class="ghost compact-clear" type="button">Limpiar</button>
-    </div>
-
-    <div class="upload-control-row">
-      <div class="month-box compact-month">
-        <label for="month">Mes de corte</label>
-        <select id="month"></select>
-      </div>
-      <div class="source-hint">
-        <span class="source-dot"></span>
-        <span>Detección automática de fuentes JD</span>
-      </div>
-    </div>
-
-    <div id="dropZone" class="drop-zone compact-drop" tabindex="0">
-      <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
-      <div class="upload-icon compact-icon">⇧</div>
-      <div class="drop-copy">
-        <h3>Arrastra tus Excel aquí</h3>
-        <p>Consolidado por pestañas o archivos independientes.</p>
-        <small>XLSX · XLS · XLSM</small>
-      </div>
-      <button id="browseBtn" class="primary compact-browse" type="button">Seleccionar archivos</button>
-    </div>
-
-    <div id="fileList" class="file-list compact-file-list"></div>
-
-    <div class="generator-status">
-      <div>
-        <span class="status-kicker">ESTADO</span>
-        <p id="statusText">Carga los reportes requeridos para continuar.</p>
-      </div>
-      <button id="processBtn" class="process compact-process" disabled type="button">
+<div class="generator-flow">
+<div class="flow-card">
+<span class="flow-number">01</span>
+<div><strong>Carga las fuentes</strong><small>JD COSTO RCV · JD GASTOS RCV · JD XPV RCV · Catálogo</small></div>
+</div>
+<div class="flow-arrow">→</div>
+<div class="flow-card">
+<span class="flow-number">02</span>
+<div><strong>REPORT.IA procesa</strong><small>Detecta pestañas, clasifica gerencias, agrupa y calcula variaciones.</small></div>
+</div>
+<div class="flow-arrow">→</div>
+<div class="flow-card">
+<span class="flow-number">03</span>
+<div><strong>Genera el FINAL</strong><small>Tres libros Excel y análisis ejecutivo del periodo.</small></div>
+</div>
+</div>
+<div class="generator-outputs">
+<div class="output-pill"><span>📘</span><div><strong>COSTO RCV 2026.xlsx</strong><small>Operativos · Mantto · Premisas · SMO</small></div></div>
+<div class="output-pill"><span>📗</span><div><strong>Gastos RCV 2026.xlsx</strong><small>Detalle + Resumen por Gerencia</small></div></div>
+<div class="output-pill"><span>📙</span><div><strong>Productividad XPV</strong><small>Reporte mensual RCV</small></div></div>
+</div>
+</div>
+<div class="generator-upload-card">
+<div class="upload-card-top">
+<div>
+<span class="smart-label">SMART IMPORT</span>
+<h2>Cargar información</h2>
+<p>Un Excel con las cuatro pestañas o los archivos por separado.</p>
+</div>
+<button class="ghost compact-clear" id="clearBtn" type="button">Limpiar</button>
+</div>
+<div class="upload-control-row">
+<div class="month-box compact-month">
+<label for="month">Mes de corte</label>
+<select id="month"></select>
+</div>
+<div class="source-hint">
+<span class="source-dot"></span>
+<span>Detección automática de fuentes JD</span>
+</div>
+</div>
+<div class="drop-zone compact-drop" id="dropZone" tabindex="0">
+<input accept=".xlsx,.xls,.xlsm" hidden="" id="fileInput" multiple="" type="file"/>
+<div class="upload-icon compact-icon">⇧</div>
+<div class="drop-copy">
+<h3>Arrastra tus Excel aquí</h3>
+<p>Consolidado por pestañas o archivos independientes.</p>
+<small>XLSX · XLS · XLSM</small>
+</div>
+<button class="primary compact-browse" id="browseBtn" type="button">Seleccionar archivos</button>
+</div>
+<div class="file-list compact-file-list" id="fileList"></div>
+<div class="generator-status">
+<div>
+<span class="status-kicker">ESTADO</span>
+<p id="statusText">Carga los reportes requeridos para continuar.</p>
+</div>
+<button class="process compact-process" disabled="" id="processBtn" type="button">
         ✨ Analizar y generar FINAL
       </button>
-    </div>
-
-    <button id="presentationBtn" class="presentation-btn compact-presentation" type="button">
+</div>
+<button class="presentation-btn compact-presentation" id="presentationBtn" type="button">
       ▶ Modo presentación
     </button>
-  </div>
+</div>
 </section>
-
-
 <section class="automation-center no-print" id="automationCenter">
-  <div class="automation-head">
-    <div>
-      <span class="automation-kicker">INTELLIGENCE AUTOMATION 11.0</span>
-      <h2>Centro de Control del Proceso</h2>
-      <p>Supervisa la integridad de las fuentes y genera el paquete FINAL con trazabilidad.</p>
-    </div>
-    <div class="automation-score-wrap">
-      <span>Calidad de datos</span>
-      <strong id="qualityScore">0%</strong>
-    </div>
-  </div>
-
-  <div class="process-steps">
-    <div class="process-step active" data-step="load">
-      <span class="step-num">1</span>
-      <div><strong>Cargar</strong><small>Fuentes JD</small></div>
-    </div>
-    <div class="step-line"></div>
-    <div class="process-step" data-step="validate">
-      <span class="step-num">2</span>
-      <div><strong>Validar</strong><small>Estructura y calidad</small></div>
-    </div>
-    <div class="step-line"></div>
-    <div class="process-step" data-step="analyze">
-      <span class="step-num">3</span>
-      <div><strong>Analizar</strong><small>Indicadores y anomalías</small></div>
-    </div>
-    <div class="step-line"></div>
-    <div class="process-step" data-step="final">
-      <span class="step-num">4</span>
-      <div><strong>Generar FINAL</strong><small>Excel + PDF + resumen</small></div>
-    </div>
-  </div>
-
-  <div class="automation-grid">
-    <article class="automation-card quality-card">
-      <div class="card-title-row">
-        <div>
-          <span class="automation-label">SEMÁFORO DE CALIDAD</span>
-          <h3>Estado de las fuentes</h3>
-        </div>
-        <span class="quality-light pending" id="qualityLight"></span>
-      </div>
-      <div class="quality-list" id="qualityList">
-        <div class="quality-item"><span>Integridad de fuentes</span><strong id="qSources">Pendiente</strong></div>
-        <div class="quality-item"><span>Registros procesados</span><strong id="qRecords">0</strong></div>
-        <div class="quality-item"><span>Observaciones detectadas</span><strong id="qIssues">0</strong></div>
-        <div class="quality-item"><span>Fuentes reconocidas</span><strong id="qRecognized">0 / 4</strong></div>
-      </div>
-      <button type="button" class="automation-btn primary" id="runValidationBtn">✓ Ejecutar validación inteligente</button>
-    </article>
-
-    <article class="automation-card anomaly-card">
-      <div class="card-title-row">
-        <div>
-          <span class="automation-label">CENTRO DE ANOMALÍAS</span>
-          <h3>Hallazgos automáticos</h3>
-        </div>
-        <span class="anomaly-count" id="anomalyCount">0</span>
-      </div>
-      <div class="anomaly-list" id="anomalyList">
-        <div class="automation-empty">Carga y procesa información para detectar anomalías.</div>
-      </div>
-      <button type="button" class="automation-btn" id="refreshAnomaliesBtn">↻ Analizar de nuevo</button>
-    </article>
-
-    <article class="automation-card package-card">
-      <div class="card-title-row">
-        <div>
-          <span class="automation-label">PAQUETE FINAL</span>
-          <h3>Entrega ejecutiva</h3>
-        </div>
-        <span class="package-ready" id="packageReady">Pendiente</span>
-      </div>
-      <div class="package-items">
-        <div>📘 <span>COSTO RCV</span></div>
-        <div>📗 <span>Gastos RCV</span></div>
-        <div>📙 <span>Productividad XPV</span></div>
-        <div>📄 <span>PDF Ejecutivo</span></div>
-        <div>🧠 <span>Resumen Inteligente</span></div>
-      </div>
-      <button type="button" class="automation-btn primary" id="generateFinalPackageBtn" disabled>📦 Generar paquete FINAL</button>
-    </article>
-  </div>
-
-  <div class="generation-history-card">
-    <div class="card-title-row">
-      <div>
-        <span class="automation-label">HISTORIAL DE GENERACIONES</span>
-        <h3>Últimos paquetes creados</h3>
-      </div>
-      <button type="button" class="automation-btn ghost" id="clearHistoryBtn">Limpiar historial</button>
-    </div>
-    <div id="generationHistory" class="generation-history">
-      <div class="automation-empty">Todavía no se han generado paquetes FINAL en este navegador.</div>
-    </div>
-  </div>
+<div class="automation-head">
+<div>
+<span class="automation-kicker">INTELLIGENCE AUTOMATION 11.0</span>
+<h2>Centro de Control del Proceso</h2>
+<p>Supervisa la integridad de las fuentes y genera el paquete FINAL con trazabilidad.</p>
+</div>
+<div class="automation-score-wrap">
+<span>Calidad de datos</span>
+<strong id="qualityScore">0%</strong>
+</div>
+</div>
+<div class="process-steps">
+<div class="process-step active" data-step="load">
+<span class="step-num">1</span>
+<div><strong>Cargar</strong><small>Fuentes JD</small></div>
+</div>
+<div class="step-line"></div>
+<div class="process-step" data-step="validate">
+<span class="step-num">2</span>
+<div><strong>Validar</strong><small>Estructura y calidad</small></div>
+</div>
+<div class="step-line"></div>
+<div class="process-step" data-step="analyze">
+<span class="step-num">3</span>
+<div><strong>Analizar</strong><small>Indicadores y anomalías</small></div>
+</div>
+<div class="step-line"></div>
+<div class="process-step" data-step="final">
+<span class="step-num">4</span>
+<div><strong>Generar FINAL</strong><small>Excel + PDF + resumen</small></div>
+</div>
+</div>
+<div class="automation-grid">
+<article class="automation-card quality-card">
+<div class="card-title-row">
+<div>
+<span class="automation-label">SEMÁFORO DE CALIDAD</span>
+<h3>Estado de las fuentes</h3>
+</div>
+<span class="quality-light pending" id="qualityLight"></span>
+</div>
+<div class="quality-list" id="qualityList">
+<div class="quality-item"><span>Integridad de fuentes</span><strong id="qSources">Pendiente</strong></div>
+<div class="quality-item"><span>Registros procesados</span><strong id="qRecords">0</strong></div>
+<div class="quality-item"><span>Observaciones detectadas</span><strong id="qIssues">0</strong></div>
+<div class="quality-item"><span>Fuentes reconocidas</span><strong id="qRecognized">0 / 4</strong></div>
+</div>
+<button class="automation-btn primary" id="runValidationBtn" type="button">✓ Ejecutar validación inteligente</button>
+</article>
+<article class="automation-card anomaly-card">
+<div class="card-title-row">
+<div>
+<span class="automation-label">CENTRO DE ANOMALÍAS</span>
+<h3>Hallazgos automáticos</h3>
+</div>
+<span class="anomaly-count" id="anomalyCount">0</span>
+</div>
+<div class="anomaly-list" id="anomalyList">
+<div class="automation-empty">Carga y procesa información para detectar anomalías.</div>
+</div>
+<button class="automation-btn" id="refreshAnomaliesBtn" type="button">↻ Analizar de nuevo</button>
+</article>
+<article class="automation-card package-card">
+<div class="card-title-row">
+<div>
+<span class="automation-label">PAQUETE FINAL</span>
+<h3>Entrega ejecutiva</h3>
+</div>
+<span class="package-ready" id="packageReady">Pendiente</span>
+</div>
+<div class="package-items">
+<div>📘 <span>COSTO RCV</span></div>
+<div>📗 <span>Gastos RCV</span></div>
+<div>📙 <span>Productividad XPV</span></div>
+<div>📄 <span>PDF Ejecutivo</span></div>
+<div>🧠 <span>Resumen Inteligente</span></div>
+</div>
+<button class="automation-btn primary" disabled="" id="generateFinalPackageBtn" type="button">📦 Generar paquete FINAL</button>
+</article>
+</div>
+<div class="generation-history-card">
+<div class="card-title-row">
+<div>
+<span class="automation-label">HISTORIAL DE GENERACIONES</span>
+<h3>Últimos paquetes creados</h3>
+</div>
+<button class="automation-btn ghost" id="clearHistoryBtn" type="button">Limpiar historial</button>
+</div>
+<div class="generation-history" id="generationHistory">
+<div class="automation-empty">Todavía no se han generado paquetes FINAL en este navegador.</div>
+</div>
+</div>
 </section>
-
-
 <section class="reporting-center no-print" id="reportingCenter">
-  <div class="reporting-head">
-    <div>
-      <span class="reporting-kicker">EXECUTIVE REPORTING 12.0</span>
-      <h2>Centro de Reportes Ejecutivos</h2>
-      <p>Convierte los resultados del periodo en entregables listos para gerencia y presentación.</p>
-    </div>
-    <button type="button" class="reporting-btn primary" id="buildExecutiveReportsBtn">✨ Construir reportes ejecutivos</button>
-  </div>
-
-  <div class="reporting-grid">
-    <article class="reporting-card">
-      <div class="reporting-icon">📊</div>
-      <div>
-        <span class="reporting-label">REPORTE 01</span>
-        <h3>Reporte Ejecutivo Gerencial</h3>
-        <p>KPIs, costos, gastos, productividad, principales desviaciones y lectura ejecutiva.</p>
-      </div>
-      <span class="report-state" id="stateManagerial">Pendiente</span>
-    </article>
-
-    <article class="reporting-card">
-      <div class="reporting-icon">⚖️</div>
-      <div>
-        <span class="reporting-label">REPORTE 02</span>
-        <h3>Reporte de Variaciones</h3>
-        <p>Comparativo entre periodos visibles, cambios porcentuales y semáforo de atención.</p>
-      </div>
-      <span class="report-state" id="stateVariance">Pendiente</span>
-    </article>
-
-    <article class="reporting-card">
-      <div class="reporting-icon">🧠</div>
-      <div>
-        <span class="reporting-label">REPORTE 03</span>
-        <h3>Brief Ejecutivo</h3>
-        <p>Cómo cerramos, qué mejoró, qué empeoró, dónde poner atención y qué revisar primero.</p>
-      </div>
-      <span class="report-state" id="stateBrief">Pendiente</span>
-    </article>
-
-    <article class="reporting-card">
-      <div class="reporting-icon">🏢</div>
-      <div>
-        <span class="reporting-label">REPORTE 04</span>
-        <h3>Ranking Ejecutivo de Gerencias</h3>
-        <p>Matriz comparativa de desempeño con lectura de fortalezas y áreas de atención.</p>
-      </div>
-      <span class="report-state" id="stateRanking">Pendiente</span>
-    </article>
-  </div>
-
-  <div class="report-preview-grid">
-    <article class="report-preview-card">
-      <div class="preview-head">
-        <div>
-          <span class="reporting-label">BRIEF EJECUTIVO</span>
-          <h3>Lectura automática del periodo</h3>
-        </div>
-        <span class="brief-status" id="briefStatus">Sin generar</span>
-      </div>
-      <div id="executiveBriefPreview" class="brief-preview">
-        <div class="automation-empty">Genera los reportes para ver el resumen ejecutivo.</div>
-      </div>
-    </article>
-
-    <article class="report-preview-card">
-      <div class="preview-head">
-        <div>
-          <span class="reporting-label">TOP PRIORIDADES</span>
-          <h3>Qué revisar primero</h3>
-        </div>
-      </div>
-      <div id="executivePrioritiesPreview" class="priority-preview">
-        <div class="automation-empty">Todavía no hay prioridades calculadas.</div>
-      </div>
-    </article>
-  </div>
-
-  <div class="reporting-actions">
-    <button type="button" class="reporting-btn" id="downloadBriefBtn" disabled>🧠 Descargar Brief TXT</button>
-    <button type="button" class="reporting-btn" id="downloadVarianceBtn" disabled>⚖️ Descargar Variaciones CSV</button>
-    <button type="button" class="reporting-btn" id="downloadManagerialBtn" disabled>📊 Descargar Reporte Ejecutivo CSV</button>
-    <button type="button" class="reporting-btn primary" id="downloadExecutiveBundleBtn" disabled>📦 Descargar Paquete Ejecutivo</button>
-  </div>
+<div class="reporting-head">
+<div>
+<span class="reporting-kicker">EXECUTIVE REPORTING 12.0</span>
+<h2>Centro de Reportes Ejecutivos</h2>
+<p>Convierte los resultados del periodo en entregables listos para gerencia y presentación.</p>
+</div>
+<button class="reporting-btn primary" id="buildExecutiveReportsBtn" type="button">✨ Construir reportes ejecutivos</button>
+</div>
+<div class="reporting-grid">
+<article class="reporting-card">
+<div class="reporting-icon">📊</div>
+<div>
+<span class="reporting-label">REPORTE 01</span>
+<h3>Reporte Ejecutivo Gerencial</h3>
+<p>KPIs, costos, gastos, productividad, principales desviaciones y lectura ejecutiva.</p>
+</div>
+<span class="report-state" id="stateManagerial">Pendiente</span>
+</article>
+<article class="reporting-card">
+<div class="reporting-icon">⚖️</div>
+<div>
+<span class="reporting-label">REPORTE 02</span>
+<h3>Reporte de Variaciones</h3>
+<p>Comparativo entre periodos visibles, cambios porcentuales y semáforo de atención.</p>
+</div>
+<span class="report-state" id="stateVariance">Pendiente</span>
+</article>
+<article class="reporting-card">
+<div class="reporting-icon">🧠</div>
+<div>
+<span class="reporting-label">REPORTE 03</span>
+<h3>Brief Ejecutivo</h3>
+<p>Cómo cerramos, qué mejoró, qué empeoró, dónde poner atención y qué revisar primero.</p>
+</div>
+<span class="report-state" id="stateBrief">Pendiente</span>
+</article>
+<article class="reporting-card">
+<div class="reporting-icon">🏢</div>
+<div>
+<span class="reporting-label">REPORTE 04</span>
+<h3>Ranking Ejecutivo de Gerencias</h3>
+<p>Matriz comparativa de desempeño con lectura de fortalezas y áreas de atención.</p>
+</div>
+<span class="report-state" id="stateRanking">Pendiente</span>
+</article>
+</div>
+<div class="report-preview-grid">
+<article class="report-preview-card">
+<div class="preview-head">
+<div>
+<span class="reporting-label">BRIEF EJECUTIVO</span>
+<h3>Lectura automática del periodo</h3>
+</div>
+<span class="brief-status" id="briefStatus">Sin generar</span>
+</div>
+<div class="brief-preview" id="executiveBriefPreview">
+<div class="automation-empty">Genera los reportes para ver el resumen ejecutivo.</div>
+</div>
+</article>
+<article class="report-preview-card">
+<div class="preview-head">
+<div>
+<span class="reporting-label">TOP PRIORIDADES</span>
+<h3>Qué revisar primero</h3>
+</div>
+</div>
+<div class="priority-preview" id="executivePrioritiesPreview">
+<div class="automation-empty">Todavía no hay prioridades calculadas.</div>
+</div>
+</article>
+</div>
+<div class="reporting-actions">
+<button class="reporting-btn" disabled="" id="downloadBriefBtn" type="button">🧠 Descargar Brief TXT</button>
+<button class="reporting-btn" disabled="" id="downloadVarianceBtn" type="button">⚖️ Descargar Variaciones CSV</button>
+<button class="reporting-btn" disabled="" id="downloadManagerialBtn" type="button">📊 Descargar Reporte Ejecutivo CSV</button>
+<button class="reporting-btn primary" disabled="" id="downloadExecutiveBundleBtn" type="button">📦 Descargar Paquete Ejecutivo</button>
+</div>
 </section>
-
-
 <section class="insight360-center no-print" id="insight360Center">
-  <div class="insight360-head">
-    <div>
-      <span class="insight360-kicker">INSIGHTS 360 · EXECUTIVE INTELLIGENCE</span>
-      <h2>Lectura consolidada del periodo</h2>
-      <p>Una vista ejecutiva adicional para interpretar costos, gastos, productividad y desviaciones.</p>
-    </div>
-    <button type="button" class="reporting-btn primary" id="refreshInsight360Btn">↻ Actualizar Insights</button>
-  </div>
-  <div class="insight360-grid">
-    <article class="insight360-card"><span class="label">SALUD DEL PERIODO</span><div class="value" id="insightHealth">—</div><p>Lectura global basada en indicadores visibles y calidad de datos.</p></article>
-    <article class="insight360-card"><span class="label">INDICADORES CRÍTICOS</span><div class="value" id="insightCritical">0</div><p>Porcentajes o alertas que requieren atención prioritaria.</p></article>
-    <article class="insight360-card"><span class="label">GERENCIAS EN FOCO</span><div class="value" id="insightManagers">0</div><p>Gerencias detectadas en los análisis visibles.</p></article>
-    <article class="insight360-card"><span class="label">CALIDAD DE DATOS</span><div class="value" id="insightQuality">—</div><p>Integridad reportada por el Centro de Control del Proceso.</p></article>
-  </div>
-  <div class="insight360-analysis">
-    <article class="insight-panel"><span class="insight360-kicker">OPORTUNIDADES Y RIESGOS</span><h3>Qué destaca en el periodo</h3><div id="insightRiskList" class="insight-list"><div class="automation-empty">Actualiza los Insights para generar la lectura.</div></div></article>
-    <article class="insight-panel"><span class="insight360-kicker">LECTURA GERENCIAL</span><h3>Qué revisar en reunión</h3><div id="insightMeetingList" class="insight-list"><div class="automation-empty">Todavía no hay recomendaciones generadas.</div></div></article>
-  </div>
+<div class="insight360-head">
+<div>
+<span class="insight360-kicker">INSIGHTS 360 · EXECUTIVE INTELLIGENCE</span>
+<h2>Lectura consolidada del periodo</h2>
+<p>Una vista ejecutiva adicional para interpretar costos, gastos, productividad y desviaciones.</p>
+</div>
+<button class="reporting-btn primary" id="refreshInsight360Btn" type="button">↻ Actualizar Insights</button>
+</div>
+<div class="insight360-grid">
+<article class="insight360-card"><span class="label">SALUD DEL PERIODO</span><div class="value" id="insightHealth">—</div><p>Lectura global basada en indicadores visibles y calidad de datos.</p></article>
+<article class="insight360-card"><span class="label">INDICADORES CRÍTICOS</span><div class="value" id="insightCritical">0</div><p>Porcentajes o alertas que requieren atención prioritaria.</p></article>
+<article class="insight360-card"><span class="label">GERENCIAS EN FOCO</span><div class="value" id="insightManagers">0</div><p>Gerencias detectadas en los análisis visibles.</p></article>
+<article class="insight360-card"><span class="label">CALIDAD DE DATOS</span><div class="value" id="insightQuality">—</div><p>Integridad reportada por el Centro de Control del Proceso.</p></article>
+</div>
+<div class="insight360-analysis">
+<article class="insight-panel"><span class="insight360-kicker">OPORTUNIDADES Y RIESGOS</span><h3>Qué destaca en el periodo</h3><div class="insight-list" id="insightRiskList"><div class="automation-empty">Actualiza los Insights para generar la lectura.</div></div></article>
+<article class="insight-panel"><span class="insight360-kicker">LECTURA GERENCIAL</span><h3>Qué revisar en reunión</h3><div class="insight-list" id="insightMeetingList"><div class="automation-empty">Todavía no hay recomendaciones generadas.</div></div></article>
+</div>
 </section>
-
-
 <section class="story14 no-print" id="story14">
 <div class="s14head"><div><b>EXECUTIVE STORYTELLING 14.0</b><h2>La historia del periodo, lista para dirección</h2><p>Hallazgos, prioridades y acciones en una sola lectura ejecutiva.</p></div><div class="s14score">Score <strong id="s14score">—</strong></div></div>
 <div class="s14kpis"><div>Costos<strong id="s14cost">—</strong></div><div>Gastos<strong id="s14expense">—</strong></div><div>Productividad XPV<strong id="s14xpv">—</strong></div><div>Gerencias en atención<strong id="s14managers">0</strong></div><div>Calidad de datos<strong id="s14quality">—</strong></div><div>Hallazgos<strong id="s14findings">0</strong></div></div>
@@ -427,258 +657,141 @@
 <div class="s14three"><article class="s14panel"><b>3 CONCLUSIONES</b><div id="s14conclusions"></div></article><article class="s14panel"><b>3 RIESGOS</b><div id="s14risks"></div></article><article class="s14panel"><b>3 ACCIONES</b><div id="s14actions"></div></article></div>
 <div class="s14board"><div><b>BOARD MODE</b><span>Vista compacta para dirección</span></div><button id="s14board">▣ Activar Board Mode</button></div>
 </section>
-<section id="validacion" class="panel">
-      <div class="section-title"><div><span class="step">02</span><div><h2>Control de fuentes</h2><p>Verifica que la información necesaria esté disponible.</p></div></div></div>
-      <div id="validationGrid" class="validation-grid"><div class="empty-state">Aún no has cargado información.</div></div>
-    </section>
-<section id="dashboard" class="dashboard hidden">
-      <div class="dashboard-head">
-        <div><p class="eyebrow">RESULTADOS DEL PERIODO</p><h2>Resumen ejecutivo RCV</h2><p id="dashboardSubtitle">Información consolidada del periodo seleccionado.</p></div>
-        <div class="dashboard-badge">ANÁLISIS COMPLETADO</div>
-      </div>
-
-      <div id="kpiGrid" class="kpi-grid"></div>
-
-      <div class="insight-grid">
-        <article class="chart-card wide">
-          <div class="card-head"><div><span>TENDENCIA</span><h3>Evolución mensual consolidada</h3></div><div class="legend-note">Costo + Gastos</div></div>
-          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
-        </article>
-        <article class="chart-card">
-          <div class="card-head"><div><span>DESVIACIÓN</span><h3>Real 2026 vs Presupuesto</h3></div></div>
-          <div class="chart-wrap"><canvas id="budgetChart"></canvas></div>
-        </article>
-        <article class="chart-card">
-          <div class="card-head"><div><span>PRODUCTIVIDAD</span><h3>XPV por gerencia</h3></div></div>
-          <div class="chart-wrap"><canvas id="xpvChart"></canvas></div>
-        </article>
-      </div>
-
-      <div class="executive-grid">
-        <article class="table-card">
-          <div class="card-head"><div><span>FOCO EJECUTIVO</span><h3>Gerencias con mayor desviación</h3></div></div>
-          <div class="table-scroll"><table><thead><tr><th>Gerencia</th><th>Real 2026</th><th>Presupuesto</th><th>Desviación</th><th>%</th></tr></thead><tbody id="managerTable"></tbody></table></div>
-        </article>
-        <article class="alerts-card">
-          <div class="card-head"><div><span>RESUMEN INTELIGENTE</span><h3>Hallazgos del periodo</h3></div></div>
-          <div id="alertsList" class="alerts-list"></div>
-        </article>
-      </div>
-    </section>
-
-
-    <section id="pulso" class="intelligence-shell hidden">
-      <div class="welcome-strip">
-        <div><p class="eyebrow">INTELLIGENCE EDITION</p><h2 id="executiveGreeting">Tu operación RCV, explicada en segundos.</h2><p id="executiveHeadline">Procesa la información para obtener la lectura ejecutiva del periodo.</p></div>
-        <button class="focus-button" id="focusBtn" type="button">Ver prioridades →</button>
-      </div>
-      <div class="pulse-layout">
-        <article class="pulse-card">
-          <div class="pulse-ring" id="pulseRing"><div><strong id="pulseScore">--</strong><span>/100</span></div></div>
-          <div class="pulse-copy"><span>PULSO RCV</span><h3 id="pulseLabel">Esperando análisis</h3><p id="pulseDescription">El score combina control presupuestal, tendencia, cobertura de gerencias y productividad XPV.</p></div>
-        </article>
-        <article class="change-card"><div class="card-head"><div><span>¿QUÉ CAMBIÓ?</span><h3>Movimiento del último periodo</h3></div></div><div id="changeList" class="change-list"></div></article>
-        <article class="alert-center"><div class="card-head"><div><span>CENTRO DE ALERTAS</span><h3>Prioridades que requieren atención</h3></div><span id="alertCount" class="alert-count">0</span></div><div id="intelligenceAlerts" class="intelligence-alerts"></div></article>
-      </div>
-    </section>
-
-    <section id="gerencias" class="analytics-section hidden">
-      <div class="module-head">
-        <div><p class="eyebrow">ANÁLISIS POR GERENCIA</p><h2>Ficha ejecutiva de desempeño</h2><p>Selecciona una gerencia para entender su resultado, tendencia y principales impulsores.</p></div>
-        <div class="manager-picker"><label for="managerSelect">Gerencia</label><select id="managerSelect"></select></div>
-      </div>
-      <div id="managerKpis" class="kpi-grid"></div>
-      <div class="manager-layout">
-        <article class="chart-card wide"><div class="card-head"><div><span>TENDENCIA</span><h3>Real vs Presupuesto por mes</h3></div><div id="managerStatus" class="status-chip"></div></div><div class="chart-wrap"><canvas id="managerTrendChart"></canvas></div></article>
-        <article class="chart-card"><div class="card-head"><div><span>XPV</span><h3>Productividad de la gerencia</h3></div></div><div class="chart-wrap"><canvas id="managerXpvChart"></canvas></div></article>
-      </div>
-      <div class="executive-grid">
-        <article class="table-card"><div class="card-head"><div><span>DRIVERS</span><h3>Cuentas con mayor impacto</h3></div></div><div class="table-scroll"><table><thead><tr><th>Cuenta / Agrupador</th><th>Real</th><th>Presupuesto</th><th>Desviación</th></tr></thead><tbody id="managerDrivers"></tbody></table></div></article>
-        <article class="alerts-card"><div class="card-head"><div><span>DIAGNÓSTICO</span><h3>Lectura ejecutiva</h3></div></div><div id="managerNarrative" class="alerts-list"></div></article>
-      </div>
-    </section>
-
-    <section id="costos" class="analytics-section hidden">
-      <div class="module-head"><div><p class="eyebrow">COSTOS</p><h2>Control ejecutivo de costos</h2><p>Distribución, presupuesto y principales focos de desviación.</p></div></div>
-      <div id="costKpis" class="kpi-grid"></div>
-      <div class="insight-grid"><article class="chart-card wide"><div class="card-head"><div><span>GERENCIAS</span><h3>Costo real vs presupuesto</h3></div></div><div class="chart-wrap tall"><canvas id="costManagerChart"></canvas></div></article><article class="chart-card"><div class="card-head"><div><span>CONCENTRACIÓN</span><h3>Top agrupadores</h3></div></div><div class="chart-wrap"><canvas id="costGroupChart"></canvas></div></article></div>
-    </section>
-
-    <section id="gastos" class="analytics-section hidden">
-      <div class="module-head"><div><p class="eyebrow">GASTOS</p><h2>Panorama de gasto RCV</h2><p>Identifica rápidamente dónde se concentra el gasto y qué gerencias requieren atención.</p></div></div>
-      <div id="expenseKpis" class="kpi-grid"></div>
-      <div class="insight-grid"><article class="chart-card wide"><div class="card-head"><div><span>GERENCIAS</span><h3>Gasto real vs presupuesto</h3></div></div><div class="chart-wrap tall"><canvas id="expenseManagerChart"></canvas></div></article><article class="chart-card"><div class="card-head"><div><span>CUENTAS</span><h3>Mayores desviaciones</h3></div></div><div class="chart-wrap"><canvas id="expenseAccountChart"></canvas></div></article></div>
-    </section>
-
-    <section id="xpv" class="analytics-section hidden">
-      <div class="module-head"><div><p class="eyebrow">PRODUCTIVIDAD XPV</p><h2>Desempeño de productividad por gerencia</h2><p>Comparativo directo del resultado real contra el presupuesto.</p></div></div>
-      <div id="xpvKpis" class="kpi-grid"></div>
-      <article class="chart-card"><div class="card-head"><div><span>RANKING</span><h3>XPV real vs presupuesto por gerencia</h3></div></div><div class="chart-wrap x-tall"><canvas id="xpvFullChart"></canvas></div></article>
-    </section>
-
-    <section id="tendencias" class="analytics-section hidden">
-      <div class="module-head"><div><p class="eyebrow">TENDENCIAS</p><h2>Evolución financiera del periodo</h2><p>Compara 2025, presupuesto 2026 y ejecución real 2026 para anticipar desviaciones.</p></div></div>
-      <article class="chart-card"><div class="card-head"><div><span>ACUMULADO MENSUAL</span><h3>Trayectoria consolidada</h3></div></div><div class="chart-wrap x-tall"><canvas id="cumulativeChart"></canvas></div></article>
-      <div id="trendCards" class="trend-cards"></div>
-    </section>
-
-    <section id="inteligencia" class="analytics-section hidden">
-      <div class="module-head"><div><p class="eyebrow">RESUMEN INTELIGENTE</p><h2>Lo que REPORT.IA considera prioritario</h2><p>Hallazgos automáticos para orientar la conversación ejecutiva.</p></div></div>
-      <div id="smartSummary" class="smart-summary"></div>
-      <div class="executive-grid"><article class="table-card"><div class="card-head"><div><span>SEMÁFORO</span><h3>Mapa ejecutivo de gerencias</h3></div></div><div id="managerMap" class="manager-map"></div></article><article class="alerts-card"><div class="card-head"><div><span>PRIORIDADES</span><h3>Acciones sugeridas</h3></div></div><div id="actionList" class="alerts-list"></div></article></div>
-    </section>
-
-    <section id="comparador" class="analytics-section hidden">
-      <div class="module-head">
-        <div><p class="eyebrow">COMPARADOR EJECUTIVO</p><h2>Gerencia vs Gerencia</h2><p>Compara desempeño financiero, desviación y productividad para detectar brechas y mejores prácticas.</p></div>
-        <div class="compare-controls"><select id="compareA"></select><span>VS</span><select id="compareB"></select></div>
-      </div>
-      <div id="comparisonCards" class="comparison-cards"></div>
-      <div class="manager-layout">
-        <article class="chart-card wide"><div class="card-head"><div><span>COMPARATIVO</span><h3>Real 2026 vs Presupuesto</h3></div></div><div class="chart-wrap"><canvas id="comparisonChart"></canvas></div></article>
-        <article class="alerts-card"><div class="card-head"><div><span>LECTURA AUTOMÁTICA</span><h3>Conclusión ejecutiva</h3></div></div><div id="comparisonNarrative" class="alerts-list"></div></article>
-      </div>
-    </section>
-
-    <section id="resultados" class="panel hidden">
-      <div class="section-title"><div><span class="step success">04</span><div><h2>Centro de descargas</h2><p>Descarga cada reporte o genera el paquete FINAL.zip.</p></div></div></div>
-      <div class="success-banner"><div class="success-icon">✓</div><div><h3>¡Excelente trabajo!</h3><p>La información fue analizada y los reportes RCV están listos.</p></div></div>
-      <div id="downloadGrid" class="download-grid"></div>
-      <button id="zipBtn" class="zip-button">📦 Descargar paquete FINAL.zip</button>
-    </section>
-
-    <footer>REPORT.IA RCV · Centro Ejecutivo de Automatización · Mobility ADO</footer>
-  
-<section class="export-suite card" id="exportSuite">
-  <div>
-    <span class="eyebrow">INTELLIGENCE EDITION 2.0</span>
-    <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">Exportación y entrega</span>
-    <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
-  </div>
-  <div class="export-actions">
-    <button class="btn btn-primary" id="btnPdfVista">📄 PDF de la vista actual</button>
-    <button class="btn btn-secondary" id="btnExcelEjecutivo">📊 Excel Ejecutivo</button>
-    <button class="btn btn-secondary" id="btnPdfGerencia">🏢 PDF por Gerencia</button>
-    <button class="btn btn-dark" id="btnPaqueteEjecutivo">📦 Paquete Ejecutivo</button>
-  </div>
-  <div class="export-note">El PDF respeta el módulo visible y sus filtros. El Excel ejecutivo usa la información procesada disponible en el navegador.</div>
+<section class="panel" id="validacion">
+<div class="section-title"><div><span class="step">02</span><div><h2>Control de fuentes</h2><p>Verifica que la información necesaria esté disponible.</p></div></div></div>
+<div class="validation-grid" id="validationGrid"><div class="empty-state">Aún no has cargado información.</div></div>
 </section>
-
+<section class="dashboard hidden" id="dashboard">
+<div class="dashboard-head">
+<div><p class="eyebrow">RESULTADOS DEL PERIODO</p><h2>Resumen ejecutivo RCV</h2><p id="dashboardSubtitle">Información consolidada del periodo seleccionado.</p></div>
+<div class="dashboard-badge">ANÁLISIS COMPLETADO</div>
+</div>
+<div class="kpi-grid" id="kpiGrid"></div>
+<div class="insight-grid">
+<article class="chart-card wide">
+<div class="card-head"><div><span>TENDENCIA</span><h3>Evolución mensual consolidada</h3></div><div class="legend-note">Costo + Gastos</div></div>
+<div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+</article>
+<article class="chart-card">
+<div class="card-head"><div><span>DESVIACIÓN</span><h3>Real 2026 vs Presupuesto</h3></div></div>
+<div class="chart-wrap"><canvas id="budgetChart"></canvas></div>
+</article>
+<article class="chart-card">
+<div class="card-head"><div><span>PRODUCTIVIDAD</span><h3>XPV por gerencia</h3></div></div>
+<div class="chart-wrap"><canvas id="xpvChart"></canvas></div>
+</article>
+</div>
+<div class="executive-grid">
+<article class="table-card">
+<div class="card-head"><div><span>FOCO EJECUTIVO</span><h3>Gerencias con mayor desviación</h3></div></div>
+<div class="table-scroll"><table><thead><tr><th>Gerencia</th><th>Real 2026</th><th>Presupuesto</th><th>Desviación</th><th>%</th></tr></thead><tbody id="managerTable"></tbody></table></div>
+</article>
+<article class="alerts-card">
+<div class="card-head"><div><span>RESUMEN INTELIGENTE</span><h3>Hallazgos del periodo</h3></div></div>
+<div class="alerts-list" id="alertsList"></div>
+</article>
+</div>
+</section>
+<section class="intelligence-shell hidden" id="pulso">
+<div class="welcome-strip">
+<div><p class="eyebrow">INTELLIGENCE EDITION</p><h2 id="executiveGreeting">Tu operación RCV, explicada en segundos.</h2><p id="executiveHeadline">Procesa la información para obtener la lectura ejecutiva del periodo.</p></div>
+<button class="focus-button" id="focusBtn" type="button">Ver prioridades →</button>
+</div>
+<div class="pulse-layout">
+<article class="pulse-card">
+<div class="pulse-ring" id="pulseRing"><div><strong id="pulseScore">--</strong><span>/100</span></div></div>
+<div class="pulse-copy"><span>PULSO RCV</span><h3 id="pulseLabel">Esperando análisis</h3><p id="pulseDescription">El score combina control presupuestal, tendencia, cobertura de gerencias y productividad XPV.</p></div>
+</article>
+<article class="change-card"><div class="card-head"><div><span>¿QUÉ CAMBIÓ?</span><h3>Movimiento del último periodo</h3></div></div><div class="change-list" id="changeList"></div></article>
+<article class="alert-center"><div class="card-head"><div><span>CENTRO DE ALERTAS</span><h3>Prioridades que requieren atención</h3></div><span class="alert-count" id="alertCount">0</span></div><div class="intelligence-alerts" id="intelligenceAlerts"></div></article>
+</div>
+</section>
+<section class="analytics-section hidden" id="gerencias">
+<div class="module-head">
+<div><p class="eyebrow">ANÁLISIS POR GERENCIA</p><h2>Ficha ejecutiva de desempeño</h2><p>Selecciona una gerencia para entender su resultado, tendencia y principales impulsores.</p></div>
+<div class="manager-picker"><label for="managerSelect">Gerencia</label><select id="managerSelect"></select></div>
+</div>
+<div class="kpi-grid" id="managerKpis"></div>
+<div class="manager-layout">
+<article class="chart-card wide"><div class="card-head"><div><span>TENDENCIA</span><h3>Real vs Presupuesto por mes</h3></div><div class="status-chip" id="managerStatus"></div></div><div class="chart-wrap"><canvas id="managerTrendChart"></canvas></div></article>
+<article class="chart-card"><div class="card-head"><div><span>XPV</span><h3>Productividad de la gerencia</h3></div></div><div class="chart-wrap"><canvas id="managerXpvChart"></canvas></div></article>
+</div>
+<div class="executive-grid">
+<article class="table-card"><div class="card-head"><div><span>DRIVERS</span><h3>Cuentas con mayor impacto</h3></div></div><div class="table-scroll"><table><thead><tr><th>Cuenta / Agrupador</th><th>Real</th><th>Presupuesto</th><th>Desviación</th></tr></thead><tbody id="managerDrivers"></tbody></table></div></article>
+<article class="alerts-card"><div class="card-head"><div><span>DIAGNÓSTICO</span><h3>Lectura ejecutiva</h3></div></div><div class="alerts-list" id="managerNarrative"></div></article>
+</div>
+</section>
+<section class="analytics-section hidden" id="costos">
+<div class="module-head"><div><p class="eyebrow">COSTOS</p><h2>Control ejecutivo de costos</h2><p>Distribución, presupuesto y principales focos de desviación.</p></div></div>
+<div class="kpi-grid" id="costKpis"></div>
+<div class="insight-grid"><article class="chart-card wide"><div class="card-head"><div><span>GERENCIAS</span><h3>Costo real vs presupuesto</h3></div></div><div class="chart-wrap tall"><canvas id="costManagerChart"></canvas></div></article><article class="chart-card"><div class="card-head"><div><span>CONCENTRACIÓN</span><h3>Top agrupadores</h3></div></div><div class="chart-wrap"><canvas id="costGroupChart"></canvas></div></article></div>
+</section>
+<section class="analytics-section hidden" id="gastos">
+<div class="module-head"><div><p class="eyebrow">GASTOS</p><h2>Panorama de gasto RCV</h2><p>Identifica rápidamente dónde se concentra el gasto y qué gerencias requieren atención.</p></div></div>
+<div class="kpi-grid" id="expenseKpis"></div>
+<div class="insight-grid"><article class="chart-card wide"><div class="card-head"><div><span>GERENCIAS</span><h3>Gasto real vs presupuesto</h3></div></div><div class="chart-wrap tall"><canvas id="expenseManagerChart"></canvas></div></article><article class="chart-card"><div class="card-head"><div><span>CUENTAS</span><h3>Mayores desviaciones</h3></div></div><div class="chart-wrap"><canvas id="expenseAccountChart"></canvas></div></article></div>
+</section>
+<section class="analytics-section hidden" id="xpv">
+<div class="module-head"><div><p class="eyebrow">PRODUCTIVIDAD XPV</p><h2>Desempeño de productividad por gerencia</h2><p>Comparativo directo del resultado real contra el presupuesto.</p></div></div>
+<div class="kpi-grid" id="xpvKpis"></div>
+<article class="chart-card"><div class="card-head"><div><span>RANKING</span><h3>XPV real vs presupuesto por gerencia</h3></div></div><div class="chart-wrap x-tall"><canvas id="xpvFullChart"></canvas></div></article>
+</section>
+<section class="analytics-section hidden" id="tendencias">
+<div class="module-head"><div><p class="eyebrow">TENDENCIAS</p><h2>Evolución financiera del periodo</h2><p>Compara 2025, presupuesto 2026 y ejecución real 2026 para anticipar desviaciones.</p></div></div>
+<article class="chart-card"><div class="card-head"><div><span>ACUMULADO MENSUAL</span><h3>Trayectoria consolidada</h3></div></div><div class="chart-wrap x-tall"><canvas id="cumulativeChart"></canvas></div></article>
+<div class="trend-cards" id="trendCards"></div>
+</section>
+<section class="analytics-section hidden" id="inteligencia">
+<div class="module-head"><div><p class="eyebrow">RESUMEN INTELIGENTE</p><h2>Lo que REPORT.IA considera prioritario</h2><p>Hallazgos automáticos para orientar la conversación ejecutiva.</p></div></div>
+<div class="smart-summary" id="smartSummary"></div>
+<div class="executive-grid"><article class="table-card"><div class="card-head"><div><span>SEMÁFORO</span><h3>Mapa ejecutivo de gerencias</h3></div></div><div class="manager-map" id="managerMap"></div></article><article class="alerts-card"><div class="card-head"><div><span>PRIORIDADES</span><h3>Acciones sugeridas</h3></div></div><div class="alerts-list" id="actionList"></div></article></div>
+</section>
+<section class="analytics-section hidden" id="comparador">
+<div class="module-head">
+<div><p class="eyebrow">COMPARADOR EJECUTIVO</p><h2>Gerencia vs Gerencia</h2><p>Compara desempeño financiero, desviación y productividad para detectar brechas y mejores prácticas.</p></div>
+<div class="compare-controls"><select id="compareA"></select><span>VS</span><select id="compareB"></select></div>
+</div>
+<div class="comparison-cards" id="comparisonCards"></div>
+<div class="manager-layout">
+<article class="chart-card wide"><div class="card-head"><div><span>COMPARATIVO</span><h3>Real 2026 vs Presupuesto</h3></div></div><div class="chart-wrap"><canvas id="comparisonChart"></canvas></div></article>
+<article class="alerts-card"><div class="card-head"><div><span>LECTURA AUTOMÁTICA</span><h3>Conclusión ejecutiva</h3></div></div><div class="alerts-list" id="comparisonNarrative"></div></article>
+</div>
+</section>
+<section class="panel hidden" id="resultados">
+<div class="section-title"><div><span class="step success">04</span><div><h2>Centro de descargas</h2><p>Descarga cada reporte o genera el paquete FINAL.zip.</p></div></div></div>
+<div class="success-banner"><div class="success-icon">✓</div><div><h3>¡Excelente trabajo!</h3><p>La información fue analizada y los reportes RCV están listos.</p></div></div>
+<div class="download-grid" id="downloadGrid"></div>
+<button class="zip-button" id="zipBtn">📦 Descargar paquete FINAL.zip</button>
+</section>
+<footer>REPORT.IA RCV · Centro Ejecutivo de Automatización · Mobility ADO</footer>
+<section class="export-suite card" id="exportSuite">
+<div>
+<span class="eyebrow">INTELLIGENCE EDITION 2.0</span>
+<h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">Exportación y entrega</span>
+<p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
+</div>
+<div class="export-actions">
+<button class="btn btn-primary" id="btnPdfVista">📄 PDF de la vista actual</button>
+<button class="btn btn-secondary" id="btnExcelEjecutivo">📊 Excel Ejecutivo</button>
+<button class="btn btn-secondary" id="btnPdfGerencia">🏢 PDF por Gerencia</button>
+<button class="btn btn-dark" id="btnPaqueteEjecutivo">📦 Paquete Ejecutivo</button>
+</div>
+<div class="export-note">El PDF respeta el módulo visible y sus filtros. El Excel ejecutivo usa la información procesada disponible en el navegador.</div>
+</section>
 </main>
- 
+</div>
+
+
+
+
+
+
+
+
+
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script><script defer="" src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script><script defer="" src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script><script src="config.js"></script><script src="app.js"></script><script src="./js/executive-v9.js"></script><script src="./js/decision-v10.js"></script>
+<script src="v18-fresh.js"></script>
 </body>
 </html>
-
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js" defer></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
-  <script src="./js/executive-v9.js"></script>
-  <script src="./js/decision-v10.js"></script>
-
-<section class="command15 no-print" id="command15">
-  <header class="c15-header">
-    <div>
-      <span class="c15-eyebrow">REPORT.IA RCV 15 · EXECUTIVE COMMAND CENTER</span>
-      <h2>Centro de Mando Ejecutivo</h2>
-      <p>Analiza, compara, explica y convierte hallazgos en decisiones de seguimiento.</p>
-    </div>
-    <div class="c15-health"><span>Estado ejecutivo</span><strong id="c15Health">Analizando</strong></div>
-  </header>
-
-  <nav class="c15-nav">
-    <button class="active" data-c15view="inicio">Inicio Ejecutivo</button>
-    <button data-c15view="analisis">Análisis</button>
-    <button data-c15view="comparativos">Comparativos</button>
-    <button data-c15view="gerencias">Gerencias</button>
-    <button data-c15view="reportes">Reportes</button>
-    <button data-c15view="configuracion">Configuración</button>
-  </nav>
-
-  <div class="c15-filters">
-    <label>Periodo<select id="c15Period"><option>Periodo actual</option><option>Periodo anterior</option></select></label>
-    <label>Gerencia<select id="c15Manager"><option value="">Todas las gerencias</option></select></label>
-    <label>Reporte<select id="c15Report"><option>Todos</option><option>Costos</option><option>Gastos</option><option>Productividad XPV</option></select></label>
-    <label class="c15-search">Buscar<input id="c15Search" placeholder="Buscar gerencia, indicador o hallazgo"></label>
-    <button id="c15Apply">Aplicar filtros</button>
-  </div>
-
-  <div class="c15-view active" data-c15panel="inicio">
-    <div class="c15-kpis">
-      <article><span>Score ejecutivo</span><strong id="c15Score">—</strong><small>Lectura consolidada</small></article>
-      <article><span>Alertas críticas</span><strong id="c15Critical">0</strong><small>Requieren atención</small></article>
-      <article><span>Anomalías</span><strong id="c15Anomalies">0</strong><small>Valores fuera de patrón</small></article>
-      <article><span>Decisiones abiertas</span><strong id="c15OpenDecisions">0</strong><small>Seguimiento pendiente</small></article>
-    </div>
-    <div class="c15-grid">
-      <article class="c15-card c15-span2"><span class="c15-label">LECTURA EJECUTIVA</span><h3 id="c15Headline">Preparando análisis…</h3><p id="c15Narrative"></p><div id="c15Signals" class="c15-signals"></div></article>
-      <article class="c15-card"><span class="c15-label">PRIORIDAD DEL DÍA</span><div id="c15Priority" class="c15-priority"></div></article>
-    </div>
-  </div>
-
-  <div class="c15-view" data-c15panel="analisis">
-    <div class="c15-grid">
-      <article class="c15-card c15-span2"><span class="c15-label">DETECCIÓN DE ANOMALÍAS</span><h3>Valores que merecen revisión</h3><div id="c15AnomalyList" class="c15-list"></div></article>
-      <article class="c15-card"><span class="c15-label">DRILL-DOWN KPI</span><h3>Explorar indicador</h3><select id="c15KpiSelect"></select><div id="c15KpiDetail" class="c15-detail"></div></article>
-    </div>
-  </div>
-
-  <div class="c15-view" data-c15panel="comparativos">
-    <article class="c15-card">
-      <span class="c15-label">COMPARADOR LADO A LADO</span><h3>Comparar dos gerencias / unidades</h3>
-      <div class="c15-compare-controls"><select id="c15CompareA"></select><span>VS</span><select id="c15CompareB"></select><button id="c15CompareBtn">Comparar</button></div>
-      <div id="c15CompareResult" class="c15-compare-result"></div>
-    </article>
-  </div>
-
-  <div class="c15-view" data-c15panel="gerencias">
-    <article class="c15-card"><span class="c15-label">MATRIZ GERENCIAL</span><h3>Costos · Gastos · Productividad · Prioridad</h3><div class="c15-tablewrap"><table><thead><tr><th>Gerencia</th><th>Costos</th><th>Gastos</th><th>XPV</th><th>Prioridad</th><th>Acción</th></tr></thead><tbody id="c15ManagerMatrix"></tbody></table></div></article>
-  </div>
-
-  <div class="c15-view" data-c15panel="reportes">
-    <div class="c15-grid">
-      <article class="c15-card"><span class="c15-label">REPORTE POR CAPÍTULOS</span><h3>PDF Ejecutivo</h3><p>Portada, resumen, indicadores, anomalías, comparativos, decisiones y conclusiones.</p><button id="c15PdfChapters">Generar PDF Ejecutivo</button></article>
-      <article class="c15-card"><span class="c15-label">PAQUETE DE DIRECCIÓN</span><h3>Entregables consolidados</h3><p>Conserva los reportes FINAL y complementa con la capa ejecutiva.</p><button id="c15GoReports">Ir al Centro de Reportes</button></article>
-    </div>
-  </div>
-
-  <div class="c15-view" data-c15panel="configuracion">
-    <article class="c15-card"><span class="c15-label">PREFERENCIAS DE ANÁLISIS</span><h3>Umbrales ejecutivos</h3><div class="c15-settings"><label>Crítico debajo de <input id="c15CriticalThreshold" type="number" value="70"> %</label><label>Atención debajo de <input id="c15WarningThreshold" type="number" value="90"> %</label><button id="c15SaveSettings">Guardar preferencias</button></div></article>
-  </div>
-
-  <section class="c15-decisions">
-    <div class="c15-sectionhead"><div><span class="c15-label">CENTRO DE DECISIONES</span><h3>Del hallazgo a la acción</h3></div><button id="c15AddDecision">+ Nueva decisión</button></div>
-    <div class="c15-tablewrap"><table><thead><tr><th>Hallazgo</th><th>Impacto</th><th>Prioridad</th><th>Acción sugerida</th><th>Responsable</th><th>Estatus</th></tr></thead><tbody id="c15DecisionBody"></tbody></table></div>
-  </section>
-
-  <section class="c15-assistant">
-    <div class="c15-assistant-head"><div><span class="c15-label">PREGÚNTALE A REPORT.IA</span><h3>Asistente contextual del reporte</h3></div><span class="c15-online">● Disponible</span></div>
-    <div id="c15Chat" class="c15-chat"><div class="c15-bot">Hola. Puedo ayudarte a interpretar los datos visibles del periodo. Prueba: “¿Cuál es el principal riesgo?”, “¿Cómo está la calidad?” o “¿Qué debo revisar primero?”.</div></div>
-    <div class="c15-chatbox"><input id="c15Question" placeholder="Escribe una pregunta sobre el reporte…"><button id="c15Ask">Preguntar</button></div>
-  </section>
-</section>
-
-<section class="report16 no-print" id="report16">
-  <header class="r16-head">
-    <div><span>REPORT.IA RCV 16 · ADVANCED REPORTING SUITE</span><h2>Suite de Reportes Ejecutivos</h2><p>Siete entregables especializados para convertir el análisis en decisiones, seguimiento y presentación directiva.</p></div>
-    <div class="r16-badge"><small>REPORTES DISPONIBLES</small><strong>7</strong></div>
-  </header>
-
-  <div class="r16-grid">
-    <article class="r16-card"><i>01</i><h3>Desviaciones y Excepciones</h3><p>Identifica valores fuera de patrón, severidad y focos que requieren revisión.</p><button data-r16="deviations">Generar reporte</button></article>
-    <article class="r16-card"><i>02</i><h3>Oportunidades de Ahorro</h3><p>Prioriza rubros y unidades con potencial de optimización económica.</p><button data-r16="savings">Generar reporte</button></article>
-    <article class="r16-card"><i>03</i><h3>Eficiencia Gerencial</h3><p>Compara costos, gastos y productividad sin ocultar las variables de origen.</p><button data-r16="efficiency">Generar reporte</button></article>
-    <article class="r16-card"><i>04</i><h3>Variaciones Periodo contra Periodo</h3><p>Resume cambios, brechas y principales movimientos entre indicadores disponibles.</p><button data-r16="variations">Generar reporte</button></article>
-    <article class="r16-card"><i>05</i><h3>Pareto 80/20</h3><p>Detecta la concentración de impacto para enfocar la atención en pocos elementos clave.</p><button data-r16="pareto">Generar reporte</button></article>
-    <article class="r16-card"><i>06</i><h3>Plan de Acción Ejecutivo</h3><p>Convierte decisiones registradas en un documento formal de seguimiento.</p><button data-r16="actions">Generar reporte</button></article>
-    <article class="r16-card master"><i>★</i><h3>Reporte Maestro Ejecutivo</h3><p>Consolida resumen, KPIs, anomalías, Pareto, eficiencia, ahorro, riesgos y plan de acción.</p><button data-r16="master">Generar Reporte Maestro</button></article>
-  </div>
-
-  <div class="r16-preview" id="r16Preview">
-    <div class="r16-empty"><strong>Selecciona un reporte</strong><span>Aquí aparecerá la vista previa antes de imprimir o guardar como PDF.</span></div>
-  </div>
-  <div class="r16-actions" id="r16Actions" hidden><button id="r16Print">Imprimir / Guardar PDF</button><button id="r16Close">Cerrar vista previa</button></div>
-</section>
