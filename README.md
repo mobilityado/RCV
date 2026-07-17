@@ -55,3 +55,14 @@ Nota: la reproducción 1:1 de plantillas Excel con componentes propietarios (por
 - Centro de Reportes Ejecutivos claramente separado.
 - Mejor comportamiento en tablet y celular.
 - Modo presentación más limpio.
+
+## Premium Dashboard 3.0
+Rediseño visual completo inspirado en dashboards ejecutivos BI:
+- Sidebar fijo oscuro con navegación.
+- Carga de archivos compacta integrada en el panel lateral.
+- Filtros superiores.
+- KPIs en una línea ejecutiva.
+- Gráficas y tablas en una cuadrícula consistente.
+- Centro de Reportes Ejecutivos en tarjetas.
+- PDFs, Excel Ejecutivo y paquete ZIP.
+- Diseño responsive y modo presentación.

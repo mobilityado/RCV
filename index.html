@@ -8,76 +8,121 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="executive-layout-v21">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-icon">R</div>
-      <div><strong>REPORT.IA</strong><span>RCV · Centro Ejecutivo</span></div>
+  
+  <aside class="sidebar premium-sidebar">
+    <div class="brand premium-brand">
+      <div class="brand-mark">R</div>
+      <div>
+        <strong>REPORT.IA RCV</strong>
+        <span>Intelligence Edition 3.0</span>
+      </div>
     </div>
-    <nav>
-      <a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
-      <a href="#dashboard">⌂ <span>Resumen Ejecutivo</span></a>
-      <a href="#pulso">◉ <span>Pulso RCV</span></a>
-      <a href="#gerencias">🏢 <span>Gerencias</span></a>
-      <a href="#costos">💰 <span>Costos</span></a>
-      <a href="#gastos">📊 <span>Gastos</span></a>
-      <a href="#xpv">🚌 <span>Productividad XPV</span></a>
-      <a href="#tendencias">📈 <span>Tendencias</span></a>
-      <a href="#inteligencia">🧠 <span>Resumen Inteligente</span></a>
+
+    <nav class="premium-nav">
+      <a class="active" href="#dashboard">⌂ <span>Inicio</span></a>
+      <a href="#dashboard">▥ <span>Resumen Ejecutivo</span></a>
+      <a href="#gerencias">♟ <span>Gerencias</span></a>
+      <a href="#costos">$ <span>Costos</span></a>
+      <a href="#gastos">▣ <span>Gastos</span></a>
+      <a href="#xpv">↗ <span>Productividad XPV</span></a>
+      <a href="#tendencias">⌁ <span>Tendencias</span></a>
       <a href="#comparador">⇄ <span>Comparador</span></a>
-      <a href="#resultados">📑 <span>Generar Reportes</span></a>
+      <a href="#pulso">! <span>Alertas</span><b class="nav-badge">5</b></a>
+      <a href="#inteligencia">✺ <span>Resumen Inteligente</span></a>
+      <a href="#resultados">▤ <span>Reportes Ejecutivos</span><b class="new-badge">NUEVO</b></a>
     </nav>
-    <div class="privacy">🔒 Procesamiento local<br><small>La información permanece en tu equipo.</small></div>
+
+    <div class="sidebar-divider"></div>
+
+    <section id="carga" class="compact-upload">
+      <div class="compact-upload-head">
+        <div>
+          <span>CARGA DE ARCHIVOS</span>
+          <small>Actualiza la información del portal</small>
+        </div>
+        <button id="clearBtn" class="mini-clear" title="Limpiar archivos">×</button>
+      </div>
+
+      <div id="dropZone" class="mini-drop-zone" tabindex="0">
+        <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
+        <div class="mini-upload-icon">⇧</div>
+        <strong>Arrastra tus reportes aquí</strong>
+        <span>o haz clic para seleccionarlos</span>
+        <button id="browseBtn" class="mini-browse" type="button">Seleccionar archivos</button>
+        <small>.xlsx · .xls · .xlsm</small>
+      </div>
+
+      <div id="fileList" class="file-list compact-file-list"></div>
+
+      <div id="validacion" class="compact-validation">
+        <div id="validationGrid" class="validation-grid">
+          <div class="empty-state">Sin archivos cargados</div>
+        </div>
+      </div>
+
+      <button id="processBtn" class="process compact-process" disabled>Procesar reportes</button>
+      <p id="statusText" class="sidebar-status">Carga los reportes requeridos.</p>
+    </section>
+
+    <div class="sidebar-user">
+      <div class="avatar">JH</div>
+      <div><strong>José Hernández</strong><span>Administrador</span></div>
+    </div>
+
+    <div class="privacy">© 2026 REPORT.IA RCV<br><small>Procesamiento local y seguro.</small></div>
   </aside>
 
-  <main>
-<div class="layout-intro no-print">
-  <div>
-    <span class="eyebrow">REPORT.IA RCV · INTELLIGENCE EDITION 2.1</span>
-    <h1>Centro de Inteligencia Ejecutiva</h1>
-    <p>Una sola vista para analizar, comparar, explicar y exportar resultados.</p>
-  </div>
-  <div class="layout-intro__badge">RCV Intelligence</div>
-</div>
 
-    <header class="hero">
-      <div>
-        <p class="eyebrow">CENTRO EJECUTIVO DE REPORTES RCV</p>
-        <h1>REPORT.IA transforma tus JD en decisiones.</h1>
-        <p>Carga la información, valida las fuentes y analiza resultados, tendencias y desviaciones antes de generar el paquete final.</p>
+  <main>
+
+    <header class="premium-topbar">
+      <div class="greeting">
+        <h1>👋 Hola, José.</h1>
+        <p>Aquí tienes el resumen ejecutivo de RCV.</p>
       </div>
-      <div class="hero-actions">
-        <div class="month-box">
-          <label for="month">Mes de corte</label>
+      <div class="top-controls">
+        <div class="control-card">
+          <span>Periodo analizado</span>
           <select id="month"></select>
         </div>
-        <button id="presentationBtn" class="presentation-btn" type="button">▶ Modo presentación</button>
+        <div class="control-card">
+          <span>Comparar con</span>
+          <select aria-label="Comparar con">
+            <option>Presupuesto 2026</option>
+            <option>Real 2025</option>
+          </select>
+        </div>
+        <button id="presentationBtn" class="update-btn" type="button">▶ Presentación</button>
+        <div class="top-avatar">JH</div>
       </div>
     </header>
 
-    <section id="carga" class="panel compact-panel">
-      <div class="section-title">
-        <div><span class="step">01</span><div><h2>Carga de información</h2><p>Excel consolidado por pestañas o archivos individuales.</p></div></div>
-        <button id="clearBtn" class="ghost">Limpiar</button>
+    <section class="pre-analysis-card" id="preAnalysisCard">
+      <div>
+        <span class="eyebrow">REPORT.IA RCV · INTELLIGENCE EDITION 3.0</span>
+        <h2>Tu centro de inteligencia financiera está listo.</h2>
+        <p>Carga los reportes desde el panel lateral y REPORT.IA organizará costos, gastos, productividad, tendencias y reportes ejecutivos.</p>
       </div>
-      <div id="dropZone" class="drop-zone" tabindex="0">
-        <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
-        <div class="upload-icon">⇧</div>
-        <div><h3>Arrastra aquí tus archivos</h3><p>REPORT.IA identificará automáticamente cada fuente JD.</p></div>
-        <button id="browseBtn" class="primary">Seleccionar archivos</button>
-        <small>XLSX · XLS · XLSM</small>
+      <div class="pre-analysis-steps">
+        <div><b>1</b><span>Carga</span></div>
+        <i></i>
+        <div><b>2</b><span>Procesa</span></div>
+        <i></i>
+        <div><b>3</b><span>Analiza</span></div>
+        <i></i>
+        <div><b>4</b><span>Exporta</span></div>
       </div>
-      <div id="fileList" class="file-list"></div>
     </section>
 
-    <section id="validacion" class="panel">
-      <div class="section-title"><div><span class="step">02</span><div><h2>Control de fuentes</h2><p>Verifica que la información necesaria esté disponible.</p></div></div></div>
-      <div id="validationGrid" class="validation-grid"><div class="empty-state">Aún no has cargado información.</div></div>
-    </section>
 
-    <section class="actions">
-      <button id="processBtn" class="process" disabled>✨ Analizar y generar reportes</button>
-      <p id="statusText">Carga los reportes requeridos para continuar.</p>
-    </section>
+
+    
+
+    
+
+    
+
+    
 
     <section id="dashboard" class="dashboard hidden">
       <div class="dashboard-head">
@@ -199,8 +244,8 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">INTELLIGENCE EDITION 2.0</span>
-    <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">Exportación y entrega</span>
+    <span class="eyebrow">INTELLIGENCE EDITION 3.0</span>
+    <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>
   <div class="export-actions">
@@ -217,6 +262,8 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
