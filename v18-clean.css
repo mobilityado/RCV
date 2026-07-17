@@ -1,0 +1,339 @@
+
+/* =========================================================
+   REPORT.IA RCV 18.0 — CLEAN REBUILD
+   ÚNICA CAPA RESPONSABLE DEL LAYOUT PRINCIPAL
+   ========================================================= */
+
+:root{
+  --v18-sidebar:270px;
+  --v18-navy:#061c45;
+  --v18-navy-2:#092b64;
+  --v18-blue:#1f6feb;
+  --v18-indigo:#4f46e5;
+  --v18-cyan:#0ea5b7;
+  --v18-bg:#f5f7fb;
+  --v18-card:#ffffff;
+  --v18-line:#e4eaf2;
+  --v18-text:#102a56;
+  --v18-muted:#64748b;
+}
+
+/* RESET DE GEOMETRÍA HEREDADA */
+html,body{
+  width:100%!important;
+  max-width:100%!important;
+  min-height:100%!important;
+  overflow-x:hidden!important;
+  background:var(--v18-bg)!important;
+}
+body.executive-layout-v21{
+  display:block!important;
+  grid-template-columns:none!important;
+}
+
+/* Shell real: sidebar + contenido */
+.v18-shell{
+  display:grid!important;
+  grid-template-columns:var(--v18-sidebar) minmax(0,1fr)!important;
+  width:100%!important;
+  min-height:100vh!important;
+  align-items:start!important;
+  overflow:visible!important;
+}
+
+/* SIDEBAR */
+.v18-shell > .sidebar{
+  position:sticky!important;
+  top:0!important;
+  left:auto!important;
+  bottom:auto!important;
+  grid-column:1!important;
+  width:var(--v18-sidebar)!important;
+  min-width:var(--v18-sidebar)!important;
+  max-width:var(--v18-sidebar)!important;
+  height:100vh!important;
+  min-height:100vh!important;
+  margin:0!important;
+  padding:22px 14px!important;
+  box-sizing:border-box!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  z-index:100!important;
+  background:
+    radial-gradient(circle at 18% 3%,rgba(59,130,246,.18),transparent 22%),
+    linear-gradient(180deg,var(--v18-navy) 0%,var(--v18-navy-2) 100%)!important;
+  box-shadow:10px 0 28px rgba(6,28,69,.12)!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+
+/* Ocultar menú heredado duplicado */
+.v18-shell > .sidebar > nav:not(#ecc17SidebarNav){
+  display:none!important;
+}
+
+/* Marca */
+.v18-shell .brand{
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
+  padding:2px 10px 18px!important;
+  flex:0 0 auto!important;
+}
+.v18-shell .brand strong{
+  color:#fff!important;
+  font:850 18px system-ui!important;
+}
+.v18-shell .brand span{
+  display:block!important;
+  color:#9fc2ff!important;
+  font:10px system-ui!important;
+}
+.v18-shell .reportia-logo-svg-blue{
+  width:46px!important;
+  height:46px!important;
+}
+
+/* Menú nuevo */
+#ecc17SidebarNav{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:4px!important;
+  flex:0 0 auto!important;
+}
+#ecc17SidebarNav button{
+  width:100%!important;
+  min-height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding:10px 12px!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:transparent!important;
+  color:#e6efff!important;
+  box-shadow:none!important;
+  font:750 10px system-ui!important;
+  text-align:left!important;
+}
+#ecc17SidebarNav button:hover{
+  background:rgba(255,255,255,.07)!important;
+}
+#ecc17SidebarNav button.active{
+  background:linear-gradient(135deg,#1f6feb,#3158dc)!important;
+  color:#fff!important;
+  box-shadow:0 8px 20px rgba(31,111,235,.22)!important;
+}
+#ecc17SidebarNav small{
+  padding:12px 12px 6px!important;
+  color:#8fb2e8!important;
+  font:800 8px system-ui!important;
+  letter-spacing:.12em!important;
+}
+.ecc17-side-sep{
+  height:1px!important;
+  margin:9px 8px 2px!important;
+  background:rgba(255,255,255,.12)!important;
+}
+
+/* Badge de procesamiento siempre al fondo */
+.v18-shell .privacy,
+.v18-shell .processing-badge{
+  margin-top:auto!important;
+  flex:0 0 auto!important;
+  position:static!important;
+  width:auto!important;
+}
+
+/* MAIN — jamás usa margin-left */
+.v18-shell > main{
+  grid-column:2!important;
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0!important;
+  margin-left:0!important;
+  padding:0 24px 30px!important;
+  box-sizing:border-box!important;
+  overflow-x:hidden!important;
+}
+
+/* Eliminar desplazamientos heredados internos */
+.v18-shell > main,
+.v18-shell > main .main-content,
+.v18-shell > main .content,
+.v18-shell > main .app-content,
+.v18-shell > main .page-content,
+.v18-shell > main .dashboard-container,
+.v18-shell > main .workspace,
+.v18-shell > main .content-wrapper,
+.v18-shell > main .main-wrapper{
+  margin-left:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+
+/* Home limpio */
+body.ecc17-home .v18-shell > main > *{
+  display:none!important;
+}
+body.ecc17-home .v18-shell > main > #ecc17,
+body.ecc17-home .v18-shell > main > .ecc17-copilot{
+  display:block!important;
+}
+
+/* Vista de módulo: solo el módulo activo + copiloto */
+body.ecc17-module-view .v18-shell > main > *{
+  display:none!important;
+}
+body.ecc17-module-view .v18-shell > main > .module-active,
+body.ecc17-module-view .v18-shell > main > .ecc17-copilot{
+  display:block!important;
+}
+
+/* Dashboard principal */
+#ecc17{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  padding:0 0 18px!important;
+}
+.ecc17-top{
+  padding:22px 0 16px!important;
+}
+.ecc17-top h1{
+  font-size:30px!important;
+  line-height:1.05!important;
+  margin:5px 0!important;
+}
+.ecc17-filters{
+  width:100%!important;
+  grid-template-columns:1fr 1fr 1fr 1.15fr!important;
+}
+.ecc17-kpis{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  width:100%!important;
+}
+.ecc17-main-grid{
+  grid-template-columns:minmax(0,1.65fr) minmax(0,1fr) minmax(240px,.9fr)!important;
+  width:100%!important;
+}
+.ecc17-bottom-grid{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr)!important;
+  width:100%!important;
+}
+.ecc17-card,
+.ecc17-kpis article{
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.ecc17-chart{
+  min-width:0!important;
+}
+.ecc17-chart canvas{
+  max-width:100%!important;
+}
+
+/* Copiloto */
+.ecc17-copilot{
+  position:fixed!important;
+  right:20px!important;
+  bottom:18px!important;
+  left:auto!important;
+  width:310px!important;
+  z-index:9000!important;
+}
+
+/* Módulos individuales */
+.module-active{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin:20px 0 28px!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+}
+.module-active *{
+  min-width:0;
+}
+
+/* No scrollbars horizontales internas accidentales */
+.c15-tablewrap,
+.r16-preview,
+.manager-matrix-wrap,
+.s14table,
+.table-wrap{
+  max-width:100%!important;
+  overflow-x:auto!important;
+}
+
+/* LOGIN siempre overlay */
+#secureLogin.secure-login{
+  position:fixed!important;
+  inset:0!important;
+  width:100vw!important;
+  height:100vh!important;
+  z-index:99999!important;
+}
+
+/* Tablet */
+@media(max-width:1180px){
+  :root{--v18-sidebar:230px}
+  .ecc17-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .ecc17-main-grid{grid-template-columns:1fr 1fr!important}
+  .ecc17-gauge-card{grid-column:span 2!important}
+  .ecc17-bottom-grid{grid-template-columns:1fr 1fr!important}
+  .ecc17-bottom-grid>.ecc17-card:last-child{grid-column:span 2!important}
+}
+
+/* Mobile */
+@media(max-width:860px){
+  .v18-shell{
+    display:block!important;
+  }
+  .v18-shell > .sidebar{
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:auto!important;
+    min-height:0!important;
+  }
+  #ecc17SidebarNav{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  #ecc17SidebarNav small,
+  #ecc17SidebarNav .ecc17-side-sep{
+    grid-column:1/-1!important;
+  }
+  .v18-shell > main{
+    width:100%!important;
+    padding:0 12px 24px!important;
+  }
+  .ecc17-top,
+  .ecc17-top-actions{
+    flex-direction:column!important;
+    align-items:flex-start!important;
+  }
+  .ecc17-filters,
+  .ecc17-kpis,
+  .ecc17-main-grid,
+  .ecc17-bottom-grid{
+    grid-template-columns:1fr!important;
+  }
+  .ecc17-gauge-card,
+  .ecc17-bottom-grid>.ecc17-card:last-child{
+    grid-column:auto!important;
+  }
+  .ecc17-copilot{
+    left:10px!important;
+    right:10px!important;
+    width:auto!important;
+  }
+}
