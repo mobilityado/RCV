@@ -7,28 +7,13 @@
   <title>REPORT.IA RCV · Centro Ejecutivo</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="./css/executive-v9.css">
-  <link rel="stylesheet" href="v18-clean.css" />
 </head>
 <body class="executive-layout-v21">
 
 <div id="secureLogin" class="secure-login">
   <div class="secure-login-left">
     <div class="secure-brand">
-      <div class="secure-logo">
-<svg class="reportia-logo-svg" viewBox="0 0 64 64" aria-label="REPORT.IA">
-  <defs>
-    <linearGradient id="riaGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#d71920"/>
-      <stop offset="52%" stop-color="#7a2ca6"/>
-      <stop offset="100%" stop-color="#4b1d6f"/>
-    </linearGradient>
-  </defs>
-  <rect x="4" y="4" width="56" height="56" rx="17" fill="url(#riaGrad)"/>
-  <path d="M18 43V20h14c7 0 12 3.6 12 9 0 4.2-2.7 7.2-7 8.3L46 43h-8l-7.5-5H26v5h-8Zm8-11h6c2.9 0 4.7-1.2 4.7-3.1 0-2-1.8-3.2-4.7-3.2h-6V32Z" fill="#fff"/>
-  <path d="M43 17l3.4 3.2 4.6-5.2" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M42 17h9v9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
-</svg>
-</div>
+      <div class="secure-logo">R</div>
       <div><strong>REPORT.IA RCV</strong><span>Intelligence Edition 2.1</span></div>
     </div>
     <div class="secure-copy">
@@ -72,45 +57,11 @@
   </div>
 </div>
 
-  <div class="v18-shell">
-<aside class="sidebar executive-sidebar">
+  <aside class="sidebar executive-sidebar">
     <div class="brand">
-      
-<div class="brand-icon brand-icon-custom" aria-label="REPORT.IA">
-  <svg class="reportia-logo-svg-blue" viewBox="0 0 64 64" role="img">
-    <defs>
-      <linearGradient id="reportiaBlueGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#1d4ed8"/>
-        <stop offset="48%" stop-color="#2563eb"/>
-        <stop offset="100%" stop-color="#4338ca"/>
-      </linearGradient>
-    </defs>
-    <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#reportiaBlueGrad)"/>
-    <path d="M17 44V19h15c7.6 0 12.5 3.9 12.5 9.5 0 4.1-2.5 7.2-6.8 8.5L47 44h-8.5l-8-6H25v6h-8Zm8-12h6.6c3 0 4.9-1.3 4.9-3.3 0-2.1-1.9-3.4-4.9-3.4H25V32Z" fill="#fff"/>
-    <path d="M41 18h10v10" fill="none" stroke="#bfdbfe" stroke-width="2.7" stroke-linecap="round"/>
-    <path d="M40 27l5-5 4 3 5-7" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-</div>
-
+      <div class="brand-icon">R</div>
       <div><strong>REPORT.IA</strong><span>RCV · Centro Ejecutivo</span></div>
     </div>
-
-<nav class="ecc17-sidebar-nav" id="ecc17SidebarNav">
-  <button class="active" data-target="ecc17">⌂ <span>Inicio Ejecutivo</span></button>
-  <button data-target="command15">⌁ <span>Análisis</span></button>
-  <button data-target="story14">▥ <span>Comparativos</span></button>
-  <button data-target="insight360Center">▣ <span>Gerencias</span></button>
-  <button data-target="report16">▤ <span>Reportes</span></button>
-  <button data-target="automationCenter">⚙ <span>Configuración</span></button>
-  <div class="ecc17-side-sep"></div>
-  <small>ACCESOS RÁPIDOS</small>
-  <button data-target="carga">⇩ <span>Cargar reportes</span></button>
-  <button data-target="command15">◎ <span>Centro de Decisiones</span></button>
-  <button data-target="insight360Center">◉ <span>Insights 360</span></button>
-  <button data-target="story14">◫ <span>Storytelling IA</span></button>
-  <button data-target="report16">▧ <span>Generar PDF Ejecutivo</span></button>
-</nav>
-
     <nav>
       <a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
       <a href="#dashboard">⌂ <span>Resumen Ejecutivo</span></a>
@@ -614,7 +565,6 @@
 </section>
 
 </main>
-</div>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -627,103 +577,6 @@
   <script src="./js/decision-v10.js"></script>
 </body>
 </html>
-
-
-<section class="ecc17 no-print" id="ecc17">
-  <header class="ecc17-top">
-    <div>
-      <span class="ecc17-kicker">INICIO EJECUTIVO</span>
-      <h1>Centro de Mando Ejecutivo</h1>
-      <p>Inteligencia para decisiones que generan resultados.</p>
-    </div>
-    <div class="ecc17-top-actions">
-      <label class="ecc17-period">Periodo seleccionado
-        <select id="ecc17Period">
-          <option>Periodo actual</option>
-          <option>Mes anterior</option>
-          <option>Últimos 6 meses</option>
-        </select>
-      </label>
-      <button id="ecc17Refresh">↻ Actualizar datos</button>
-    </div>
-  </header>
-
-  <div class="ecc17-filters">
-    <label>Gerencia Regional<select id="ecc17Manager"><option>Todas las gerencias</option></select></label>
-    <label>Marca<select id="ecc17Brand"><option>Todas</option><option>ADO</option><option>TRT</option><option>SUR</option></select></label>
-    <label>Tipo de reporte<select id="ecc17Type"><option>Todos</option><option>Costos</option><option>Gastos</option><option>Productividad XPV</option></select></label>
-    <label class="ecc17-search">Buscar<input id="ecc17Search" placeholder="Buscar gerencia..."></label>
-  </div>
-
-  <div class="ecc17-kpis">
-    <article><span class="ecc17-icon blue">$</span><div><small>COSTO TOTAL</small><strong id="ecc17Cost">$ 0</strong><em id="ecc17CostTrend">vs Mes anterior</em></div></article>
-    <article><span class="ecc17-icon violet">▤</span><div><small>GASTO TOTAL</small><strong id="ecc17Expense">$ 0</strong><em id="ecc17ExpenseTrend">vs Mes anterior</em></div></article>
-    <article><span class="ecc17-icon cyan">↗</span><div><small>PRODUCTIVIDAD XPV</small><strong id="ecc17Xpv">0</strong><em id="ecc17XpvTrend">vs Mes anterior</em></div></article>
-    <article><span class="ecc17-icon teal">👥</span><div><small>GERENCIAS ACTIVAS</small><strong id="ecc17Managers">0</strong><em>Unidades detectadas</em></div></article>
-    <article><span class="ecc17-icon amber">⚠</span><div><small>ALERTAS CRÍTICAS</small><strong id="ecc17Critical">0</strong><em>Requieren atención</em></div></article>
-  </div>
-
-  <div class="ecc17-main-grid">
-    <article class="ecc17-card ecc17-wide">
-      <div class="ecc17-card-head"><div><span>RENDIMIENTO GENERAL</span><h3>Costos, gastos y XPV</h3></div><select><option>Últimos 6 meses</option></select></div>
-      <div class="ecc17-chart"><canvas id="ecc17TrendCanvas" width="760" height="230"></canvas></div>
-    </article>
-
-    <article class="ecc17-card">
-      <div class="ecc17-card-head"><div><span>TOP 5 GERENCIAS POR COSTO</span><h3>Ranking ejecutivo</h3></div></div>
-      <div id="ecc17TopManagers" class="ecc17-ranking"></div>
-    </article>
-
-    <article class="ecc17-card ecc17-gauge-card">
-      <div class="ecc17-card-head"><div><span>CUMPLIMIENTO DEL PERIODO</span><h3>Índice ejecutivo</h3></div></div>
-      <div class="ecc17-gauge"><div id="ecc17Gauge">0%</div><span>Cumplimiento</span></div>
-      <div class="ecc17-gauge-foot">Basado en indicadores y calidad de datos</div>
-    </article>
-  </div>
-
-  <div class="ecc17-bottom-grid">
-    <article class="ecc17-card">
-      <div class="ecc17-card-head"><div><span>DESVIACIONES CRÍTICAS</span><h3>Qué requiere atención</h3></div><button class="link-btn" data-scroll="report16">Ver todas</button></div>
-      <div id="ecc17Deviations" class="ecc17-list"></div>
-    </article>
-
-    <article class="ecc17-card">
-      <div class="ecc17-card-head"><div><span>HALLAZGOS PRINCIPALES (IA)</span><h3>Lectura automática</h3></div><button class="link-btn" data-scroll="insight360Center">Ver análisis</button></div>
-      <div id="ecc17Findings" class="ecc17-findings"></div>
-    </article>
-
-    <article class="ecc17-card">
-      <div class="ecc17-card-head"><div><span>ACCESOS RÁPIDOS</span><h3>Reportes especializados</h3></div></div>
-      <div class="ecc17-quick">
-        <button data-report="deviations">◫<span>Desviaciones y Excepciones</span></button>
-        <button data-report="savings">💲<span>Oportunidades de Ahorro</span></button>
-        <button data-report="efficiency">↗<span>Eficiencia Gerencial</span></button>
-        <button data-report="variations">⤢<span>Variaciones Periodo vs Periodo</span></button>
-        <button data-report="pareto">◔<span>Pareto 80/20</span></button>
-        <button data-report="actions">▣<span>Plan de Acción Ejecutivo</span></button>
-        <button class="master" data-report="master">▤<span>Reporte Maestro Ejecutivo</span></button>
-      </div>
-    </article>
-  </div>
-</section>
-
-<div class="ecc17-copilot" id="ecc17Copilot">
-  <button class="ecc17-copilot-main" id="ecc17CopilotToggle">
-    <span class="bot-head">🤖</span>
-    <div><strong>Copiloto Ejecutivo</strong><small>Pregúntame cualquier cosa</small></div>
-    <b>›</b>
-  </button>
-  <div class="ecc17-copilot-panel" id="ecc17CopilotPanel">
-    <div class="ecc17-copilot-header"><strong>Copiloto REPORT.IA</strong><button id="ecc17CopilotClose">×</button></div>
-    <div id="ecc17CopilotChat" class="ecc17-copilot-chat">
-      <div class="bot-msg">Hola. Puedo ayudarte con riesgos, costos, gastos, productividad XPV, gerencias, Pareto, ahorro y prioridades.</div>
-    </div>
-    <div class="ecc17-prompts">
-      <button>Dame un resumen</button><button>¿Qué revisar primero?</button><button>¿Cuál es el mayor riesgo?</button>
-    </div>
-    <div class="ecc17-copilot-input"><input id="ecc17CopilotInput" placeholder="Escribe tu pregunta..."><button id="ecc17CopilotAsk">Enviar</button></div>
-  </div>
-</div>
 
 <section class="command15 no-print" id="command15">
   <header class="c15-header">
