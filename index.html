@@ -9,306 +9,152 @@
 </head>
 <body class="executive-layout-v21">
 
-<div id="enterpriseLogin" class="enterprise-login">
-  <div class="login-visual">
-    <div class="login-brand">
-      <div class="login-logo">R</div>
-      <div><strong>REPORT.IA RCV</strong><span>Signature Edition 7.3</span></div>
+<div id="secureLogin" class="secure-login">
+  <div class="secure-login-left">
+    <div class="secure-brand">
+      <div class="secure-logo">R</div>
+      <div><strong>REPORT.IA RCV</strong><span>Intelligence Edition 2.1</span></div>
     </div>
-    <div class="login-copy">
-      <span class="login-kicker">CENTRO DE INTELIGENCIA EJECUTIVA</span>
-      <h1>Decisiones más claras.<br>Resultados más visibles.</h1>
-      <p>Analiza costos, gastos, productividad y tendencias desde un solo portal ejecutivo.</p>
-      <div class="login-features">
-        <div><b>01</b><span>Dashboard ejecutivo</span></div>
-        <div><b>02</b><span>Copiloto REPORT.IA</span></div>
-        <div><b>03</b><span>Reportes PDF y Excel</span></div>
+    <div class="secure-copy">
+      <span>PLATAFORMA EJECUTIVA RCV</span>
+      <h1>Inteligencia financiera para decisiones más claras.</h1>
+      <p>Costos, gastos, productividad, tendencias y reportes ejecutivos desde una sola experiencia.</p>
+      <div class="secure-points">
+        <div><b>01</b><span>Dashboard Ejecutivo</span></div>
+        <div><b>02</b><span>Análisis por Gerencia</span></div>
+        <div><b>03</b><span>PDF · Excel · ZIP</span></div>
       </div>
     </div>
-    <div class="login-security">🔒 Procesamiento local de reportes · Acceso controlado</div>
+    <small>🔒 Acceso controlado · Procesamiento local</small>
   </div>
-  <div class="login-panel">
-    <div class="login-card">
-      <span class="login-kicker">BIENVENIDO</span>
+  <div class="secure-login-right">
+    <div class="secure-login-card">
+      <span class="secure-kicker">BIENVENIDO</span>
       <h2>Iniciar sesión</h2>
-      <p>Ingresa con las credenciales autorizadas en RCV.</p>
+      <p>Selecciona tu usuario autorizado e ingresa tu contraseña.</p>
+
       <label>Usuario
-        <div class="login-user-select-wrap">
-          <div id="loginSelectedAvatar" class="login-selected-avatar">?</div>
-          <select id="loginUser" class="login-user-select">
+        <div class="secure-user-select">
+          <div id="loginAvatar" class="secure-avatar">?</div>
+          <select id="loginUser">
             <option value="">Cargando usuarios...</option>
           </select>
-          <span class="login-select-chevron">⌄</span>
         </div>
       </label>
+
       <label>Contraseña
-        <div class="password-wrap">
-          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" />
-          <button id="togglePassword" type="button" aria-label="Mostrar contraseña">◉</button>
+        <div class="secure-password">
+          <input id="loginPassword" type="password" placeholder="••••••••" />
+          <button id="togglePassword" type="button">◉</button>
         </div>
       </label>
-      <button id="loginBtn" class="login-submit">Entrar a REPORT.IA</button>
-      <div id="loginStatus" class="login-status">Cargando usuarios autorizados...</div>
-      <button id="reloadUsersBtn" class="reload-users-btn" type="button">↻ Recargar usuarios</button>
-      <div class="login-foot">Acceso administrado mediante Google Sheets / Apps Script.</div>
+
+      <button id="loginBtn" class="secure-login-btn">Entrar a REPORT.IA</button>
+      <div id="loginStatus" class="secure-login-status">Cargando usuarios autorizados...</div>
+      <button id="reloadUsersBtn" class="secure-reload" type="button">↻ Recargar usuarios</button>
     </div>
   </div>
 </div>
 
-  
-  
-  
-
-
-<aside class="sidebar studio-sidebar">
-  <div class="studio-brand">
-    <div class="studio-logo">R</div>
-    <div>
-      <strong>REPORT.IA RCV</strong>
-      <span>Signature Edition 7.3</span>
+  <aside class="sidebar executive-sidebar">
+    <div class="brand">
+      <div class="brand-icon">R</div>
+      <div><strong>REPORT.IA</strong><span>RCV · Centro Ejecutivo</span></div>
     </div>
-  </div>
-
-  <nav class="studio-nav">
-    <button class="studio-nav-item active" data-route="enterpriseHome"><span>⌂</span><b>Inicio</b></button>
-    <button class="studio-nav-item" data-route="dashboard"><span>▥</span><b>Resumen Ejecutivo</b></button>
-    <button class="studio-nav-item" data-route="gerencias"><span>♟</span><b>Gerencias</b></button>
-    <button class="studio-nav-item" data-route="xpv"><span>↗</span><b>Productividad XPV</b></button>
-    <button class="studio-nav-item" data-route="resultados"><span>▤</span><b>Reportes Ejecutivos</b></button>
-  </nav>
-
-  <div class="studio-divider"></div>
-
-  <button id="studioAnalysisBtn" class="studio-analysis-btn">
-    <span>✦</span>
-    <div><strong>Análisis avanzado</strong><small>7 herramientas</small></div>
-    <b>›</b>
-  </button>
-
-  <div class="studio-spacer"></div>
-
-  <button id="studioThemeBtn" class="studio-bottom-btn"><span>◐</span><b>Apariencia</b></button>
-  <div class="studio-user">
-    <div class="mockup-avatar">JA</div>
-    <div><strong id="studioUserName">Usuario</strong><span id="studioUserRole">—</span></div>
-  </div>
-</aside>
-
-<div id="studioAnalysisFlyout" class="studio-analysis-flyout hidden">
-  <div class="studio-analysis-head">
-    <div><strong>Análisis avanzado</strong><span>Todas tus herramientas, sin saturar el menú</span></div>
-    <button id="studioAnalysisClose">×</button>
-  </div>
-  <div class="studio-analysis-grid">
-    <button data-route="costos"><span>$</span><div><strong>Costos</strong><small>Detalle financiero</small></div></button>
-    <button data-route="gastos"><span>▣</span><div><strong>Gastos</strong><small>Comportamiento y variaciones</small></div></button>
-    <button data-route="tendencias"><span>⌁</span><div><strong>Tendencias</strong><small>Evolución acumulada</small></div></button>
-    <button data-route="comparador"><span>⇄</span><div><strong>Comparador</strong><small>Gerencia vs gerencia</small></div></button>
-    <button data-route="prioridades"><span>◆</span><div><strong>Prioridades</strong><small>Qué revisar primero</small></div></button>
-    <button data-route="explorador"><span>⌕</span><div><strong>Explorador</strong><small>Drill-down de cuentas</small></div></button>
-    <button data-route="historial"><span>◷</span><div><strong>Historial</strong><small>Cortes guardados</small></div></button>
-    <button data-route="informePro"><span>✦</span><div><strong>Informe Ejecutivo</strong><small>Narrativa automática</small></div></button>
-    <button data-route="cierreEjecutivo"><span>✓</span><div><strong>Cierre Ejecutivo</strong><small>Conclusión del periodo</small></div></button>
-  </div>
-</div>
-
-
-
-
-
+    <nav>
+      <a class="active" href="#carga">⌁ <span>Cargar reportes</span></a>
+      <a href="#dashboard">⌂ <span>Resumen Ejecutivo</span></a>
+      <a href="#pulso">◉ <span>Pulso RCV</span></a>
+      <a href="#gerencias">🏢 <span>Gerencias</span></a>
+      <a href="#costos">💰 <span>Costos</span></a>
+      <a href="#gastos">📊 <span>Gastos</span></a>
+      <a href="#xpv">🚌 <span>Productividad XPV</span></a>
+      <a href="#tendencias">📈 <span>Tendencias</span></a>
+      <a href="#inteligencia">🧠 <span>Resumen Inteligente</span></a>
+      <a href="#comparador">⇄ <span>Comparador</span></a>
+      <a href="#resultados">📑 <span>Generar Reportes</span></a>
+    </nav>
+    <div class="privacy">🔒 Procesamiento local<br><small>La información permanece en tu equipo.</small></div>
+  </aside>
 
   <main>
 
-    
-<header class="mockup-topbar">
-  <div class="mockup-greeting">
-    <h1>👋 Hola, José.</h1>
-    <p>Aquí tienes el resumen ejecutivo de <strong>RCV</strong>.</p>
+<header class="exec-topbar">
+  <div class="exec-greeting">
+    <h1 id="execGreeting">👋 Hola.</h1>
+    <p>Aquí tienes el resumen ejecutivo de RCV.</p>
   </div>
-  <div class="mockup-top-controls">
-    <div class="mockup-control">
+  <div class="exec-controls">
+    <div class="exec-control">
       <span>Periodo analizado</span>
-      <select id="month"></select>
+      <select id="execMonth"></select>
     </div>
-    <div class="mockup-control">
+    <div class="exec-control">
       <span>Comparar con</span>
-      <select>
+      <select id="execCompare">
         <option>Presupuesto 2026</option>
         <option>Real 2025</option>
       </select>
     </div>
-    <button id="presentationBtn" class="mockup-refresh">Actualizar datos ⟳</button>
-    <button id="committeeBtn" class="mockup-committee">◉ Modo Comité</button>
-    <div class="session-user">
-      <button id="sessionUserBtn" class="session-user-btn">
-        <div class="mockup-top-avatar" id="sessionAvatar">JH</div>
-        <div class="session-user-copy"><strong id="sessionName">Usuario</strong><span id="sessionRole">—</span></div>
-        <span>⌄</span>
-      </button>
-      <div id="sessionMenu" class="session-menu hidden">
-        <button id="logoutBtn">Cerrar sesión</button>
-      </div>
+    <button id="refreshDataBtn" class="exec-refresh">Actualizar datos ⟳</button>
+    <div class="exec-user">
+      <div id="execUserAvatar" class="exec-user-avatar">U</div>
+      <div><strong id="execUserName">Usuario</strong><span id="execUserRole">—</span></div>
+      <button id="logoutBtn" title="Cerrar sesión">⎋</button>
     </div>
   </div>
 </header>
 
-<nav id="moduleTabs" class="module-tabs">
-  <button class="active" data-route="dashboard">Resumen</button>
-  <button data-route="gerencias">Gerencias</button>
-  <button data-route="costos">Costos</button>
-  <button data-route="gastos">Gastos</button>
-  <button data-route="xpv">XPV</button>
-  <button data-route="tendencias">Tendencias</button>
-  <button data-route="comparador">Comparador</button>
-  <button data-route="resultados">Reportes</button>
-</nav>
-
-
-<section id="signatureHero" class="signature-hero hidden">
-  <div class="signature-hero-copy">
-    <span class="signature-kicker">REPORT.IA RCV · SIGNATURE EDITION</span>
-    <h2 id="signatureHeroTitle">Tu operación, convertida en decisiones.</h2>
-    <p id="signatureHeroText">Procesa los reportes para revelar tendencias, prioridades y oportunidades del periodo.</p>
-    <div class="signature-hero-actions">
-      <button class="signature-primary" data-go="dashboard">Ver resumen ejecutivo</button>
-      <button class="signature-secondary" data-go="copiloto">Preguntar al Copiloto</button>
-    </div>
+<div class="layout-intro no-print">
+  <div>
+    <span class="eyebrow">REPORT.IA RCV · INTELLIGENCE EDITION 2.1 · SECURE EXECUTIVE</span>
+    <h1>Centro de Inteligencia Ejecutiva</h1>
+    <p>Una sola vista para analizar, comparar, explicar y exportar resultados.</p>
   </div>
-  <div class="signature-pulse-card">
-    <div class="pulse-ring" id="signaturePulseRing" style="--score:0">
-      <div class="pulse-ring-inner">
-        <span>PULSO RCV</span>
-        <strong id="signaturePulseScore">—</strong>
-        <small id="signaturePulseStatus">Pendiente</small>
+  <div class="layout-intro__badge">RCV Intelligence</div>
+</div>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow">CENTRO EJECUTIVO DE REPORTES RCV</p>
+        <h1>REPORT.IA transforma tus JD en decisiones.</h1>
+        <p>Carga la información, valida las fuentes y analiza resultados, tendencias y desviaciones antes de generar el paquete final.</p>
       </div>
-    </div>
-    <div class="pulse-trend">
-      <span>vs periodo anterior</span>
-      <strong id="signaturePulseDelta">—</strong>
-    </div>
-  </div>
-</section>
-
-<section id="carga" class="workspace-upload-card">
-    <div class="workspace-upload-heading">
-          <div>
-            <span class="workspace-kicker">ACTUALIZAR INFORMACIÓN</span>
-            <h2>Carga de archivos</h2>
-            <p>Sube tus reportes para actualizar el dashboard y generar los reportes ejecutivos.</p>
-          </div>
-          <span class="workspace-info">Procesamiento local y seguro</span>
+      <div class="hero-actions">
+        <div class="month-box">
+          <label for="month">Mes de corte</label>
+          <select id="month"></select>
         </div>
-
-    <div id="dropZone" class="workspace-dropzone" tabindex="0">
-      <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
-      <div class="workspace-upload-icon">⇧</div>
-      <strong>Arrastra y suelta los archivos aquí</strong>
-      <small>o haz clic para seleccionar</small>
-      <em>Formatos: .xlsx, .xls, .xlsm</em>
-    </div>
-
-    <div id="fileList" class="file-list mockup-file-list"></div>
-
-    <div id="validacion" class="workspace-validation">
-      <div id="validationGrid" class="validation-grid">
-        <div class="empty-state">Sin archivos cargados</div>
+        <button id="presentationBtn" class="presentation-btn" type="button">▶ Modo presentación</button>
       </div>
-    </div>
+    </header>
 
-    <button id="browseBtn" type="button" class="workspace-select-btn">Seleccionar archivos</button>
-    <button id="clearBtn" type="button" class="workspace-clear-btn">Limpiar</button>
-    <button id="processBtn" class="workspace-process-btn" disabled>▣ Procesar Reportes</button>
-    <p id="statusText" class="workspace-status">Carga los reportes requeridos.</p>
-  </section>
+    <section id="carga" class="panel compact-panel">
+      <div class="section-title">
+        <div><span class="step">01</span><div><h2>Carga de información</h2><p>Excel consolidado por pestañas o archivos individuales.</p></div></div>
+        <button id="clearBtn" class="ghost">Limpiar</button>
+      </div>
+      <div id="dropZone" class="drop-zone" tabindex="0">
+        <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
+        <div class="upload-icon">⇧</div>
+        <div><h3>Arrastra aquí tus archivos</h3><p>REPORT.IA identificará automáticamente cada fuente JD.</p></div>
+        <button id="browseBtn" class="primary">Seleccionar archivos</button>
+        <small>XLSX · XLS · XLSM</small>
+      </div>
+      <div id="fileList" class="file-list"></div>
+    </section>
 
+    <section id="validacion" class="panel">
+      <div class="section-title"><div><span class="step">02</span><div><h2>Control de fuentes</h2><p>Verifica que la información necesaria esté disponible.</p></div></div></div>
+      <div id="validationGrid" class="validation-grid"><div class="empty-state">Aún no has cargado información.</div></div>
+    </section>
 
-    
+    <section class="actions">
+      <button id="processBtn" class="process" disabled>✨ Analizar y generar reportes</button>
+      <p id="statusText">Carga los reportes requeridos para continuar.</p>
+    </section>
 
-
-
-    
-
-    
-
-    
-
-    
-
-    
-<section class="pro-command-strip hidden" id="proCommandStrip">
-  <button class="pro-command" data-target="explorador">
-    <span>⌕</span><div><strong>Explorar desviaciones</strong><small>Gerencia → agrupador → cuenta</small></div>
-  </button>
-  <button class="pro-command" data-target="comparador">
-    <span>⇄</span><div><strong>Comparar gerencias</strong><small>Desempeño lado a lado</small></div>
-  </button>
-  <button class="pro-command" data-target="historial">
-    <span>◷</span><div><strong>Historial de periodos</strong><small>Consulta y compara cortes guardados</small></div>
-  </button>
-  <button class="pro-command accent" data-target="informePro">
-    <span>✦</span><div><strong>Generar informe</strong><small>Narrativa ejecutiva automática</small></div>
-  </button>
-</section>
-
-
-
-<section class="module-overview-grid hidden" id="moduleOverview">
-  <button data-route="dashboard"><span>▥</span><strong>Resumen Ejecutivo</strong><small>KPIs, alertas y tendencias</small></button>
-  <button data-route="gerencias"><span>♟</span><strong>Gerencias</strong><small>Mapa y análisis individual</small></button>
-  <button data-route="costos"><span>$</span><strong>Costos</strong><small>Comparativos presupuestales</small></button>
-  <button data-route="gastos"><span>▣</span><strong>Gastos</strong><small>Desviaciones y detalle</small></button>
-  <button data-route="xpv"><span>↗</span><strong>Productividad XPV</strong><small>Productividad y objetivos</small></button>
-  <button data-route="tendencias"><span>⌁</span><strong>Tendencias</strong><small>Evolución del periodo</small></button>
-  <button data-route="comparador"><span>⇄</span><strong>Comparador</strong><small>Gerencia contra gerencia</small></button>
-  <button data-route="resultados"><span>▤</span><strong>Reportes Ejecutivos</strong><small>PDF, Excel y ZIP</small></button>
-</section>
-
-<section id="enterpriseHome" class="enterprise-home hidden">
-  <div class="enterprise-hero">
-    <div>
-      <span class="eyebrow">REPORT.IA RCV · ENTERPRISE EDITION</span>
-      <h2 id="enterpriseGreeting">Buenos días.</h2>
-      <p id="enterpriseSummary">Carga y procesa tus reportes para obtener una lectura ejecutiva del periodo.</p>
-    </div>
-    <div class="hero-pulse">
-      <span>PULSO RCV</span>
-      <strong id="homePulse">—</strong>
-      <small id="homePulseText">Pendiente de análisis</small>
-    </div>
-  </div>
-
-  <div class="home-priority-row">
-    <article class="home-focus-card critical"><span>PRIORIDAD 1</span><strong id="homePriority1">Sin análisis</strong><p>Principal foco del periodo.</p></article>
-    <article class="home-focus-card attention"><span>PRIORIDAD 2</span><strong id="homePriority2">Sin análisis</strong><p>Segunda revisión sugerida.</p></article>
-    <article class="home-focus-card good"><span>OPORTUNIDAD</span><strong id="homeOpportunity">Sin análisis</strong><p>Mejor desempeño detectado.</p></article>
-  </div>
-
-  <div class="home-launch-grid">
-    <button class="home-launch primary" data-go="dashboard"><span>▥</span><div><strong>Analizar operación</strong><small>KPIs, tendencias y alertas</small></div><b>→</b></button>
-    <button class="home-launch" data-go="gerencias"><span>♟</span><div><strong>Revisar gerencias</strong><small>Desempeño y detalle ejecutivo</small></div><b>→</b></button>
-    <button class="home-launch" data-go="explorador"><span>⌕</span><div><strong>Explorar desviaciones</strong><small>Gerencia → agrupador → cuenta</small></div><b>→</b></button>
-    <button class="home-launch" data-go="resultados"><span>▤</span><div><strong>Generar reportes</strong><small>PDF, Excel y paquete ejecutivo</small></div><b>→</b></button>
-  </div>
-</section>
-
-
-<section class="signature-insight-strip hidden" id="signatureInsightStrip">
-  <div class="signature-insight">
-    <span class="dot critical"></span>
-    <div><strong id="sigCriticalTitle">Sin alertas críticas</strong><small id="sigCriticalText">Procesa los datos para analizar riesgos.</small></div>
-  </div>
-  <div class="signature-insight">
-    <span class="dot attention"></span>
-    <div><strong id="sigAttentionTitle">Sin focos de atención</strong><small id="sigAttentionText">Aún no hay un periodo analizado.</small></div>
-  </div>
-  <div class="signature-insight">
-    <span class="dot good"></span>
-    <div><strong id="sigOpportunityTitle">Sin oportunidad destacada</strong><small id="sigOpportunityText">REPORT.IA mostrará el mejor desempeño.</small></div>
-  </div>
-  <button class="signature-insight-cta" data-go="prioridades">Ver prioridades →</button>
-</section>
-
-<section id="dashboard" class="dashboard hidden">
+    <section id="dashboard" class="dashboard hidden">
       <div class="dashboard-head">
         <div><p class="eyebrow">RESULTADOS DEL PERIODO</p><h2>Resumen ejecutivo RCV</h2><p id="dashboardSubtitle">Información consolidada del periodo seleccionado.</p></div>
         <div class="dashboard-badge">ANÁLISIS COMPLETADO</div>
@@ -417,152 +263,7 @@
       </div>
     </section>
 
-    
-
-<section id="prioridades" class="analytics-section hidden">
-  <div class="module-head pro-module-head">
-    <div>
-      <p class="eyebrow">CENTRO DE PRIORIDADES</p>
-      <h2>Hoy deberías revisar esto</h2>
-      <p>REPORT.IA ordena los principales focos de atención del periodo para ayudarte a decidir qué revisar primero.</p>
-    </div>
-    <span class="priority-live">ANÁLISIS ACTIVO</span>
-  </div>
-  <div id="priorityGrid" class="priority-grid"></div>
-</section>
-
-<section id="explorador" class="analytics-section hidden">
-  <div class="module-head pro-module-head">
-    <div>
-      <p class="eyebrow">DRILL-DOWN</p>
-      <h2>Explorador de desviaciones</h2>
-      <p>Profundiza desde la gerencia hasta el agrupador y la cuenta contable para encontrar el origen de una desviación.</p>
-    </div>
-    <div class="drill-controls">
-      <label>Gerencia<select id="drillManager"></select></label>
-      <label>Agrupador<select id="drillGroup"></select></label>
-      <label>Cuenta<select id="drillAccount"></select></label>
-    </div>
-  </div>
-  <div id="drillKpis" class="kpi-grid"></div>
-  <div class="pro-two-col">
-    <article class="chart-card">
-      <div class="card-head"><div><span>IMPACTO</span><h3>Real vs Presupuesto</h3></div></div>
-      <div class="chart-wrap"><canvas id="drillChart"></canvas></div>
-    </article>
-    <article class="table-card">
-      <div class="card-head"><div><span>DETALLE</span><h3>Registros con mayor impacto</h3></div></div>
-      <div class="table-scroll">
-        <table><thead><tr><th>Cuenta</th><th>Agrupador</th><th>Real</th><th>Presupuesto</th><th>Desviación</th></tr></thead>
-        <tbody id="drillTable"></tbody></table>
-      </div>
-    </article>
-  </div>
-</section>
-
-<section id="historial" class="analytics-section hidden">
-  <div class="module-head pro-module-head">
-    <div>
-      <p class="eyebrow">HISTORIAL LOCAL</p>
-      <h2>Evolución de periodos</h2>
-      <p>Guarda una fotografía de cada corte para comparar cómo cambia la operación mes a mes.</p>
-    </div>
-    <div class="history-actions">
-      <button id="saveSnapshotBtn" class="pro-action-btn">＋ Guardar corte actual</button>
-      <button id="clearHistoryBtn" class="pro-ghost-btn">Limpiar historial</button>
-    </div>
-  </div>
-  <div id="historyKpis" class="kpi-grid"></div>
-  <div class="pro-two-col">
-    <article class="chart-card">
-      <div class="card-head"><div><span>EVOLUCIÓN</span><h3>Real y Presupuesto por corte</h3></div></div>
-      <div class="chart-wrap"><canvas id="historyChart"></canvas></div>
-    </article>
-    <article class="table-card">
-      <div class="card-head"><div><span>CORTES GUARDADOS</span><h3>Historial disponible</h3></div></div>
-      <div class="table-scroll">
-        <table><thead><tr><th>Periodo</th><th>Real</th><th>Presupuesto</th><th>Desviación</th><th>Pulso</th></tr></thead>
-        <tbody id="historyTable"></tbody></table>
-      </div>
-    </article>
-  </div>
-</section>
-
-
-<section id="copiloto" class="analytics-section hidden legacy-copilot-section">
-  <div class="module-head pro-module-head">
-    <div>
-      <p class="eyebrow">COPILOTO REPORT.IA</p>
-      <h2>Pregunta directamente sobre tus resultados</h2>
-      <p>Haz preguntas en lenguaje natural y REPORT.IA responderá usando los datos procesados en esta sesión.</p>
-    </div>
-  </div>
-  <div class="copilot-shell">
-    <div id="copilotConversation" class="copilot-conversation">
-      <div class="copilot-message bot">
-        <div class="copilot-avatar">R</div>
-        <div>
-          <strong>Copiloto REPORT.IA</strong>
-          <p>Hola, José. Después de procesar tus reportes puedes preguntarme por desviaciones, gerencias, cuentas y productividad XPV.</p>
-        </div>
-      </div>
-    </div>
-    <div class="copilot-suggestions">
-      <button data-q="¿Qué gerencia está peor contra presupuesto?">¿Qué gerencia está peor contra presupuesto?</button>
-      <button data-q="¿Cuál es la mejor gerencia?">¿Cuál es la mejor gerencia?</button>
-      <button data-q="¿Cómo va la productividad XPV?">¿Cómo va la productividad XPV?</button>
-      <button data-q="¿Cuáles son las principales prioridades?">¿Cuáles son las principales prioridades?</button>
-    </div>
-    <div class="copilot-input-row">
-      <input id="copilotInput" type="text" placeholder="Escribe una pregunta sobre el periodo..." />
-      <button id="copilotSendBtn">Preguntar</button>
-    </div>
-  </div>
-</section>
-
-<section id="cierreEjecutivo" class="analytics-section hidden">
-  <div class="executive-close-card">
-    <div class="executive-close-main">
-      <span class="eyebrow">CIERRE EJECUTIVO DEL PERIODO</span>
-      <h2 id="closeTitle">Conclusión del periodo</h2>
-      <p id="closeNarrative">Procesa tus reportes para generar una conclusión ejecutiva automática.</p>
-      <div id="closeActions" class="close-actions">
-        <button data-target="prioridades" class="pro-ghost-btn">Ver prioridades</button>
-        <button id="closePdfBtn" class="pro-action-btn">Generar PDF</button>
-        <button id="closeCommitteeBtn" class="pro-action-btn accent">◉ Presentar en Comité</button>
-      </div>
-    </div>
-    <div class="executive-close-score">
-      <span>PULSO RCV</span>
-      <strong id="closeScore">—</strong>
-      <small id="closeStatus">Sin análisis</small>
-    </div>
-  </div>
-</section>
-
-<section id="informePro" class="analytics-section hidden">
-  <div class="module-head pro-module-head">
-    <div>
-      <p class="eyebrow">INFORME EJECUTIVO AUTOMÁTICO</p>
-      <h2>REPORT.IA explica el periodo</h2>
-      <p>Convierte los indicadores y alertas del dashboard en una narrativa ejecutiva lista para comité.</p>
-    </div>
-    <button id="downloadNarrativePdf" class="pro-action-btn accent">📄 Descargar informe PDF</button>
-  </div>
-  <div class="pro-report-layout">
-    <article class="pro-report-cover">
-      <span class="report-badge">SIGNATURE EDITION 7.3</span>
-      <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
-      <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
-      <div id="proReportScore" class="report-score">—</div>
-    </article>
-    <article class="pro-report-body">
-      <div id="proNarrative" class="pro-narrative"></div>
-    </article>
-  </div>
-</section>
-
-<section id="resultados" class="panel hidden">
+    <section id="resultados" class="panel hidden">
       <div class="section-title"><div><span class="step success">04</span><div><h2>Centro de descargas</h2><p>Descarga cada reporte o genera el paquete FINAL.zip.</p></div></div></div>
       <div class="success-banner"><div class="success-icon">✓</div><div><h3>¡Excelente trabajo!</h3><p>La información fue analizada y los reportes RCV están listos.</p></div></div>
       <div id="downloadGrid" class="download-grid"></div>
@@ -573,8 +274,8 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">SIGNATURE EDITION 7.3</span>
-    <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
+    <span class="eyebrow">INTELLIGENCE EDITION 2.0</span>
+    <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">Exportación y entrega</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>
   <div class="export-actions">
@@ -586,71 +287,12 @@
   <div class="export-note">El PDF respeta el módulo visible y sus filtros. El Excel ejecutivo usa la información procesada disponible en el navegador.</div>
 </section>
 
-<button id="signatureCommandBtn" class="signature-command-btn" title="Abrir accesos rápidos">⌘</button>
-<div id="signatureCommandPalette" class="signature-command-palette hidden">
-  <div class="command-search">
-    <input id="signatureCommandSearch" placeholder="Ir a una sección..." />
-  </div>
-  <div class="command-options">
-    <button data-go="enterpriseHome">Inicio</button>
-    <button data-go="dashboard">Resumen Ejecutivo</button>
-    <button data-go="gerencias">Gerencias</button>
-    <button data-go="explorador">Explorador</button>
-    <button data-go="copiloto">Copiloto</button>
-    <button data-go="resultados">Reportes Ejecutivos</button>
-  </div>
-</div>
 </main>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
-
-<button id="copilotFloatingBtn" class="copilot-floating-btn" aria-label="Abrir Copiloto REPORT.IA">
-  <span class="copilot-float-icon">R</span>
-  <span class="copilot-float-label">Copiloto</span>
-  <span class="copilot-online-dot"></span>
-</button>
-
-<div id="copilotDrawerBackdrop" class="copilot-drawer-backdrop hidden"></div>
-<aside id="copilotDrawer" class="copilot-drawer hidden">
-  <div class="copilot-drawer-head">
-    <div class="copilot-drawer-brand">
-      <div class="copilot-drawer-avatar">R</div>
-      <div><strong>Copiloto REPORT.IA</strong><span>Asistente ejecutivo RCV</span></div>
-    </div>
-    <button id="copilotDrawerClose">×</button>
-  </div>
-
-  <div class="copilot-drawer-status">
-    <span></span> Analizando los datos de esta sesión
-  </div>
-
-  <div id="copilotDrawerConversation" class="copilot-drawer-conversation">
-    <div class="copilot-drawer-message bot">
-      <div class="copilot-drawer-avatar small">R</div>
-      <div>
-        <strong>Hola, José 👋</strong>
-        <p>Puedo ayudarte a interpretar desviaciones, comparar gerencias, revisar XPV y encontrar qué deberías atender primero.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="copilot-drawer-suggestions">
-    <button data-q="¿Qué debo revisar primero?">¿Qué debo revisar primero?</button>
-    <button data-q="¿Qué gerencia está peor contra presupuesto?">Gerencia con mayor desviación</button>
-    <button data-q="¿Cómo va la productividad XPV?">Resumen de XPV</button>
-  </div>
-
-  <div class="copilot-drawer-input">
-    <input id="copilotDrawerInput" type="text" placeholder="Pregúntame sobre tus resultados..." />
-    <button id="copilotDrawerSend">➤</button>
-  </div>
-</aside>
-
 </body>
 </html>
