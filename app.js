@@ -1273,3 +1273,33 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('copilotDrawerInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')askDrawerCopilot();});
   document.querySelectorAll('.copilot-drawer-suggestions button').forEach(b=>b.addEventListener('click',()=>askDrawerCopilot(b.dataset.q)));
 });
+
+
+// ===== SIGNATURE EDITION 7.2 · PREMIUM ICON RAIL =====
+function openRailTools(){
+  document.getElementById('railToolsFlyout')?.classList.remove('hidden');
+}
+function closeRailTools(){
+  document.getElementById('railToolsFlyout')?.classList.add('hidden');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('railMoreBtn')?.addEventListener('click',openRailTools);
+  document.getElementById('railToolsClose')?.addEventListener('click',closeRailTools);
+  document.getElementById('railThemeBtn')?.addEventListener('click',()=>{
+    if(typeof toggleSignatureTheme==='function') toggleSignatureTheme();
+  });
+
+  document.querySelectorAll('.rail-tools-grid [data-route]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(typeof showRoute==='function') showRoute(btn.dataset.route);
+      closeRailTools();
+    });
+  });
+
+  document.querySelectorAll('.rail-nav [data-route]').forEach(a=>{
+    a.addEventListener('click',()=>{
+      document.querySelectorAll('.rail-nav a').forEach(x=>x.classList.remove('active'));
+      a.classList.add('active');
+    });
+  });
+});

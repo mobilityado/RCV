@@ -13,7 +13,7 @@
   <div class="login-visual">
     <div class="login-brand">
       <div class="login-logo">R</div>
-      <div><strong>REPORT.IA RCV</strong><span>Signature Edition 7.1</span></div>
+      <div><strong>REPORT.IA RCV</strong><span>Signature Edition 7.2</span></div>
     </div>
     <div class="login-copy">
       <span class="login-kicker">CENTRO DE INTELIGENCIA EJECUTIVA</span>
@@ -58,62 +58,67 @@
   
   
   
-<aside class="sidebar mockup-sidebar">
-  <div class="signature-sidebar-tools">
-      <button id="collapseSidebarBtn" title="Contraer menú">☰</button>
-      <button id="darkModeBtn" title="Cambiar apariencia">◐</button>
-    </div>
-    <div class="mockup-brand">
-    <div class="mockup-logo">R</div>
-    <div>
-      <strong>REPORT.IA RCV</strong>
-      <span>Signature Edition 7.1</span>
-    </div>
+
+<aside class="sidebar signature-rail">
+  <div class="rail-brand" title="REPORT.IA RCV · Signature Edition 7.2">
+    <div class="rail-logo">R</div>
   </div>
 
-  
-<nav class="mockup-nav clean-primary-nav">
-  <a class="active" href="#enterpriseHome" data-route="enterpriseHome"><span>⌂</span>Inicio</a>
-  <a href="#dashboard" data-route="dashboard"><span>▥</span>Resumen Ejecutivo</a>
-  <a href="#gerencias" data-route="gerencias"><span>♟</span>Gerencias</a>
-  <a href="#costos" data-route="costos"><span>$</span>Costos y Gastos</a>
-  <a href="#xpv" data-route="xpv"><span>↗</span>Productividad XPV</a>
-  <a href="#resultados" data-route="resultados"><span>▤</span>Reportes Ejecutivos</a>
-</nav>
+  <nav class="rail-nav">
+    <a class="active" href="#enterpriseHome" data-route="enterpriseHome" data-tip="Inicio">
+      <span>⌂</span>
+    </a>
+    <a href="#dashboard" data-route="dashboard" data-tip="Resumen Ejecutivo">
+      <span>▥</span>
+    </a>
+    <a href="#gerencias" data-route="gerencias" data-tip="Gerencias">
+      <span>♟</span>
+    </a>
+    <a href="#costos" data-route="costos" data-tip="Costos y Gastos">
+      <span>$</span>
+    </a>
+    <a href="#xpv" data-route="xpv" data-tip="Productividad XPV">
+      <span>↗</span>
+    </a>
+    <a href="#resultados" data-route="resultados" data-tip="Reportes Ejecutivos">
+      <span>▤</span>
+    </a>
+  </nav>
 
-<div class="tools-accordion">
-  <button id="toolsAccordionBtn" class="tools-accordion-btn">
-    <span>✦</span><strong>Más herramientas</strong><b>⌄</b>
+  <div class="rail-spacer"></div>
+
+  <button id="railMoreBtn" class="rail-more" data-tip="Más herramientas">
+    <span>•••</span>
   </button>
-  <div id="toolsAccordionPanel" class="tools-accordion-panel hidden">
-    <a href="#tendencias" data-route="tendencias">Tendencias</a>
-    <a href="#comparador" data-route="comparador">Comparador</a>
-    <a href="#prioridades" data-route="prioridades">Prioridades</a>
-    <a href="#explorador" data-route="explorador">Explorador</a>
-    <a href="#historial" data-route="historial">Historial</a>
-    <a href="#informePro" data-route="informePro">Informe Ejecutivo</a>
-    <a href="#cierreEjecutivo" data-route="cierreEjecutivo">Cierre Ejecutivo</a>
+
+  <button id="railThemeBtn" class="rail-theme" data-tip="Modo claro / oscuro">
+    <span>◐</span>
+  </button>
+
+  <div class="rail-user" title="Usuario activo">
+    <div class="mockup-avatar">JA</div>
+  </div>
+</aside>
+
+<div id="railToolsFlyout" class="rail-tools-flyout hidden">
+  <div class="rail-tools-head">
+    <div>
+      <strong>Más herramientas</strong>
+      <span>Análisis avanzado</span>
+    </div>
+    <button id="railToolsClose">×</button>
+  </div>
+  <div class="rail-tools-grid">
+    <button data-route="tendencias"><span>⌁</span><div><strong>Tendencias</strong><small>Evolución del periodo</small></div></button>
+    <button data-route="comparador"><span>⇄</span><div><strong>Comparador</strong><small>Gerencia vs gerencia</small></div></button>
+    <button data-route="prioridades"><span>◆</span><div><strong>Prioridades</strong><small>Qué revisar primero</small></div></button>
+    <button data-route="explorador"><span>⌕</span><div><strong>Explorador</strong><small>Drill-down de cuentas</small></div></button>
+    <button data-route="historial"><span>◷</span><div><strong>Historial</strong><small>Cortes guardados</small></div></button>
+    <button data-route="informePro"><span>✦</span><div><strong>Informe Ejecutivo</strong><small>Narrativa automática</small></div></button>
+    <button data-route="cierreEjecutivo"><span>✓</span><div><strong>Cierre Ejecutivo</strong><small>Conclusión del periodo</small></div></button>
   </div>
 </div>
 
-
-  <div class="mockup-separator"></div>
-
-  
-
-  <div class="mockup-user">
-    <div class="mockup-avatar">JH</div>
-    <div>
-      <strong>José Hernández</strong>
-      <span>Administrador</span>
-    </div>
-  </div>
-
-  <div class="mockup-footer">
-    © 2026 REPORT.IA RCV<br>
-    <small>Todos los derechos reservados.</small>
-  </div>
-</aside>
 
 
 
@@ -528,7 +533,7 @@
   </div>
   <div class="pro-report-layout">
     <article class="pro-report-cover">
-      <span class="report-badge">SIGNATURE EDITION 7.1</span>
+      <span class="report-badge">SIGNATURE EDITION 7.2</span>
       <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
       <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
       <div id="proReportScore" class="report-score">—</div>
@@ -550,7 +555,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">SIGNATURE EDITION 7.1</span>
+    <span class="eyebrow">SIGNATURE EDITION 7.2</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>

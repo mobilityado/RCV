@@ -141,3 +141,9 @@ Nuevas funciones:
 - Copiloto convertido en asistente flotante real.
 - Chat lateral emergente con sugerencias y conversación.
 - Menor densidad visual en navegación.
+
+## Signature Edition 7.2
+- Reemplazo completo del sidebar por Icon Rail Premium.
+- Sin scrollbar lateral.
+- Solo 6 accesos principales.
+- Herramientas avanzadas en panel flotante.
