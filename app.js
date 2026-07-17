@@ -576,6 +576,25 @@ function secureGetSession(){
 function secureSetSession(s){sessionStorage.setItem(SECURE_SESSION_KEY,JSON.stringify(s))}
 function secureClearSession(){sessionStorage.removeItem(SECURE_SESSION_KEY)}
 
+async function secureFetchJson(url){
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),15000);
+  try{
+    const res=await fetch(url,{cache:'no-store',redirect:'follow',signal:controller.signal});
+    const text=await res.text();
+    if(!res.ok) throw new Error(`Servidor de acceso no disponible (${res.status}).`);
+    let data;
+    try{data=JSON.parse(text)}catch(_){
+      if(/^\s*</.test(text)) throw new Error('El servicio de acceso devolvió una página HTML. Revisa la implementación pública de Apps Script.');
+      throw new Error('La respuesta del servicio de acceso no es válida.');
+    }
+    return data;
+  }catch(e){
+    if(e?.name==='AbortError') throw new Error('El servicio de acceso tardó demasiado en responder.');
+    throw e;
+  }finally{clearTimeout(timeout)}
+}
+
 async function secureLoadUsers(){
   const select=document.getElementById('loginUser');
   const status=document.getElementById('loginStatus');
@@ -585,10 +604,10 @@ async function secureLoadUsers(){
   try{
     const url=new URL(SECURE_AUTH_ENDPOINT);
     url.searchParams.set('accion','usuarios');
-    const res=await fetch(url.toString(),{cache:'no-store',redirect:'follow'});
-    const data=JSON.parse(await res.text());
-    const users=Array.isArray(data?.usuarios)?data.usuarios:[];
-    if(!data?.ok||!users.length)throw new Error(data?.mensaje||'No se encontraron usuarios.');
+    const data=await secureFetchJson(url.toString());
+    const users=Array.isArray(data?.usuarios)?data.usuarios:(Array.isArray(data?.users)?data.users:[]);
+    const success=data?.ok!==false && data?.error!==true;
+    if(!success||!users.length)throw new Error(data?.mensaje||data?.message||'No se encontraron usuarios.');
     select.innerHTML='<option value="">Selecciona tu usuario</option>'+users.map(u=>{
       const n=u.usuario||u.nombre||u.user||'';
       const r=u.tipo||u.role||'';
@@ -626,10 +645,9 @@ async function secureLogin(){
     url.searchParams.set('accion','login');
     url.searchParams.set('usuario',user);
     url.searchParams.set('contrasena',pass);
-    const res=await fetch(url.toString(),{cache:'no-store',redirect:'follow'});
-    const data=JSON.parse(await res.text());
-    if(!data?.ok)throw new Error(data?.mensaje||'Usuario o contraseña incorrectos.');
-    const session={name:data.usuario||user,role:(data.tipo||'USUARIO').toUpperCase()};
+    const data=await secureFetchJson(url.toString());
+    if(data?.ok===false||data?.error===true)throw new Error(data?.mensaje||data?.message||'Usuario o contraseña incorrectos.');
+    const session={name:data.nombre||data.usuario||user,role:(data.tipo||data.rol||data.role||'USUARIO').toUpperCase(),user:data.usuario||user};
     secureSetSession(session);
     secureApplySession(session);
     document.getElementById('secureLogin')?.classList.add('hidden');
@@ -648,6 +666,7 @@ function secureApplySession(session){
   const av=document.getElementById('execUserAvatar'); if(av)av.textContent=secureInitials(name);
 }
 document.addEventListener('DOMContentLoaded',()=>{
+  window.setTimeout(()=>document.getElementById('appBoot')?.classList.add('is-hidden'),650);
   const session=secureGetSession();
   if(session){
     secureApplySession(session);
