@@ -114,3 +114,9 @@ Nuevas funciones:
 - Home Ejecutiva simplificada.
 - Navegación por módulos para evitar saturación visual.
 - Archivo de ejemplo de Apps Script para autenticación.
+
+## Enterprise Edition 6.1
+- Selector desplegable de usuarios cargado desde Google Sheets vía Apps Script.
+- Avatar dinámico con iniciales del usuario seleccionado.
+- Contraseña permanece separada y nunca se lista desde la hoja.
+- Apps Script corregido para evitar el error `e.parameter` al ejecutar manualmente `doGet`.

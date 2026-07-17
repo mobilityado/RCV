@@ -13,7 +13,7 @@
   <div class="login-visual">
     <div class="login-brand">
       <div class="login-logo">R</div>
-      <div><strong>REPORT.IA RCV</strong><span>Enterprise Edition 6.0</span></div>
+      <div><strong>REPORT.IA RCV</strong><span>Enterprise Edition 6.1</span></div>
     </div>
     <div class="login-copy">
       <span class="login-kicker">CENTRO DE INTELIGENCIA EJECUTIVA</span>
@@ -33,7 +33,13 @@
       <h2>Iniciar sesión</h2>
       <p>Ingresa con las credenciales autorizadas en RCV.</p>
       <label>Usuario
-        <input id="loginUser" type="text" autocomplete="username" placeholder="Nombre de usuario" />
+        <div class="login-user-select-wrap">
+          <div id="loginSelectedAvatar" class="login-selected-avatar">?</div>
+          <select id="loginUser" class="login-user-select">
+            <option value="">Cargando usuarios...</option>
+          </select>
+          <span class="login-select-chevron">⌄</span>
+        </div>
       </label>
       <label>Contraseña
         <div class="password-wrap">
@@ -42,7 +48,7 @@
         </div>
       </label>
       <button id="loginBtn" class="login-submit">Entrar a REPORT.IA</button>
-      <div id="loginStatus" class="login-status">Conectado al control de acceso RCV.</div>
+      <div id="loginStatus" class="login-status">Cargando usuarios autorizados...</div>
       <div class="login-foot">Acceso administrado mediante Google Sheets / Apps Script.</div>
     </div>
   </div>
@@ -56,7 +62,7 @@
     <div class="mockup-logo">R</div>
     <div>
       <strong>REPORT.IA RCV</strong>
-      <span>Enterprise Edition 6.0</span>
+      <span>Enterprise Edition 6.1</span>
     </div>
   </div>
 
@@ -468,7 +474,7 @@
   </div>
   <div class="pro-report-layout">
     <article class="pro-report-cover">
-      <span class="report-badge">ENTERPRISE EDITION 6.0</span>
+      <span class="report-badge">ENTERPRISE EDITION 6.1</span>
       <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
       <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
       <div id="proReportScore" class="report-score">—</div>
@@ -490,7 +496,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">ENTERPRISE EDITION 6.0</span>
+    <span class="eyebrow">ENTERPRISE EDITION 6.1</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>

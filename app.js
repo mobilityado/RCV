@@ -867,7 +867,7 @@ function normalizeLoginResponse(data,username){
 }
 
 async function loginEnterprise(){
-  const user=document.getElementById('loginUser')?.value.trim();
+  const user=(document.getElementById('loginUser')?.value||'').trim();
   const pass=document.getElementById('loginPassword')?.value;
   const status=document.getElementById('loginStatus');
   if(!user||!pass){status.textContent='Ingresa usuario y contraseña.';status.className='login-status error';return;}
@@ -965,4 +965,69 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   document.querySelectorAll('.mockup-nav a[data-route]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showRoute(a.dataset.route);}));
   document.querySelectorAll('.home-launch[data-go]').forEach(b=>b.addEventListener('click',()=>showRoute(b.dataset.go)));
+});
+
+
+// ===== ENTERPRISE EDITION 6.1 · LISTA DESPLEGABLE DE USUARIOS =====
+async function loadAuthorizedUsers(){
+  const select=document.getElementById('loginUser');
+  const status=document.getElementById('loginStatus');
+  if(!select)return;
+
+  select.innerHTML='<option value="">Cargando usuarios...</option>';
+  select.disabled=true;
+  if(status){
+    status.textContent='Cargando usuarios autorizados...';
+    status.className='login-status loading';
+  }
+
+  try{
+    const url=new URL(AUTH_ENDPOINT);
+    url.searchParams.set('accion','usuarios');
+    const res=await fetch(url.toString(),{method:'GET',cache:'no-store'});
+    const text=await res.text();
+    let data;
+    try{ data=JSON.parse(text); }
+    catch(e){ throw new Error('El Apps Script no devolvió JSON válido para la lista de usuarios.'); }
+
+    const users=Array.isArray(data?.usuarios)?data.usuarios:[];
+    if(!data?.ok || users.length===0){
+      throw new Error(data?.mensaje||'No se encontraron usuarios autorizados.');
+    }
+
+    select.innerHTML='<option value="">Selecciona tu usuario</option>'+
+      users.map(u=>{
+        const username=typeof u==='string'?u:(u.usuario||u.nombre||u.user||'');
+        const role=typeof u==='string'?'':(u.tipo||u.role||u.rango||'');
+        return `<option value="${escapeHtml(username)}" data-role="${escapeHtml(role)}">${escapeHtml(username)}</option>`;
+      }).join('');
+    select.disabled=false;
+
+    if(status){
+      status.textContent=`${users.length} usuario${users.length===1?'':'s'} autorizado${users.length===1?'':'s'} disponible${users.length===1?'':'s'}.`;
+      status.className='login-status success';
+    }
+  }catch(err){
+    select.innerHTML='<option value="">No fue posible cargar usuarios</option>';
+    select.disabled=true;
+    if(status){
+      status.textContent=err.message||'No fue posible cargar la lista de usuarios.';
+      status.className='login-status error';
+    }
+  }
+  updateLoginSelectedAvatar();
+}
+
+function updateLoginSelectedAvatar(){
+  const select=document.getElementById('loginUser');
+  const avatar=document.getElementById('loginSelectedAvatar');
+  if(!select||!avatar)return;
+  const name=select.value||'';
+  avatar.textContent=name?initials(name):'?';
+  avatar.classList.toggle('has-user',Boolean(name));
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  loadAuthorizedUsers();
+  document.getElementById('loginUser')?.addEventListener('change',updateLoginSelectedAvatar);
 });

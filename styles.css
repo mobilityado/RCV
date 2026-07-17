@@ -1899,3 +1899,63 @@ body.committee-mode .mockup-topbar{
 @media(max-width:600px){
   .home-priority-row,.home-launch-grid{grid-template-columns:1fr}
 }
+
+/* =========================================================
+   ENTERPRISE EDITION 6.1 · USER SELECTOR LOGIN
+   ========================================================= */
+.login-user-select-wrap{
+  position:relative;
+  display:grid;
+  grid-template-columns:38px 1fr;
+  align-items:center;
+  gap:9px;
+  margin-top:5px;
+  padding:4px 36px 4px 5px;
+  border:1px solid #dfdce7;
+  border-radius:9px;
+  background:#fff;
+}
+.login-user-select-wrap:focus-within{
+  border-color:#8c6cf0;
+  box-shadow:0 0 0 3px rgba(107,51,235,.09);
+}
+.login-selected-avatar{
+  width:34px;height:34px;
+  display:grid;place-items:center;
+  border-radius:9px;
+  background:#eeeaf5;
+  color:#766f84;
+  font-size:9px;
+  font-weight:850;
+}
+.login-selected-avatar.has-user{
+  background:linear-gradient(135deg,#5924de,#7438ef);
+  color:#fff;
+}
+.login-user-select{
+  width:100%;
+  min-height:36px!important;
+  margin:0!important;
+  padding:0 4px!important;
+  border:0!important;
+  outline:0!important;
+  background:#fff!important;
+  color:#252139!important;
+  font-size:10px!important;
+  font-weight:650;
+  appearance:none;
+}
+.login-user-select:disabled{color:#9892a4}
+.login-select-chevron{
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  color:#7e778c;
+  font-size:12px;
+  pointer-events:none;
+}
+.login-status.success{
+  background:#edf9f1;
+  color:#167a3d;
+}

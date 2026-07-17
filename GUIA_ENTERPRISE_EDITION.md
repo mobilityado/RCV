@@ -32,3 +32,32 @@ La sesión se mantiene mientras la pestaña del navegador permanezca abierta med
 
 ## Publicación
 Sube todos los archivos de la carpeta `REPORTIA_RCV` a la raíz de tu repositorio y activa GitHub Pages.
+
+
+## Enterprise Edition 6.1 — Selector de usuarios
+La pantalla de login ahora consulta automáticamente:
+
+`?accion=usuarios`
+
+Respuesta esperada:
+
+```json
+{
+  "ok": true,
+  "usuarios": [
+    {
+      "usuario": "JOSE ANGEL LOPEZ HERNANDEZ",
+      "tipo": "ADMINISTRADOR"
+    }
+  ]
+}
+```
+
+Los nombres aparecen en una lista desplegable. La contraseña no se descarga ni se muestra; solo se valida cuando el usuario intenta iniciar sesión.
+
+Después de modificar Apps Script:
+1. Guarda los cambios.
+2. Ve a Implementar > Administrar implementaciones.
+3. Edita la implementación.
+4. Selecciona Nueva versión.
+5. Implementa nuevamente.
