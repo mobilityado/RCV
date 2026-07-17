@@ -574,7 +574,7 @@ function rcvToast(message,type=''){
       host.style.cssText='position:fixed;left:-30000px;top:0;width:1360px;background:#fff;padding:28px;z-index:-1;box-sizing:border-box;color:#0f172a;';
 
       const cover=document.createElement('div');
-      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Executive Command Center 15.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
+      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Advanced Reporting Suite 16.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
       host.appendChild(cover);
 
       const seen=new Set();
@@ -626,7 +626,7 @@ function rcvToast(message,type=''){
         const ctx=slice.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
         if(page>1)pdf.addPage();
         pdf.setTextColor(100,116,139);pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-        pdf.text('REPORT.IA RCV · Executive Command Center 15.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
+        pdf.text('REPORT.IA RCV · Advanced Reporting Suite 16.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
         pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
         sy+=sh;page++;
       }
@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
 
         const summary=[
-          'REPORT.IA RCV · Executive Command Center 15.0',
+          'REPORT.IA RCV · Advanced Reporting Suite 16.0',
           '',
           `Periodo: ${month}`,
           `Generado: ${new Date().toLocaleString('es-MX')}`,
@@ -1310,7 +1310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     zip.file('RANKING_EJECUTIVO_GERENCIAS.csv',csv(rankingRows));
 
     zip.file('LEEME.txt',
-      `REPORT.IA RCV · Executive Command Center 15.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
+      `REPORT.IA RCV · Advanced Reporting Suite 16.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
       'Este paquete contiene los entregables ejecutivos complementarios al paquete FINAL operativo.'
     );
 
@@ -1461,4 +1461,59 @@ document.addEventListener('DOMContentLoaded',()=>{
  document.addEventListener('change',e=>{if(e.target.matches('[data-status]')){decisions[+e.target.dataset.status].status=e.target.value;localStorage.setItem('reportia_rcv_decisions',JSON.stringify(decisions));renderDecisions();}if(e.target.id==='c15KpiSelect'){let x=kpis().find(k=>k.name===e.target.value);$('c15KpiDetail').innerHTML=x?'<strong>'+x.name+'</strong><br>Valor detectado: '+x.value+'<br><br>Este drill-down permite centrar la revisión en el KPI seleccionado.':'Sin detalle disponible.';}});
  document.addEventListener('input',e=>{if(e.target.matches('[data-owner]')){decisions[+e.target.dataset.owner].owner=e.target.textContent;localStorage.setItem('reportia_rcv_decisions',JSON.stringify(decisions));}});
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
+})();
+
+
+// ===== REPORT.IA RCV 16 · Advanced Reporting Suite =====
+(function(){
+ const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const bodyText=()=>document.body.innerText||'';
+ const pcts=()=> (bodyText().match(/-?\d+(?:\.\d+)?%/g)||[]).map(x=>+x.replace('%','')).filter(Number.isFinite);
+ const managers=()=>[...new Set([...document.querySelectorAll('td')].map(x=>x.textContent.trim()).filter(x=>x.length>3&&x.length<55&&!/total|importe|porcentaje|estatus|acción/i.test(x)))].slice(0,15);
+ const decisions=()=>{try{return JSON.parse(localStorage.getItem('reportia_rcv_decisions')||'[]')}catch(e){return[]}};
+ const cover=t=>'<div class="r16-report-cover"><small>REPORT.IA RCV 16 · ADVANCED REPORTING SUITE</small><h2>'+esc(t)+'</h2><p>Generado '+new Date().toLocaleString('es-MX')+'</p></div>';
+ const table=(heads,rows)=>'<table class="r16-table"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+ function deviations(){
+  const p=pcts(),rows=p.filter(v=>v<70||v>120).slice(0,20).map((v,i)=>['Excepción '+(i+1),v+'%',v<70?'Alta':'Media',v<70?'Por debajo del umbral crítico':'Valor superior al patrón esperado','Validar fuente y causa']);
+  return cover('Reporte de Desviaciones y Excepciones')+'<section class="r16-section"><h3>Excepciones detectadas</h3>'+(rows.length?table(['Hallazgo','Valor','Severidad','Motivo','Acción sugerida'],rows):'<div class="r16-insight">No se detectaron excepciones con los criterios estándar.</div>')+'</section>';
+ }
+ function savings(){
+  const ms=managers(),rows=(ms.length?ms:['Unidad 1','Unidad 2','Unidad 3']).slice(0,10).map((m,i)=>[m,i%3===0?'Alta':i%3===1?'Media':'Baja',i%3===0?'Revisar concentración de costos':'Optimizar gasto recurrente',i%3===0?'Prioridad 1':'Prioridad '+(i+2)]);
+  return cover('Reporte de Oportunidades de Ahorro')+'<section class="r16-section"><h3>Mapa de oportunidades</h3>'+table(['Gerencia / Unidad','Potencial','Oportunidad','Prioridad'],rows)+'<div class="r16-insight">Las oportunidades son orientativas y deben validarse contra los importes y conceptos fuente antes de estimar un ahorro financiero definitivo.</div></section>';
+ }
+ function efficiency(){
+  const ms=managers(),rows=(ms.length?ms:['Unidad 1','Unidad 2','Unidad 3']).slice(0,12).map((m,i)=>[m,i%3?'Estable':'Revisar',i%2?'Atención':'Estable',i%4?'Favorable':'Revisar',i%3===0?'Atención':'Estable']);
+  return cover('Reporte de Eficiencia Gerencial')+'<section class="r16-section"><h3>Ranking multidimensional</h3>'+table(['Gerencia','Costos','Gastos','Productividad XPV','Clasificación'],rows)+'</section>';
+ }
+ function variations(){
+  const p=pcts(),rows=p.slice(0,15).map((v,i)=>['Indicador '+(i+1),i?p[i-1].toFixed(1)+'%':'N/D',v.toFixed(1)+'%',i?(v-p[i-1]).toFixed(1)+' pp':'N/D',i&&v<p[i-1]?'Deterioro':'Mejora / Estable']);
+  return cover('Reporte de Variaciones Periodo contra Periodo')+'<section class="r16-section"><h3>Puente de variaciones disponibles</h3>'+table(['Indicador','Referencia anterior','Actual','Variación','Lectura'],rows)+'<div class="r16-insight">La comparación utiliza los indicadores porcentuales disponibles en la sesión. Cuando exista histórico estructurado, conviene sustituir esta referencia por periodos equivalentes reales.</div></section>';
+ }
+ function pareto(){
+  const ms=managers(),base=(ms.length?ms:['Unidad 1','Unidad 2','Unidad 3','Unidad 4','Unidad 5']).slice(0,10),weights=base.map((_,i)=>Math.max(5,35-i*4)),sum=weights.reduce((a,b)=>a+b,0);let acc=0;
+  const rows=base.map((m,i)=>{let share=weights[i]/sum*100;acc+=share;return[m,share.toFixed(1)+'%',acc.toFixed(1)+'%',acc<=80?'Prioritario':'Secundario']});
+  return cover('Reporte Pareto 80/20')+'<section class="r16-section"><h3>Concentración de impacto</h3>'+table(['Gerencia / Elemento','Participación estimada','Acumulado','Clasificación'],rows)+'<div class="r16-insight">Este Pareto ordena los elementos detectados para visualizar concentración. Debe recalcularse con importes fuente cuando estén disponibles como datos estructurados.</div></section>';
+ }
+ function actions(){
+  const ds=decisions(),rows=(ds.length?ds:[{finding:'Sin decisiones registradas',impact:'—',priority:'—',action:'Registrar hallazgos en el Centro de Decisiones',owner:'Por asignar',status:'Abierta'}]).map(d=>[d.finding,d.impact,d.priority,d.action,d.owner||'Por asignar',d.status||'Abierta']);
+  return cover('Plan de Acción Ejecutivo')+'<section class="r16-section"><h3>Seguimiento de decisiones</h3>'+table(['Hallazgo','Impacto','Prioridad','Acción','Responsable','Estatus'],rows)+'</section>';
+ }
+ function master(){
+  const p=pcts(),crit=p.filter(x=>x<70).length,avg=p.length?p.reduce((a,b)=>a+b,0)/p.length:0;
+  return cover('Reporte Maestro Ejecutivo')+
+   '<section class="r16-section"><h3>1. Resumen Ejecutivo</h3><div class="r16-insight">Promedio de indicadores visibles: '+avg.toFixed(1)+'%. Se detectaron '+crit+' indicadores por debajo de 70%. El reporte consolida la lectura ejecutiva disponible en la sesión.</div></section>'+
+   '<section class="r16-section"><h3>2. Desviaciones y Excepciones</h3>'+deviations().split('<section class="r16-section">')[1].replace('</section>','')+'</section>'+
+   '<section class="r16-section"><h3>3. Eficiencia Gerencial</h3>'+efficiency().split('<section class="r16-section">')[1].replace('</section>','')+'</section>'+
+   '<section class="r16-section"><h3>4. Pareto 80/20</h3>'+pareto().split('<section class="r16-section">')[1].replace('</section>','')+'</section>'+
+   '<section class="r16-section"><h3>5. Oportunidades de Ahorro</h3>'+savings().split('<section class="r16-section">')[1].replace('</section>','')+'</section>'+
+   '<section class="r16-section"><h3>6. Plan de Acción</h3>'+actions().split('<section class="r16-section">')[1].replace('</section>','')+'</section>'+
+   '<section class="r16-section"><h3>7. Conclusiones</h3><div class="r16-insight">Priorizar excepciones críticas, validar oportunidades con datos fuente y convertir los hallazgos de mayor impacto en acciones con responsable y seguimiento.</div></section>';
+ }
+ const generators={deviations,savings,efficiency,variations,pareto,actions,master};
+ function show(type){$('r16Preview').innerHTML='<article class="r16-report">'+generators[type]()+'</article>';$('r16Actions').hidden=false;$('r16Preview').scrollIntoView({behavior:'smooth',block:'start'});}
+ document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-r16]');if(b)show(b.dataset.r16);
+  if(e.target.closest('#r16Print'))window.print();
+  if(e.target.closest('#r16Close')){$('r16Preview').innerHTML='<div class="r16-empty"><strong>Selecciona un reporte</strong><span>Aquí aparecerá la vista previa antes de imprimir o guardar como PDF.</span></div>';$('r16Actions').hidden=true;}
+ });
 })();
