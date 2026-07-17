@@ -56,3 +56,16 @@
 @media print{
  .rcv-v9-toolbar,.rcv-v9-panel{display:none!important}
 }
+
+
+/* 9.1 export feedback */
+.rcv-export-toast{
+  position:fixed;right:20px;top:20px;z-index:10050;
+  max-width:390px;padding:13px 16px;border-radius:14px;
+  background:#0f172a;color:#fff;box-shadow:0 18px 45px rgba(15,23,42,.28);
+  font:600 13px/1.45 system-ui;opacity:0;transform:translateY(-10px);
+  pointer-events:none;transition:.22s ease;
+}
+.rcv-export-toast.show{opacity:1;transform:translateY(0)}
+.rcv-export-toast.error{background:#991b1b}
+.rcv-export-toast.ok{background:#065f46}

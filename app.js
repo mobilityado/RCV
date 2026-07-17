@@ -475,6 +475,56 @@ function renderComparison(ma,mb){
   });
 })();
 
+
+// ===== REPORT.IA RCV 9.1: resilient external library loader =====
+async function rcvLoadScriptFallback(urls, globalCheck){
+  if(globalCheck()) return true;
+  for(const url of urls){
+    try{
+      await new Promise((resolve,reject)=>{
+        const existing=[...document.scripts].find(s=>s.src===url);
+        if(existing){
+          if(globalCheck()) return resolve();
+          existing.addEventListener('load',resolve,{once:true});
+          existing.addEventListener('error',reject,{once:true});
+          setTimeout(()=>globalCheck()?resolve():reject(new Error('timeout')),7000);
+          return;
+        }
+        const s=document.createElement('script');
+        s.src=url; s.async=true; s.crossOrigin='anonymous';
+        s.onload=resolve; s.onerror=reject;
+        document.head.appendChild(s);
+        setTimeout(()=>{ if(!globalCheck()) reject(new Error('timeout')); },7000);
+      });
+      if(globalCheck()) return true;
+    }catch(e){}
+  }
+  return globalCheck();
+}
+async function rcvEnsurePdfLibraries(){
+  const canvasOk=await rcvLoadScriptFallback([
+    'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+    'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+  ],()=>typeof window.html2canvas==='function');
+  const pdfOk=await rcvLoadScriptFallback([
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  ],()=>!!window.jspdf?.jsPDF);
+  return canvasOk && pdfOk;
+}
+function rcvToast(message,type=''){
+  let el=document.getElementById('rcvExportToast');
+  if(!el){
+    el=document.createElement('div');el.id='rcvExportToast';el.className='rcv-export-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent=message;el.className='rcv-export-toast '+type+' show';
+  clearTimeout(window.__rcvToastTimer);
+  window.__rcvToastTimer=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
 // ===== REPORT.IA RCV Intelligence Edition 2.0: Executive exports =====
 (function(){
   const $ = (id)=>document.getElementById(id);
@@ -491,7 +541,14 @@ function renderComparison(ma,mb){
     return d.toISOString().slice(0,10);
   }
   async function exportPdf(element, filename, title){
-    if(!window.html2canvas || !window.jspdf){ alert('No se pudieron cargar las librerías de PDF. Revisa tu conexión a internet.'); return; }
+    rcvToast('Preparando motor de PDF…');
+    const libsReady=await rcvEnsurePdfLibraries();
+    if(!libsReady){
+      rcvToast('No fue posible cargar el motor de PDF. Puedes usar Imprimir → Guardar como PDF como alternativa.','error');
+      if(confirm('No se pudo iniciar el exportador PDF. ¿Deseas abrir la ventana de impresión para guardar esta vista como PDF?')) window.print();
+      return;
+    }
+    rcvToast('Generando PDF…');
     const canvas=await html2canvas(element,{scale:1.6,useCORS:true,backgroundColor:'#ffffff',logging:false});
     const img=canvas.toDataURL('image/jpeg',0.92);
     const {jsPDF}=window.jspdf;
@@ -509,7 +566,7 @@ function renderComparison(ma,mb){
       remaining-=sliceH; sy+=sliceH;
       if(remaining>0){ pdf.addPage(); y=margin; }
     }
-    pdf.save(filename);
+    pdf.save(filename); rcvToast('PDF generado correctamente.','ok');
   }
   async function pdfVista(){
     await exportPdf(visibleReportRoot(),`REPORTIA_RCV_Vista_${stamp()}.pdf`,'Informe Ejecutivo · Vista actual');
@@ -541,6 +598,12 @@ function renderComparison(ma,mb){
   }
   async function paquete(){
     if(typeof JSZip==='undefined'){ alert('La librería ZIP no está disponible.'); return; }
+    const canvasReady=await rcvLoadScriptFallback([
+      'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+      'https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+    ],()=>typeof window.html2canvas==='function');
+    if(!canvasReady){ rcvToast('No fue posible preparar la captura para el paquete ejecutivo.','error'); return; }
     const zip=new JSZip();
     const root=visibleReportRoot();
     const canvas=await html2canvas(root,{scale:1.3,useCORS:true,backgroundColor:'#ffffff'});
@@ -641,7 +704,11 @@ async function secureLogin(){
 function secureApplySession(session){
   const name=session?.name||'Usuario';
   const role=session?.role||'USUARIO';
-  const first=name.split(/\s+/)[0];
+  const cleanName=String(name)
+    .replace(/^\s*\d+\s*[.\-–—]*\s*/,'')
+    .replace(/^\s*(ING\.?|LIC\.?|C\.P\.?|CP\.?|MTRO\.?|MTRA\.?|DR\.?|DRA\.?)\s+/i,'')
+    .trim();
+  const first=(cleanName.split(/\s+/)[0]||'Usuario').replace(/[.,;:]+$/,'');
   const g=document.getElementById('execGreeting'); if(g)g.textContent=`👋 Hola, ${first}.`;
   const un=document.getElementById('execUserName'); if(un)un.textContent=name;
   const ur=document.getElementById('execUserRole'); if(ur)ur.textContent=role;
