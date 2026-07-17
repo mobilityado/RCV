@@ -574,7 +574,7 @@ function rcvToast(message,type=''){
       host.style.cssText='position:fixed;left:-30000px;top:0;width:1360px;background:#fff;padding:28px;z-index:-1;box-sizing:border-box;color:#0f172a;';
 
       const cover=document.createElement('div');
-      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Advanced Reporting Suite 16.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
+      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Advanced Reporting Suite 16.1 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
       host.appendChild(cover);
 
       const seen=new Set();
@@ -626,7 +626,7 @@ function rcvToast(message,type=''){
         const ctx=slice.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
         if(page>1)pdf.addPage();
         pdf.setTextColor(100,116,139);pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-        pdf.text('REPORT.IA RCV · Advanced Reporting Suite 16.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
+        pdf.text('REPORT.IA RCV · Advanced Reporting Suite 16.1',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
         pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
         sy+=sh;page++;
       }
@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
 
         const summary=[
-          'REPORT.IA RCV · Advanced Reporting Suite 16.0',
+          'REPORT.IA RCV · Advanced Reporting Suite 16.1',
           '',
           `Periodo: ${month}`,
           `Generado: ${new Date().toLocaleString('es-MX')}`,
@@ -1310,7 +1310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     zip.file('RANKING_EJECUTIVO_GERENCIAS.csv',csv(rankingRows));
 
     zip.file('LEEME.txt',
-      `REPORT.IA RCV · Advanced Reporting Suite 16.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
+      `REPORT.IA RCV · Advanced Reporting Suite 16.1\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
       'Este paquete contiene los entregables ejecutivos complementarios al paquete FINAL operativo.'
     );
 
@@ -1516,4 +1516,165 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(e.target.closest('#r16Print'))window.print();
   if(e.target.closest('#r16Close')){$('r16Preview').innerHTML='<div class="r16-empty"><strong>Selecciona un reporte</strong><span>Aquí aparecerá la vista previa antes de imprimir o guardar como PDF.</span></div>';$('r16Actions').hidden=true;}
  });
+})();
+
+
+// ===== REPORT.IA RCV 16.1 · Copiloto Ejecutivo Mejorado =====
+(function(){
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const bodyText = () => document.body.innerText || '';
+
+  function pcts(){
+    return (bodyText().match(/-?\d+(?:\.\d+)?%/g)||[])
+      .map(x=>Number(x.replace('%','')))
+      .filter(Number.isFinite);
+  }
+
+  function money(){
+    return (bodyText().match(/\$\s?\d[\d,]*(?:\.\d+)?/g)||[])
+      .map(x=>Number(x.replace(/[$,\s]/g,'')))
+      .filter(Number.isFinite);
+  }
+
+  function managers(){
+    const values=[...document.querySelectorAll('td,h3,h4,.title,.label')]
+      .map(x=>x.textContent.trim())
+      .filter(x=>x.length>3&&x.length<60&&!/total|importe|porcentaje|estatus|acción|reporte/i.test(x));
+    return [...new Set(values)].slice(0,20);
+  }
+
+  function quality(){
+    return $('qualityScore')?.textContent?.trim() || 'N/D';
+  }
+
+  function executiveSnapshot(){
+    const p=pcts(),m=money();
+    const critical=p.filter(x=>x<70).length;
+    const warning=p.filter(x=>x>=70&&x<90).length;
+    const avg=p.length?p.reduce((a,b)=>a+b,0)/p.length:null;
+    const high=p.length?Math.max(...p):null;
+    const low=p.length?Math.min(...p):null;
+    const maxMoney=m.length?Math.max(...m):null;
+    return {critical,warning,avg,high,low,maxMoney,managers:managers(),quality:quality()};
+  }
+
+  function answer(q){
+    const s=executiveSnapshot();
+    const text=String(q||'').toLowerCase();
+
+    if(/resumen|cómo estamos|como estamos|estado general/.test(text)){
+      return `El estado general muestra ${s.critical} indicadores críticos y ${s.warning} en observación. `+
+        `La calidad de datos reportada es ${s.quality}. `+
+        (s.avg!==null?`El promedio de porcentajes visibles es ${s.avg.toFixed(1)}%. `:'')+
+        `Mi recomendación es priorizar primero las desviaciones críticas, después revisar las unidades con presión simultánea en costos, gastos y productividad.`;
+    }
+
+    if(/riesgo|crític|alerta/.test(text)){
+      if(!s.critical) return `No detecto porcentajes por debajo de 70% en la vista actual. Aun así, conviene revisar anomalías y variaciones fuera de patrón.`;
+      return `Detecto ${s.critical} indicadores críticos. El principal riesgo es que una desviación financiera coincida con una caída de productividad. `+
+        `Recomiendo revisar primero el indicador más bajo${s.low!==null?`, actualmente ${s.low.toFixed(1)}%`:''}, identificar la gerencia relacionada y registrar una acción en el Centro de Decisiones.`;
+    }
+
+    if(/calidad|integridad|fuente|datos/.test(text)){
+      return `La calidad de datos visible es ${s.quality}. Antes de presentar resultados, valida que las cuatro fuentes esperadas hayan sido reconocidas y que no existan observaciones pendientes.`;
+    }
+
+    if(/gerencia|unidad/.test(text)){
+      return s.managers.length
+        ? `He detectado ${s.managers.length} gerencias o unidades en la información visible. Puedes usar el Comparador para contrastar dos unidades y la Matriz Gerencial para revisar Costos, Gastos y XPV por separado.`
+        : `No logro identificar gerencias estructuradas en la vista actual. Revisa que el catálogo y los reportes hayan sido procesados correctamente.`;
+    }
+
+    if(/costo/.test(text)){
+      return `Para analizar costos, revisaría primero las desviaciones fuera de patrón y después las gerencias con mayor presión. Evitaría evaluar el costo de forma aislada: compáralo con Gastos y Productividad XPV para entender si el incremento está acompañado de mejor desempeño.`;
+    }
+
+    if(/gasto/.test(text)){
+      return `En Gastos, prioriza incrementos atípicos y concentra la revisión en pocas unidades de alto impacto. El reporte Pareto 80/20 te ayuda a identificar dónde enfocar la atención antes de abrir el detalle.`;
+    }
+
+    if(/productividad|xpv/.test(text)){
+      return `Para Productividad XPV, revisa primero las unidades con caída simultánea de productividad y aumento de gasto. Esa combinación suele tener mayor prioridad operativa que una variación aislada.`;
+    }
+
+    if(/ahorro|optimiza|reducir/.test(text)){
+      return `Usa el Reporte de Oportunidades de Ahorro como filtro inicial, pero valida cualquier oportunidad contra los importes fuente antes de convertirla en meta financiera. Prioriza conceptos recurrentes y unidades con alta concentración de gasto.`;
+    }
+
+    if(/pareto|80\/20|concentr/.test(text)){
+      return `El análisis Pareto sirve para identificar qué pocas gerencias o rubros concentran la mayor parte del impacto. Mi recomendación es empezar por los elementos que expliquen aproximadamente el 80% del efecto y dejar los secundarios para una segunda revisión.`;
+    }
+
+    if(/primero|prioridad|qué revisar|que revisar/.test(text)){
+      return `Orden sugerido de revisión: 1) indicadores críticos; 2) anomalías fuera de patrón; 3) gerencias con presión en costos y gastos; 4) productividad XPV; 5) convertir los tres principales hallazgos en decisiones con responsable y estatus.`;
+    }
+
+    if(/acción|accion|decisión|decision/.test(text)){
+      return `Convierte cada hallazgo relevante en una decisión con cinco elementos: causa, impacto, acción, responsable y estatus. En el siguiente periodo podrás comprobar si la acción mejoró el indicador.`;
+    }
+
+    if(/pdf|reporte maestro|maestro/.test(text)){
+      return `Para dirección, usaría el Reporte Maestro Ejecutivo. Resume el periodo y agrega desviaciones, eficiencia gerencial, Pareto, oportunidades de ahorro y plan de acción en una sola entrega.`;
+    }
+
+    if(/importe|monto|mayor/.test(text) && s.maxMoney!==null){
+      return `El mayor importe monetario que detecto en la vista actual es ${s.maxMoney.toLocaleString('es-MX',{style:'currency',currency:'MXN'})}. Conviene identificar a qué rubro o gerencia pertenece antes de interpretar su impacto.`;
+    }
+
+    return `Puedo ayudarte con riesgos, calidad de datos, costos, gastos, productividad XPV, gerencias, Pareto, oportunidades de ahorro, prioridades, decisiones y el Reporte Maestro. También puedo darte un resumen general del periodo.`;
+  }
+
+  function enhanceChat(){
+    const input=$('c15Question');
+    const btn=$('c15Ask');
+    const chat=$('c15Chat');
+    if(!input||!btn||!chat) return;
+
+    const newBtn=btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn,btn);
+
+    newBtn.addEventListener('click',()=>{
+      const q=input.value.trim();
+      if(!q)return;
+      chat.insertAdjacentHTML('beforeend',`<div class="c15-user">${q}</div>`);
+      const ans=answer(q);
+      setTimeout(()=>{
+        chat.insertAdjacentHTML('beforeend',`<div class="c15-bot">${ans}</div>`);
+        chat.scrollTop=chat.scrollHeight;
+      },120);
+      input.value='';
+    });
+
+    input.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){
+        e.preventDefault();
+        newBtn.click();
+      }
+    });
+
+    // quick prompts
+    const quick=document.createElement('div');
+    quick.className='c15-signals';
+    quick.style.marginTop='8px';
+    quick.innerHTML=[
+      'Dame un resumen',
+      '¿Qué debo revisar primero?',
+      '¿Cuál es el principal riesgo?',
+      'Analiza productividad XPV',
+      '¿Qué reporte usar para dirección?'
+    ].map(t=>`<button type="button" class="c15-signal c15-quick">${t}</button>`).join('');
+    chat.parentNode.insertBefore(quick, chat.nextSibling);
+
+    quick.addEventListener('click',e=>{
+      const b=e.target.closest('.c15-quick');
+      if(!b)return;
+      input.value=b.textContent;
+      newBtn.click();
+    });
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enhanceChat);
+  else enhanceChat();
 })();
