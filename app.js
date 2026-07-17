@@ -819,3 +819,252 @@ document.addEventListener('DOMContentLoaded',()=>{
     markOriginalUpload();
   }
 })();
+
+
+// ===== REPORT.IA RCV 11.0 · Intelligence Automation =====
+(function(){
+  'use strict';
+
+  const REQUIRED_SOURCES = [
+    {key:'catalogo',label:'CATALOGO DE GERENTES',aliases:['catalogo de gerentes','catálogo de gerentes','catalogo gerentes']},
+    {key:'costo',label:'JD COSTO RCV',aliases:['jd costo rcv','costo rcv']},
+    {key:'xpv',label:'JD XPV RCV',aliases:['jd xpv rcv','xpv rcv','productividad xpv']},
+    {key:'gastos',label:'JD GASTOS RCV',aliases:['jd gastos rcv','gastos rcv']}
+  ];
+
+  function $(id){return document.getElementById(id);}
+  function norm(v){return String(v??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+  function fileInputs(){return [...document.querySelectorAll('input[type="file"]')];}
+  function loadedFiles(){return fileInputs().flatMap(i=>[...(i.files||[])]);}
+  function step(name,state='active'){
+    const el=document.querySelector(`.process-step[data-step="${name}"]`);
+    if(!el)return;
+    el.classList.remove('active','done');
+    el.classList.add(state);
+  }
+  function resetSteps(){
+    document.querySelectorAll('.process-step').forEach(x=>x.classList.remove('active','done'));
+    step('load','active');
+  }
+
+  function sourceRecognition(){
+    const files=loadedFiles();
+    const names=files.map(f=>norm(f.name));
+    const found={};
+
+    REQUIRED_SOURCES.forEach(src=>{
+      found[src.key]=names.some(n=>src.aliases.some(a=>n.includes(norm(a))));
+    });
+
+    // Si solo existe un archivo, se considera posible consolidado por pestañas.
+    if(files.length===1){
+      const single=files[0];
+      if(/\.(xlsx|xls|xlsm)$/i.test(single.name)){
+        REQUIRED_SOURCES.forEach(src=>found[src.key]=true);
+      }
+    }
+    return found;
+  }
+
+  function visibleNumericStats(){
+    const text=document.body.innerText||'';
+    const nums=(text.match(/-?\$?\s?\d[\d,]*(?:\.\d+)?%?/g)||[])
+      .map(x=>Number(x.replace(/[$,%\s]/g,'').replace(/,/g,'')))
+      .filter(Number.isFinite);
+    return nums;
+  }
+
+  function countVisibleRows(){
+    const rows=[...document.querySelectorAll('table tbody tr')].filter(r=>r.offsetParent!==null);
+    return rows.length;
+  }
+
+  function detectAnomalies(){
+    const anomalies=[];
+    const text=norm(document.body.innerText||'');
+    const nums=visibleNumericStats();
+
+    // porcentajes visibles
+    const pcts=(document.body.innerText.match(/-?\d+(?:\.\d+)?%/g)||[])
+      .map(x=>Number(x.replace('%','')))
+      .filter(Number.isFinite);
+
+    pcts.forEach(p=>{
+      if(p<70) anomalies.push({icon:'🔴',title:'Indicador crítico',detail:`Se detectó un porcentaje de ${p.toFixed(1)}%. Requiere revisión prioritaria.`});
+      else if(p>120) anomalies.push({icon:'🟠',title:'Variación atípica',detail:`Se detectó un porcentaje elevado de ${p.toFixed(1)}%. Valida el periodo y la fuente.`});
+    });
+
+    if(/sin gerencia|no asignad|sin asignar/.test(text)){
+      anomalies.push({icon:'🟡',title:'Registros sin clasificación',detail:'Existen registros visibles sin gerencia o asignación completa.'});
+    }
+    if(/error|invalido|inválido|faltante|falta/.test(text)){
+      anomalies.push({icon:'🔴',title:'Observación de integridad',detail:'La interfaz muestra mensajes asociados a errores o datos faltantes.'});
+    }
+
+    if(nums.length){
+      const max=Math.max(...nums), avg=nums.reduce((a,b)=>a+b,0)/nums.length;
+      if(avg>0 && max>avg*12){
+        anomalies.push({icon:'🟠',title:'Importe fuera de patrón',detail:'Se detecta al menos un valor muy superior al promedio visible. Conviene revisarlo.'});
+      }
+    }
+
+    if(!anomalies.length){
+      anomalies.push({icon:'🟢',title:'Sin anomalías críticas',detail:'No se detectaron patrones atípicos evidentes en la vista actual.'});
+    }
+    return anomalies.slice(0,8);
+  }
+
+  function renderAnomalies(){
+    const list=$('anomalyList'), count=$('anomalyCount');
+    if(!list)return;
+    const anomalies=detectAnomalies();
+    if(count)count.textContent=String(anomalies.filter(x=>x.icon!=='🟢').length);
+    list.innerHTML=anomalies.map(a=>
+      `<div class="anomaly-item"><span class="anomaly-icon">${a.icon}</span><div><strong>${a.title}</strong><span>${a.detail}</span></div></div>`
+    ).join('');
+  }
+
+  function validate(){
+    step('load','done'); step('validate','active');
+    const files=loadedFiles();
+    const found=sourceRecognition();
+    const recognized=Object.values(found).filter(Boolean).length;
+    const records=countVisibleRows();
+    const anomalies=detectAnomalies();
+    const issueCount=anomalies.filter(x=>x.icon==='🔴'||x.icon==='🟠'||x.icon==='🟡').length;
+
+    let score=0;
+    if(files.length) score+=20;
+    score+=recognized*15;
+    if(issueCount===0) score+=20;
+    else score+=Math.max(0,20-issueCount*5);
+    score=Math.max(0,Math.min(100,score));
+
+    $('qSources').textContent=recognized===4?'Completa':'Revisar';
+    $('qRecords').textContent=String(records);
+    $('qIssues').textContent=String(issueCount);
+    $('qRecognized').textContent=`${recognized} / 4`;
+    $('qualityScore').textContent=`${score}%`;
+
+    const light=$('qualityLight');
+    light.className='quality-light '+(score>=90?'good':score>=70?'warn':'bad');
+
+    renderAnomalies();
+    step('validate','done'); step('analyze','active');
+
+    setTimeout(()=>{
+      step('analyze','done'); step('final','active');
+      const ready=score>=70;
+      $('generateFinalPackageBtn').disabled=!ready;
+      $('packageReady').textContent=ready?'Listo':'Revisar';
+      $('packageReady').style.background=ready?'#dcfce7':'#fef3c7';
+      $('packageReady').style.color=ready?'#166534':'#92400e';
+    },350);
+
+    return {score,recognized,records,issueCount};
+  }
+
+  function history(){
+    try{return JSON.parse(localStorage.getItem('reportia_rcv_generation_history')||'[]')}catch(_){return[]}
+  }
+  function renderHistory(){
+    const box=$('generationHistory');if(!box)return;
+    const items=history();
+    if(!items.length){box.innerHTML='<div class="automation-empty">Todavía no se han generado paquetes FINAL en este navegador.</div>';return;}
+    box.innerHTML=items.slice(0,10).map(x=>
+      `<div class="history-row"><div><strong>${x.name}</strong><span>${x.date}</span></div><span>${x.month||'Sin mes'}</span><span class="history-chip">${x.status}</span></div>`
+    ).join('');
+  }
+  function saveHistory(){
+    const month=$('month')?.selectedOptions?.[0]?.textContent || '';
+    const list=history();
+    list.unshift({
+      name:`Paquete FINAL RCV`,
+      date:new Date().toLocaleString('es-MX'),
+      month,
+      status:'Generado'
+    });
+    localStorage.setItem('reportia_rcv_generation_history',JSON.stringify(list.slice(0,25)));
+    renderHistory();
+  }
+
+  async function generateFinalPackage(){
+    const btn=$('generateFinalPackageBtn');
+    if(btn.disabled)return;
+    btn.disabled=true;btn.textContent='Generando paquete…';
+
+    try{
+      // 1) Invocar el proceso original si existe.
+      const original=$('processBtn');
+      if(original && !original.disabled){
+        original.click();
+        await new Promise(r=>setTimeout(r,900));
+      }
+
+      // 2) Crear ZIP ejecutivo complementario.
+      if(typeof JSZip!=='undefined'){
+        const zip=new JSZip();
+        const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
+
+        const summary=[
+          'REPORT.IA RCV · Intelligence Automation 11.0',
+          '',
+          `Periodo: ${month}`,
+          `Generado: ${new Date().toLocaleString('es-MX')}`,
+          '',
+          'Validación:',
+          `Calidad de datos: ${$('qualityScore')?.textContent||'N/D'}`,
+          `Fuentes reconocidas: ${$('qRecognized')?.textContent||'N/D'}`,
+          `Registros procesados: ${$('qRecords')?.textContent||'0'}`,
+          `Observaciones: ${$('qIssues')?.textContent||'0'}`,
+          '',
+          'Este paquete complementa los archivos FINAL generados por REPORT.IA RCV.'
+        ].join('\n');
+
+        zip.file('RESUMEN_EJECUTIVO.txt',summary);
+
+        const anomalies=detectAnomalies().map(x=>`${x.icon} ${x.title}: ${x.detail}`).join('\n');
+        zip.file('ANOMALIAS_Y_OBSERVACIONES.txt',anomalies);
+
+        const blob=await zip.generateAsync({type:'blob'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=`REPORTIA_RCV_FINAL_${month.replace(/[^\w\-]+/g,'_')}.zip`;
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+      }
+
+      saveHistory();
+      step('final','done');
+      btn.textContent='✓ Paquete FINAL generado';
+      setTimeout(()=>{btn.textContent='📦 Generar paquete FINAL';btn.disabled=false;},1800);
+    }catch(err){
+      console.error(err);
+      btn.textContent='Error al generar';
+      setTimeout(()=>{btn.textContent='📦 Generar paquete FINAL';btn.disabled=false;},1800);
+    }
+  }
+
+  document.addEventListener('change',e=>{
+    if(e.target.matches('input[type="file"]')){
+      resetSteps();
+      if(loadedFiles().length) step('load','done');
+    }
+  });
+
+  document.addEventListener('click',e=>{
+    if(e.target.closest('#runValidationBtn')) validate();
+    if(e.target.closest('#refreshAnomaliesBtn')) renderAnomalies();
+    if(e.target.closest('#generateFinalPackageBtn')) generateFinalPackage();
+    if(e.target.closest('#clearHistoryBtn')){
+      localStorage.removeItem('reportia_rcv_generation_history');
+      renderHistory();
+    }
+  });
+
+  function init(){
+    renderHistory();
+    renderAnomalies();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();

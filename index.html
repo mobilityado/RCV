@@ -205,6 +205,107 @@
   </div>
 </section>
 
+
+<section class="automation-center no-print" id="automationCenter">
+  <div class="automation-head">
+    <div>
+      <span class="automation-kicker">INTELLIGENCE AUTOMATION 11.0</span>
+      <h2>Centro de Control del Proceso</h2>
+      <p>Supervisa la integridad de las fuentes y genera el paquete FINAL con trazabilidad.</p>
+    </div>
+    <div class="automation-score-wrap">
+      <span>Calidad de datos</span>
+      <strong id="qualityScore">0%</strong>
+    </div>
+  </div>
+
+  <div class="process-steps">
+    <div class="process-step active" data-step="load">
+      <span class="step-num">1</span>
+      <div><strong>Cargar</strong><small>Fuentes JD</small></div>
+    </div>
+    <div class="step-line"></div>
+    <div class="process-step" data-step="validate">
+      <span class="step-num">2</span>
+      <div><strong>Validar</strong><small>Estructura y calidad</small></div>
+    </div>
+    <div class="step-line"></div>
+    <div class="process-step" data-step="analyze">
+      <span class="step-num">3</span>
+      <div><strong>Analizar</strong><small>Indicadores y anomalías</small></div>
+    </div>
+    <div class="step-line"></div>
+    <div class="process-step" data-step="final">
+      <span class="step-num">4</span>
+      <div><strong>Generar FINAL</strong><small>Excel + PDF + resumen</small></div>
+    </div>
+  </div>
+
+  <div class="automation-grid">
+    <article class="automation-card quality-card">
+      <div class="card-title-row">
+        <div>
+          <span class="automation-label">SEMÁFORO DE CALIDAD</span>
+          <h3>Estado de las fuentes</h3>
+        </div>
+        <span class="quality-light pending" id="qualityLight"></span>
+      </div>
+      <div class="quality-list" id="qualityList">
+        <div class="quality-item"><span>Integridad de fuentes</span><strong id="qSources">Pendiente</strong></div>
+        <div class="quality-item"><span>Registros procesados</span><strong id="qRecords">0</strong></div>
+        <div class="quality-item"><span>Observaciones detectadas</span><strong id="qIssues">0</strong></div>
+        <div class="quality-item"><span>Fuentes reconocidas</span><strong id="qRecognized">0 / 4</strong></div>
+      </div>
+      <button type="button" class="automation-btn primary" id="runValidationBtn">✓ Ejecutar validación inteligente</button>
+    </article>
+
+    <article class="automation-card anomaly-card">
+      <div class="card-title-row">
+        <div>
+          <span class="automation-label">CENTRO DE ANOMALÍAS</span>
+          <h3>Hallazgos automáticos</h3>
+        </div>
+        <span class="anomaly-count" id="anomalyCount">0</span>
+      </div>
+      <div class="anomaly-list" id="anomalyList">
+        <div class="automation-empty">Carga y procesa información para detectar anomalías.</div>
+      </div>
+      <button type="button" class="automation-btn" id="refreshAnomaliesBtn">↻ Analizar de nuevo</button>
+    </article>
+
+    <article class="automation-card package-card">
+      <div class="card-title-row">
+        <div>
+          <span class="automation-label">PAQUETE FINAL</span>
+          <h3>Entrega ejecutiva</h3>
+        </div>
+        <span class="package-ready" id="packageReady">Pendiente</span>
+      </div>
+      <div class="package-items">
+        <div>📘 <span>COSTO RCV</span></div>
+        <div>📗 <span>Gastos RCV</span></div>
+        <div>📙 <span>Productividad XPV</span></div>
+        <div>📄 <span>PDF Ejecutivo</span></div>
+        <div>🧠 <span>Resumen Inteligente</span></div>
+      </div>
+      <button type="button" class="automation-btn primary" id="generateFinalPackageBtn" disabled>📦 Generar paquete FINAL</button>
+    </article>
+  </div>
+
+  <div class="generation-history-card">
+    <div class="card-title-row">
+      <div>
+        <span class="automation-label">HISTORIAL DE GENERACIONES</span>
+        <h3>Últimos paquetes creados</h3>
+      </div>
+      <button type="button" class="automation-btn ghost" id="clearHistoryBtn">Limpiar historial</button>
+    </div>
+    <div id="generationHistory" class="generation-history">
+      <div class="automation-empty">Todavía no se han generado paquetes FINAL en este navegador.</div>
+    </div>
+  </div>
+</section>
+
 <section id="validacion" class="panel">
       <div class="section-title"><div><span class="step">02</span><div><h2>Control de fuentes</h2><p>Verifica que la información necesaria esté disponible.</p></div></div></div>
       <div id="validationGrid" class="validation-grid"><div class="empty-state">Aún no has cargado información.</div></div>
