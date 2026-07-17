@@ -74,3 +74,12 @@ Rediseño visual completo inspirado en dashboards ejecutivos BI:
 - Dashboard visible desde el primer momento.
 - Navegación más sobria y profesional.
 - Preparado para GitHub Pages.
+
+## Mockup Style 3.2
+- Reestructuración visual para coincidir con el mockup aprobado.
+- Sidebar más ancho y respirado.
+- Carga de archivos integrada de forma compacta.
+- Dashboard visible desde arriba.
+- KPIs y alertas alineados.
+- Tendencias, mapa por gerencia y reportes ejecutivos en cuadrícula fija.
+- Preparado para GitHub Pages.

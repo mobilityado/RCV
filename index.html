@@ -10,106 +10,99 @@
 <body class="executive-layout-v21">
   
   
-  <aside class="sidebar premium-sidebar reference-sidebar">
-    <div class="brand premium-brand reference-brand">
-      <div class="brand-icon-wrap">
-        <div class="brand-mark">R</div>
-      </div>
-      <div class="brand-copy">
-        <strong>REPORT.IA RCV</strong>
-        <span>Intelligence Edition 3.1</span>
+  
+<aside class="sidebar mockup-sidebar">
+  <div class="mockup-brand">
+    <div class="mockup-logo">R</div>
+    <div>
+      <strong>REPORT.IA RCV</strong>
+      <span>Intelligence Edition 3.2</span>
+    </div>
+  </div>
+
+  <nav class="mockup-nav">
+    <a class="active" href="#dashboard"><span>⌂</span>Inicio</a>
+    <a href="#dashboard"><span>▥</span>Resumen Ejecutivo</a>
+    <a href="#gerencias"><span>♟</span>Gerencias</a>
+    <a href="#costos"><span>$</span>Costos</a>
+    <a href="#gastos"><span>▣</span>Gastos</a>
+    <a href="#xpv"><span>↗</span>Productividad XPV</a>
+    <a href="#tendencias"><span>⌁</span>Tendencias</a>
+    <a href="#comparador"><span>⇄</span>Comparador</a>
+    <a href="#pulso"><span>!</span>Alertas <b class="mockup-alert-badge">5</b></a>
+    <a href="#inteligencia"><span>✺</span>Resumen Inteligente</a>
+    <a href="#resultados"><span>▤</span>Reportes Ejecutivos</a>
+  </nav>
+
+  <div class="mockup-separator"></div>
+
+  <section id="carga" class="mockup-upload">
+    <div class="mockup-upload-title">CARGA DE ARCHIVOS <span>ⓘ</span></div>
+
+    <div id="dropZone" class="mockup-dropzone" tabindex="0">
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
+      <div class="mockup-upload-icon">⇧</div>
+      <strong>Arrastra y suelta los archivos aquí</strong>
+      <small>o haz clic para seleccionar</small>
+      <em>Formatos: .xlsx, .xls, .xlsm</em>
+    </div>
+
+    <div id="fileList" class="file-list mockup-file-list"></div>
+
+    <div id="validacion" class="mockup-validation">
+      <div id="validationGrid" class="validation-grid">
+        <div class="empty-state">Sin archivos cargados</div>
       </div>
     </div>
 
-    <nav class="premium-nav reference-nav">
-      <a class="active" href="#dashboard"><span class="nav-ico">⌂</span><span>Inicio</span></a>
-      <a href="#dashboard"><span class="nav-ico">▥</span><span>Resumen Ejecutivo</span></a>
-      <a href="#gerencias"><span class="nav-ico">♟</span><span>Gerencias</span></a>
-      <a href="#costos"><span class="nav-ico">$</span><span>Costos</span></a>
-      <a href="#gastos"><span class="nav-ico">▣</span><span>Gastos</span></a>
-      <a href="#xpv"><span class="nav-ico">↗</span><span>Productividad XPV</span></a>
-      <a href="#tendencias"><span class="nav-ico">⌁</span><span>Tendencias</span></a>
-      <a href="#comparador"><span class="nav-ico">⇄</span><span>Comparador</span></a>
-      <a href="#pulso"><span class="nav-ico">!</span><span>Alertas</span><b class="nav-badge">5</b></a>
-      <a href="#inteligencia"><span class="nav-ico">✺</span><span>Resumen Inteligente</span></a>
-      <a href="#resultados"><span class="nav-ico">▤</span><span>Reportes Ejecutivos</span></a>
-    </nav>
+    <button id="browseBtn" type="button" class="mockup-select-btn">Seleccionar archivos</button>
+    <button id="clearBtn" type="button" class="mockup-clear-btn">Limpiar</button>
+    <button id="processBtn" class="mockup-process-btn" disabled>▣ Procesar Reportes</button>
+    <p id="statusText" class="mockup-status">Carga los reportes requeridos.</p>
+  </section>
 
-    <div class="sidebar-divider"></div>
-
-    <section id="carga" class="compact-upload reference-upload">
-      <div class="compact-upload-head">
-        <div>
-          <span>CARGA DE ARCHIVOS</span>
-        </div>
-        <span class="upload-info">ⓘ</span>
-      </div>
-
-      <div id="dropZone" class="mini-drop-zone reference-drop" tabindex="0">
-        <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
-        <div class="mini-upload-icon">⇧</div>
-        <strong>Arrastra y suelta los archivos aquí</strong>
-        <span>o haz clic para seleccionar</span>
-        <small>Formatos permitidos: .xlsx, .xls, .xlsm</small>
-      </div>
-
-      <div id="fileList" class="file-list compact-file-list"></div>
-
-      <div id="validacion" class="compact-validation">
-        <div id="validationGrid" class="validation-grid">
-          <div class="empty-state">Sin archivos cargados</div>
-        </div>
-      </div>
-
-      <div class="upload-actions-row">
-        <button id="browseBtn" class="mini-browse" type="button">Seleccionar</button>
-        <button id="clearBtn" class="mini-clear" title="Limpiar archivos">Limpiar</button>
-      </div>
-
-      <button id="processBtn" class="process compact-process" disabled>▣ Procesar Reportes</button>
-      <p id="statusText" class="sidebar-status">Carga los reportes requeridos.</p>
-    </section>
-
-    <div class="sidebar-user reference-user">
-      <div class="avatar">JH</div>
-      <div class="user-copy">
-        <strong>José Hernández</strong>
-        <span>Administrador</span>
-      </div>
-      <span class="user-chevron">⌄</span>
+  <div class="mockup-user">
+    <div class="mockup-avatar">JH</div>
+    <div>
+      <strong>José Hernández</strong>
+      <span>Administrador</span>
     </div>
+  </div>
 
-    <div class="privacy reference-privacy">
-      © 2026 REPORT.IA RCV<br>
-      <small>Todos los derechos reservados.</small>
-    </div>
-  </aside>
+  <div class="mockup-footer">
+    © 2026 REPORT.IA RCV<br>
+    <small>Todos los derechos reservados.</small>
+  </div>
+</aside>
+
 
 
 
   <main>
 
-    <header class="premium-topbar">
-      <div class="greeting">
-        <h1>👋 Hola, José.</h1>
-        <p>Aquí tienes el resumen ejecutivo de RCV.</p>
-      </div>
-      <div class="top-controls">
-        <div class="control-card">
-          <span>Periodo analizado</span>
-          <select id="month"></select>
-        </div>
-        <div class="control-card">
-          <span>Comparar con</span>
-          <select aria-label="Comparar con">
-            <option>Presupuesto 2026</option>
-            <option>Real 2025</option>
-          </select>
-        </div>
-        <button id="presentationBtn" class="update-btn" type="button">Actualizar datos ⟳</button>
-        <div class="top-avatar">JH</div>
-      </div>
-    </header>
+    
+<header class="mockup-topbar">
+  <div class="mockup-greeting">
+    <h1>👋 Hola, José.</h1>
+    <p>Aquí tienes el resumen ejecutivo de <strong>RCV</strong>.</p>
+  </div>
+  <div class="mockup-top-controls">
+    <div class="mockup-control">
+      <span>Periodo analizado</span>
+      <select id="month"></select>
+    </div>
+    <div class="mockup-control">
+      <span>Comparar con</span>
+      <select>
+        <option>Presupuesto 2026</option>
+        <option>Real 2025</option>
+      </select>
+    </div>
+    <button id="presentationBtn" class="mockup-refresh">Actualizar datos ⟳</button>
+    <div class="mockup-top-avatar">JH</div>
+  </div>
+</header>
+
 
     
 
@@ -243,7 +236,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">INTELLIGENCE EDITION 3.1</span>
+    <span class="eyebrow">INTELLIGENCE EDITION 3.2</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>
