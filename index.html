@@ -306,6 +306,94 @@
   </div>
 </section>
 
+
+<section class="reporting-center no-print" id="reportingCenter">
+  <div class="reporting-head">
+    <div>
+      <span class="reporting-kicker">EXECUTIVE REPORTING 12.0</span>
+      <h2>Centro de Reportes Ejecutivos</h2>
+      <p>Convierte los resultados del periodo en entregables listos para gerencia y presentación.</p>
+    </div>
+    <button type="button" class="reporting-btn primary" id="buildExecutiveReportsBtn">✨ Construir reportes ejecutivos</button>
+  </div>
+
+  <div class="reporting-grid">
+    <article class="reporting-card">
+      <div class="reporting-icon">📊</div>
+      <div>
+        <span class="reporting-label">REPORTE 01</span>
+        <h3>Reporte Ejecutivo Gerencial</h3>
+        <p>KPIs, costos, gastos, productividad, principales desviaciones y lectura ejecutiva.</p>
+      </div>
+      <span class="report-state" id="stateManagerial">Pendiente</span>
+    </article>
+
+    <article class="reporting-card">
+      <div class="reporting-icon">⚖️</div>
+      <div>
+        <span class="reporting-label">REPORTE 02</span>
+        <h3>Reporte de Variaciones</h3>
+        <p>Comparativo entre periodos visibles, cambios porcentuales y semáforo de atención.</p>
+      </div>
+      <span class="report-state" id="stateVariance">Pendiente</span>
+    </article>
+
+    <article class="reporting-card">
+      <div class="reporting-icon">🧠</div>
+      <div>
+        <span class="reporting-label">REPORTE 03</span>
+        <h3>Brief Ejecutivo</h3>
+        <p>Cómo cerramos, qué mejoró, qué empeoró, dónde poner atención y qué revisar primero.</p>
+      </div>
+      <span class="report-state" id="stateBrief">Pendiente</span>
+    </article>
+
+    <article class="reporting-card">
+      <div class="reporting-icon">🏢</div>
+      <div>
+        <span class="reporting-label">REPORTE 04</span>
+        <h3>Ranking Ejecutivo de Gerencias</h3>
+        <p>Matriz comparativa de desempeño con lectura de fortalezas y áreas de atención.</p>
+      </div>
+      <span class="report-state" id="stateRanking">Pendiente</span>
+    </article>
+  </div>
+
+  <div class="report-preview-grid">
+    <article class="report-preview-card">
+      <div class="preview-head">
+        <div>
+          <span class="reporting-label">BRIEF EJECUTIVO</span>
+          <h3>Lectura automática del periodo</h3>
+        </div>
+        <span class="brief-status" id="briefStatus">Sin generar</span>
+      </div>
+      <div id="executiveBriefPreview" class="brief-preview">
+        <div class="automation-empty">Genera los reportes para ver el resumen ejecutivo.</div>
+      </div>
+    </article>
+
+    <article class="report-preview-card">
+      <div class="preview-head">
+        <div>
+          <span class="reporting-label">TOP PRIORIDADES</span>
+          <h3>Qué revisar primero</h3>
+        </div>
+      </div>
+      <div id="executivePrioritiesPreview" class="priority-preview">
+        <div class="automation-empty">Todavía no hay prioridades calculadas.</div>
+      </div>
+    </article>
+  </div>
+
+  <div class="reporting-actions">
+    <button type="button" class="reporting-btn" id="downloadBriefBtn" disabled>🧠 Descargar Brief TXT</button>
+    <button type="button" class="reporting-btn" id="downloadVarianceBtn" disabled>⚖️ Descargar Variaciones CSV</button>
+    <button type="button" class="reporting-btn" id="downloadManagerialBtn" disabled>📊 Descargar Reporte Ejecutivo CSV</button>
+    <button type="button" class="reporting-btn primary" id="downloadExecutiveBundleBtn" disabled>📦 Descargar Paquete Ejecutivo</button>
+  </div>
+</section>
+
 <section id="validacion" class="panel">
       <div class="section-title"><div><span class="step">02</span><div><h2>Control de fuentes</h2><p>Verifica que la información necesaria esté disponible.</p></div></div></div>
       <div id="validationGrid" class="validation-grid"><div class="empty-state">Aún no has cargado información.</div></div>

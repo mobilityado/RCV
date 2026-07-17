@@ -1007,7 +1007,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
 
         const summary=[
-          'REPORT.IA RCV · Intelligence Automation 11.0',
+          'REPORT.IA RCV · Executive Reporting 12.0',
           '',
           `Periodo: ${month}`,
           `Generado: ${new Date().toLocaleString('es-MX')}`,
@@ -1067,4 +1067,259 @@ document.addEventListener('DOMContentLoaded',()=>{
     renderAnomalies();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+
+
+// ===== REPORT.IA RCV 12.0 · Executive Reporting =====
+(function(){
+  'use strict';
+
+  let REPORT_STATE = {
+    brief:null,
+    priorities:[],
+    variations:[],
+    managerial:[],
+    ranking:[]
+  };
+
+  function $(id){return document.getElementById(id);}
+  function text(){return document.body.innerText||'';}
+  function num(v){const n=Number(String(v??'').replace(/[$,%\s]/g,'').replace(/,/g,''));return Number.isFinite(n)?n:0;}
+  function tokens(){
+    return (text().match(/-?\$?\s?\d[\d,]*(?:\.\d+)?%?/g)||[])
+      .map(raw=>({raw:raw.trim(),value:num(raw),pct:raw.includes('%'),money:raw.includes('$')}));
+  }
+  function headings(){
+    return [...document.querySelectorAll('h1,h2,h3,h4,.card-title,.kpi-title,.section-title')]
+      .map(x=>x.textContent.trim()).filter(Boolean);
+  }
+  function cards(){
+    return [...document.querySelectorAll('.card,.kpi-card,.metric-card,.stat-card,[class*="kpi"],[class*="card"]')]
+      .filter(x=>x.offsetParent!==null);
+  }
+
+  function detectKpis(){
+    const result=[];
+    cards().forEach(card=>{
+      const label=card.querySelector('h2,h3,h4,.title,.label,.kpi-title')?.textContent?.trim();
+      const value=card.querySelector('.value,.kpi-value,.metric-value,strong')?.textContent?.trim();
+      if(label&&value&&label.length<90&&value.length<90) result.push({label,value});
+    });
+    return result.slice(0,30);
+  }
+
+  function buildVariations(){
+    const pct=tokens().filter(x=>x.pct);
+    const out=[];
+    pct.slice(0,20).forEach((x,i)=>{
+      const severity=x.value<70?'high':x.value<90?'medium':'low';
+      out.push({
+        indicador:`Indicador ${i+1}`,
+        valor:x.value,
+        variacion:x.raw,
+        estado:severity==='high'?'Crítico':severity==='medium'?'Atención':'Favorable'
+      });
+    });
+    if(!out.length){
+      detectKpis().slice(0,12).forEach((k,i)=>out.push({
+        indicador:k.label,valor:k.value,variacion:'N/D',estado:'Revisar'
+      }));
+    }
+    return out;
+  }
+
+  function buildPriorities(){
+    const txt=text().toLowerCase();
+    const pct=tokens().filter(x=>x.pct).map(x=>x.value);
+    const p=[];
+    if(pct.length){
+      const low=Math.min(...pct),high=Math.max(...pct);
+      if(low<70)p.push({title:'Atender indicador crítico',detail:`Existe un indicador visible en ${low.toFixed(1)}%.`,severity:'high'});
+      else if(low<90)p.push({title:'Revisar indicador en observación',detail:`El porcentaje más bajo visible es ${low.toFixed(1)}%.`,severity:'medium'});
+      if(high>120)p.push({title:'Validar variación atípica',detail:`Se detecta un porcentaje elevado de ${high.toFixed(1)}%.`,severity:'medium'});
+    }
+    if(/gasto/.test(txt))p.push({title:'Revisar gastos con mayor presión',detail:'Contrasta las gerencias con mayor crecimiento de gasto contra productividad XPV.',severity:'medium'});
+    if(/costo/.test(txt))p.push({title:'Analizar estructura de costos',detail:'Prioriza rubros con crecimiento sostenido o importes fuera del patrón.',severity:'medium'});
+    if(/productividad|xpv/.test(txt))p.push({title:'Validar productividad XPV',detail:'Ubica caídas de productividad acompañadas de aumentos de gasto.',severity:'high'});
+    if(/gerencia/.test(txt))p.push({title:'Profundizar gerencias extremas',detail:'Compara las gerencias de mejor y peor desempeño antes del cierre.',severity:'low'});
+    if(!p.length)p.push({title:'Mantener seguimiento',detail:'No se detectan alertas críticas evidentes en la vista actual.',severity:'low'});
+    return p.slice(0,6);
+  }
+
+  function buildBrief(){
+    const pct=tokens().filter(x=>x.pct).map(x=>x.value);
+    const money=tokens().filter(x=>x.money).map(x=>x.value);
+    const avg=pct.length?pct.reduce((a,b)=>a+b,0)/pct.length:null;
+    const low=pct.length?Math.min(...pct):null;
+    const high=pct.length?Math.max(...pct):null;
+    const maxMoney=money.length?Math.max(...money):null;
+    const priorities=buildPriorities();
+
+    return {
+      cierre: avg!==null
+        ? `El promedio de indicadores porcentuales visibles se ubica en ${avg.toFixed(1)}%.`
+        : 'La vista actual no contiene suficientes porcentajes para resumir el cierre automáticamente.',
+      mejoro: high!==null
+        ? `El indicador porcentual más alto visible alcanza ${high.toFixed(1)}%.`
+        : 'No se detectó una mejora porcentual cuantificable.',
+      empeoro: low!==null
+        ? `El indicador porcentual más bajo visible se ubica en ${low.toFixed(1)}%.`
+        : 'No se detectó un deterioro porcentual cuantificable.',
+      atencion: maxMoney!==null
+        ? `El mayor importe visible es ${maxMoney.toLocaleString('es-MX',{style:'currency',currency:'MXN'})}; conviene validar su origen y variación.`
+        : 'Revisa los rubros de mayor impacto económico y las desviaciones contra el periodo anterior.',
+      recomienda: priorities[0]?.title + '. ' + priorities[0]?.detail
+    };
+  }
+
+  function buildManagerial(){
+    const kpis=detectKpis();
+    return kpis.length?kpis:[
+      {label:'Calidad de datos',value:$('qualityScore')?.textContent||'N/D'},
+      {label:'Fuentes reconocidas',value:$('qRecognized')?.textContent||'N/D'},
+      {label:'Registros procesados',value:$('qRecords')?.textContent||'0'},
+      {label:'Observaciones',value:$('qIssues')?.textContent||'0'}
+    ];
+  }
+
+  function buildRanking(){
+    const names=headings().filter(x=>/gerenc/i.test(x)).slice(0,12);
+    if(!names.length)return [];
+    return names.map((name,i)=>({
+      gerencia:name,
+      posicion:i+1,
+      lectura:i<3?'Desempeño destacado':i>names.length-4?'Requiere atención':'Estable'
+    }));
+  }
+
+  function renderBrief(brief){
+    const box=$('executiveBriefPreview');if(!box)return;
+    box.innerHTML=[
+      ['¿Cómo cerramos?',brief.cierre],
+      ['¿Qué mejoró?',brief.mejoro],
+      ['¿Qué empeoró?',brief.empeoro],
+      ['¿Dónde poner atención?',brief.atencion],
+      ['¿Qué recomienda REPORT.IA?',brief.recomienda]
+    ].map(x=>`<div class="brief-block"><strong>${x[0]}</strong><span>${x[1]}</span></div>`).join('');
+    $('briefStatus').textContent='Generado';
+  }
+
+  function renderPriorities(items){
+    const box=$('executivePrioritiesPreview');if(!box)return;
+    box.innerHTML=items.map((p,i)=>`
+      <div class="priority-row">
+        <div class="priority-rank">${i+1}</div>
+        <div><strong>${p.title}</strong><span>${p.detail}</span></div>
+        <span class="priority-severity ${p.severity}">${p.severity==='high'?'Alta':p.severity==='medium'?'Media':'Baja'}</span>
+      </div>`).join('');
+  }
+
+  function markReady(id){
+    const el=$(id);if(!el)return;el.textContent='Listo';el.classList.add('ready');
+  }
+
+  function buildReports(){
+    REPORT_STATE.brief=buildBrief();
+    REPORT_STATE.priorities=buildPriorities();
+    REPORT_STATE.variations=buildVariations();
+    REPORT_STATE.managerial=buildManagerial();
+    REPORT_STATE.ranking=buildRanking();
+
+    renderBrief(REPORT_STATE.brief);
+    renderPriorities(REPORT_STATE.priorities);
+
+    ['stateManagerial','stateVariance','stateBrief','stateRanking'].forEach(markReady);
+    ['downloadBriefBtn','downloadVarianceBtn','downloadManagerialBtn','downloadExecutiveBundleBtn']
+      .forEach(id=>{if($(id))$(id).disabled=false;});
+  }
+
+  function download(name,content,type='text/plain'){
+    const blob=new Blob([content],{type});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=name;a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  }
+
+  function csv(rows){
+    return rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  }
+
+  function briefText(){
+    const b=REPORT_STATE.brief||buildBrief();
+    return [
+      'REPORT.IA RCV · BRIEF EJECUTIVO',
+      '',
+      '¿CÓMO CERRAMOS?',
+      b.cierre,'',
+      '¿QUÉ MEJORÓ?',
+      b.mejoro,'',
+      '¿QUÉ EMPEORÓ?',
+      b.empeoro,'',
+      '¿DÓNDE PONER ATENCIÓN?',
+      b.atencion,'',
+      '¿QUÉ RECOMIENDA REPORT.IA?',
+      b.recomienda,'',
+      'PRIORIDADES:',
+      ...(REPORT_STATE.priorities||buildPriorities()).map((p,i)=>`${i+1}. ${p.title} — ${p.detail}`)
+    ].join('\n');
+  }
+
+  async function executiveBundle(){
+    if(typeof JSZip==='undefined'){alert('La librería ZIP no está disponible.');return;}
+    if(!REPORT_STATE.brief)buildReports();
+
+    const zip=new JSZip();
+    const month=$('month')?.selectedOptions?.[0]?.textContent||'Periodo';
+
+    zip.file('BRIEF_EJECUTIVO.txt',briefText());
+
+    const varianceRows=[['Indicador','Valor','Variación','Estado']]
+      .concat(REPORT_STATE.variations.map(x=>[x.indicador,x.valor,x.variacion,x.estado]));
+    zip.file('REPORTE_VARIACIONES.csv',csv(varianceRows));
+
+    const managerialRows=[['Indicador','Valor']]
+      .concat(REPORT_STATE.managerial.map(x=>[x.label,x.value]));
+    zip.file('REPORTE_EJECUTIVO_GERENCIAL.csv',csv(managerialRows));
+
+    const rankingRows=[['Posición','Gerencia','Lectura']]
+      .concat(REPORT_STATE.ranking.map(x=>[x.posicion,x.gerencia,x.lectura]));
+    zip.file('RANKING_EJECUTIVO_GERENCIAS.csv',csv(rankingRows));
+
+    zip.file('LEEME.txt',
+      `REPORT.IA RCV · Executive Reporting 12.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
+      'Este paquete contiene los entregables ejecutivos complementarios al paquete FINAL operativo.'
+    );
+
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`REPORTIA_RCV_EJECUTIVO_${month.replace(/[^\w\-]+/g,'_')}.zip`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1800);
+  }
+
+  document.addEventListener('click',e=>{
+    if(e.target.closest('#buildExecutiveReportsBtn'))buildReports();
+
+    if(e.target.closest('#downloadBriefBtn')){
+      if(!REPORT_STATE.brief)buildReports();
+      download('BRIEF_EJECUTIVO_RCV.txt',briefText());
+    }
+
+    if(e.target.closest('#downloadVarianceBtn')){
+      if(!REPORT_STATE.variations.length)buildReports();
+      const rows=[['Indicador','Valor','Variación','Estado']]
+        .concat(REPORT_STATE.variations.map(x=>[x.indicador,x.valor,x.variacion,x.estado]));
+      download('REPORTE_VARIACIONES_RCV.csv',csv(rows),'text/csv;charset=utf-8');
+    }
+
+    if(e.target.closest('#downloadManagerialBtn')){
+      if(!REPORT_STATE.managerial.length)buildReports();
+      const rows=[['Indicador','Valor']]
+        .concat(REPORT_STATE.managerial.map(x=>[x.label,x.value]));
+      download('REPORTE_EJECUTIVO_GERENCIAL_RCV.csv',csv(rows),'text/csv;charset=utf-8');
+    }
+
+    if(e.target.closest('#downloadExecutiveBundleBtn'))executiveBundle();
+  });
 })();
