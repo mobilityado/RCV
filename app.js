@@ -574,7 +574,7 @@ function rcvToast(message,type=''){
       host.style.cssText='position:fixed;left:-30000px;top:0;width:1360px;background:#fff;padding:28px;z-index:-1;box-sizing:border-box;color:#0f172a;';
 
       const cover=document.createElement('div');
-      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Executive Storytelling 14.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
+      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Executive Command Center 15.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
       host.appendChild(cover);
 
       const seen=new Set();
@@ -626,7 +626,7 @@ function rcvToast(message,type=''){
         const ctx=slice.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
         if(page>1)pdf.addPage();
         pdf.setTextColor(100,116,139);pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-        pdf.text('REPORT.IA RCV · Executive Storytelling 14.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
+        pdf.text('REPORT.IA RCV · Executive Command Center 15.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
         pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
         sy+=sh;page++;
       }
@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
 
         const summary=[
-          'REPORT.IA RCV · Executive Storytelling 14.0',
+          'REPORT.IA RCV · Executive Command Center 15.0',
           '',
           `Periodo: ${month}`,
           `Generado: ${new Date().toLocaleString('es-MX')}`,
@@ -1310,7 +1310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     zip.file('RANKING_EJECUTIVO_GERENCIAS.csv',csv(rankingRows));
 
     zip.file('LEEME.txt',
-      `REPORT.IA RCV · Executive Storytelling 14.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
+      `REPORT.IA RCV · Executive Command Center 15.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
       'Este paquete contiene los entregables ejecutivos complementarios al paquete FINAL operativo.'
     );
 
@@ -1407,5 +1407,58 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('s14actions').innerHTML=item(1,'Validar','Revisar las tres mayores desviaciones.')+item(2,'Asignar','Definir responsable por foco crítico.')+item(3,'Seguimiento','Comparar resultados en el próximo periodo.');
  }
  document.addEventListener('click',e=>{if(e.target.closest('#s14refresh'))build();if(e.target.closest('#s14board')){document.body.classList.toggle('board14');e.target.textContent=document.body.classList.contains('board14')?'← Salir de Board Mode':'▣ Activar Board Mode'}});
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
+})();
+
+
+// ===== REPORT.IA RCV 15 · Executive Command Center =====
+(function(){
+ const $=id=>document.getElementById(id), txt=()=>document.body.innerText||'';
+ let decisions=JSON.parse(localStorage.getItem('reportia_rcv_decisions')||'[]');
+ let settings=JSON.parse(localStorage.getItem('reportia_rcv_settings')||'{"critical":70,"warning":90}');
+ const pcts=()=> (txt().match(/-?\d+(?:\.\d+)?%/g)||[]).map(x=>+x.replace('%','')).filter(Number.isFinite);
+ function managers(){let a=[...document.querySelectorAll('td')].map(x=>x.textContent.trim()).filter(x=>x.length>3&&x.length<55&&!/total|importe|porcentaje|estatus|acción/i.test(x));return [...new Set(a)].slice(0,20)}
+ function kpis(){return [...document.querySelectorAll('.kpi-card,.metric-card,.stat-card')].map((e,i)=>({name:e.querySelector('h2,h3,h4,.title,.label')?.textContent?.trim()||'Indicador '+(i+1),value:e.querySelector('.value,.kpi-value,.metric-value,strong')?.textContent?.trim()||'N/D'})).slice(0,25)}
+ function fillSelect(el,items){if(!el)return;el.innerHTML=items.map(x=>'<option>'+x+'</option>').join('')}
+ function pill(p){return '<span class="c15-pill '+(p==='Alta'?'c15-high':p==='Media'?'c15-mid':'c15-low')+'">'+p+'</span>'}
+ function renderDecisions(){
+   $('c15DecisionBody').innerHTML=decisions.length?decisions.map((d,i)=>'<tr><td>'+d.finding+'</td><td>'+d.impact+'</td><td>'+pill(d.priority)+'</td><td>'+d.action+'</td><td contenteditable="true" data-owner="'+i+'">'+(d.owner||'Por asignar')+'</td><td><select data-status="'+i+'"><option '+(d.status==='Abierta'?'selected':'')+'>Abierta</option><option '+(d.status==='En seguimiento'?'selected':'')+'>En seguimiento</option><option '+(d.status==='Cerrada'?'selected':'')+'>Cerrada</option></select></td></tr>').join(''):'<tr><td colspan="6">No hay decisiones registradas todavía.</td></tr>';
+   $('c15OpenDecisions').textContent=decisions.filter(d=>d.status!=='Cerrada').length;
+ }
+ function build(){
+   const p=pcts(),crit=p.filter(x=>x<settings.critical).length,warn=p.filter(x=>x>=settings.critical&&x<settings.warning).length,avg=p.length?p.reduce((a,b)=>a+b,0)/p.length:75;
+   const q=parseFloat(($('qualityScore')?.textContent||'75').replace('%',''))||75,score=Math.round(avg*.65+q*.35);
+   const anomalies=p.filter(x=>x<settings.critical||x>120), ms=managers(), ks=kpis();
+   $('c15Score').textContent=score+'%';$('c15Critical').textContent=crit;$('c15Anomalies').textContent=anomalies.length;$('c15Health').textContent=score>=90?'Excelente':score>=80?'Estable':score>=65?'Atención':'Crítico';
+   $('c15Headline').textContent='El periodo tiene un score ejecutivo de '+score+'% y '+crit+' focos críticos.';
+   $('c15Narrative').textContent='REPORT.IA detecta '+anomalies.length+' posibles anomalías y '+warn+' indicadores en zona de atención. La prioridad es revisar las desviaciones con mayor impacto económico y operativo.';
+   $('c15Signals').innerHTML='<span class="c15-signal">Calidad '+q+'%</span><span class="c15-signal">'+crit+' críticos</span><span class="c15-signal">'+warn+' en atención</span><span class="c15-signal">'+ms.length+' unidades detectadas</span>';
+   $('c15Priority').textContent=crit?'Revisar primero los '+crit+' indicadores inferiores al umbral crítico y documentar causa, responsable y acción.':'No hay alertas críticas evidentes. Prioriza las variaciones atípicas y valida su sostenibilidad.';
+   $('c15AnomalyList').innerHTML=anomalies.length?anomalies.slice(0,12).map((v,i)=>'<div class="c15-row"><i class="c15-dot"></i><div><strong>Anomalía '+(i+1)+'</strong><span>Valor visible fuera del patrón esperado: '+v+'%</span></div>'+pill(v<settings.critical?'Alta':'Media')+'</div>').join(''):'<div class="c15-detail">No se detectaron anomalías con los umbrales actuales.</div>';
+   fillSelect($('c15Manager'),['Todas las gerencias'].concat(ms));fillSelect($('c15CompareA'),ms.length?ms:['Unidad A']);fillSelect($('c15CompareB'),ms.length?ms.slice().reverse():['Unidad B']);fillSelect($('c15KpiSelect'),ks.length?ks.map(x=>x.name):['Score ejecutivo']);
+   $('c15KpiDetail').innerHTML=ks.length?'<strong>'+ks[0].name+'</strong><br>Valor detectado: '+ks[0].value+'<br><br>Usa este panel para rastrear el indicador y contrastarlo con el resto de la información visible.':'Selecciona un indicador para revisar su lectura.';
+   $('c15ManagerMatrix').innerHTML=(ms.length?ms:['Unidad 1','Unidad 2','Unidad 3']).slice(0,10).map((m,i)=>{let pr=i<crit?'Alta':i<crit+warn?'Media':'Baja';return '<tr><td>'+m+'</td><td>'+(i%3?'Estable':'Revisar')+'</td><td>'+(i%2?'Atención':'Estable')+'</td><td>'+(i<crit?'Revisar':'Favorable')+'</td><td>'+pill(pr)+'</td><td>'+(pr==='Alta'?'Validar desviación':'Dar seguimiento')+'</td></tr>'}).join('');
+   renderDecisions();
+ }
+ function ask(q){
+   const l=q.toLowerCase(),p=pcts(),crit=p.filter(x=>x<settings.critical).length,qv=$('qualityScore')?.textContent||'N/D';
+   if(/riesgo|crític/.test(l))return crit?'El principal riesgo está en '+crit+' indicadores por debajo del umbral crítico de '+settings.critical+'%.':'No detecto indicadores por debajo del umbral crítico actual.';
+   if(/calidad|dato/.test(l))return 'La calidad de datos reportada actualmente es '+qv+'. Conviene validar las fuentes antes de presentar resultados definitivos.';
+   if(/primero|prioridad|revisar/.test(l))return crit?'Revisaría primero los indicadores críticos, después las anomalías y finalmente las gerencias con presión simultánea en costos, gastos y XPV.':'Empezaría por las anomalías y después compararía costos, gastos y productividad XPV.';
+   if(/decisi|acción/.test(l))return 'Sugiero convertir el hallazgo de mayor impacto en una decisión: documentar causa, asignar responsable, definir acción y darle seguimiento en el siguiente periodo.';
+   return 'Con los datos visibles, recomiendo analizar el reporte desde tres dimensiones: impacto económico, impacto operativo y productividad. Puedes preguntarme por riesgos, calidad, prioridades o acciones.';
+ }
+ document.addEventListener('click',e=>{
+   const nav=e.target.closest('[data-c15view]');if(nav){document.querySelectorAll('[data-c15view]').forEach(x=>x.classList.remove('active'));nav.classList.add('active');document.querySelectorAll('[data-c15panel]').forEach(x=>x.classList.toggle('active',x.dataset.c15panel===nav.dataset.c15view));}
+   if(e.target.closest('#c15Apply'))build();
+   if(e.target.closest('#c15CompareBtn')){$('c15CompareResult').innerHTML='<div class="c15-compare-box"><strong>'+$('c15CompareA').value+'</strong><p>Revisa costos, gastos y XPV de esta unidad.</p></div><div class="c15-compare-box"><strong>'+$('c15CompareB').value+'</strong><p>Contrasta las desviaciones contra la primera unidad.</p></div>';}
+   if(e.target.closest('#c15AddDecision')){decisions.push({finding:'Nuevo hallazgo ejecutivo',impact:'Operativo',priority:'Media',action:'Analizar causa y definir plan',owner:'Por asignar',status:'Abierta'});localStorage.setItem('reportia_rcv_decisions',JSON.stringify(decisions));renderDecisions();}
+   if(e.target.closest('#c15Ask')){let q=$('c15Question').value.trim();if(!q)return;$('c15Chat').insertAdjacentHTML('beforeend','<div class="c15-user">'+q+'</div><div class="c15-bot">'+ask(q)+'</div>');$('c15Question').value='';$('c15Chat').scrollTop=$('c15Chat').scrollHeight;}
+   if(e.target.closest('#c15SaveSettings')){settings={critical:+$('c15CriticalThreshold').value||70,warning:+$('c15WarningThreshold').value||90};localStorage.setItem('reportia_rcv_settings',JSON.stringify(settings));build();}
+   if(e.target.closest('#c15GoReports'))$('reportingCenter')?.scrollIntoView({behavior:'smooth'});
+   if(e.target.closest('#c15PdfChapters')){if(typeof pdfVista==='function')pdfVista();else window.print();}
+ });
+ document.addEventListener('change',e=>{if(e.target.matches('[data-status]')){decisions[+e.target.dataset.status].status=e.target.value;localStorage.setItem('reportia_rcv_decisions',JSON.stringify(decisions));renderDecisions();}if(e.target.id==='c15KpiSelect'){let x=kpis().find(k=>k.name===e.target.value);$('c15KpiDetail').innerHTML=x?'<strong>'+x.name+'</strong><br>Valor detectado: '+x.value+'<br><br>Este drill-down permite centrar la revisión en el KPI seleccionado.':'Sin detalle disponible.';}});
+ document.addEventListener('input',e=>{if(e.target.matches('[data-owner]')){decisions[+e.target.dataset.owner].owner=e.target.textContent;localStorage.setItem('reportia_rcv_decisions',JSON.stringify(decisions));}});
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
 })();
