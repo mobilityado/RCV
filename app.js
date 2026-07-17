@@ -491,6 +491,82 @@ function paretoAnswer(){
   return `El 80% aproximado del impacto se concentra en ${names.length} gerencias: ${names.join(", ")}.`;
 }
 
+
+const reconciliationState={rpZip:null,finalZip:null,rpFiles:[],finalFiles:[]};
+
+async function inspectZipExcelFiles(file){
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());
+  const result=[];
+  for(const entry of Object.values(zip.files)){
+    if(entry.dir||!/\.(xlsx|xls)$/i.test(entry.name))continue;
+    try{
+      const ab=await entry.async("arraybuffer");
+      const wb=XLSX.read(ab,{type:"array",raw:true});
+      const sheets=[];
+      for(const sn of wb.SheetNames){
+        const arr=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:"",raw:true});
+        const nonempty=arr.filter(r=>r.some(v=>cleanText(v)!==""));
+        let numericTotal=0,numericCells=0;
+        nonempty.forEach(r=>r.forEach(v=>{
+          if(typeof v==="number"&&Number.isFinite(v)){numericTotal+=v;numericCells++;}
+        }));
+        sheets.push({name:sn,rows:nonempty.length,numericTotal,numericCells});
+      }
+      result.push({name:entry.name,workbook:wb,sheets});
+    }catch(err){
+      result.push({name:entry.name,error:err.message,sheets:[]});
+    }
+  }
+  return result;
+}
+function normalizeName(s){return cleanText(s).toLowerCase().replace(/\.(xlsx|xls)$/,"").replace(/plantilla/g,"").replace(/\s+/g," ").trim();}
+function sheetSimilarity(a,b){
+  const x=cleanText(a).toLowerCase(),y=cleanText(b).toLowerCase();
+  if(x===y)return 100;
+  const ax=new Set(x.split(/\s+/)),by=new Set(y.split(/\s+/));let common=0;ax.forEach(t=>{if(by.has(t))common++});
+  return common/Math.max(ax.size,by.size,1)*100;
+}
+function bestFinalFile(rpFile,finalFiles){
+  const rn=normalizeName(rpFile.name);
+  let best=null,score=-1;
+  for(const f of finalFiles){
+    const fn=normalizeName(f.name);
+    let s=0;
+    if(fn===rn)s=100;
+    else{
+      const ra=new Set(rn.split(/\s+/)),fa=new Set(fn.split(/\s+/));let c=0;ra.forEach(t=>{if(fa.has(t))c++});
+      s=c/Math.max(ra.size,fa.size,1)*100;
+    }
+    if(s>score){score=s;best=f;}
+  }
+  return score>=25?best:null;
+}
+function executeReconciliation(){
+  const rows=[];
+  for(const rpFile of reconciliationState.rpFiles){
+    const finalFile=bestFinalFile(rpFile,reconciliationState.finalFiles);
+    for(const rpSheet of rpFile.sheets){
+      let finalSheet=null;
+      if(finalFile?.sheets?.length){
+        finalSheet=finalFile.sheets.slice().sort((a,b)=>sheetSimilarity(rpSheet.name,b.name)-sheetSimilarity(rpSheet.name,a.name))[0];
+      }
+      const finalRows=finalSheet?.rows??0,finalTotal=finalSheet?.numericTotal??0;
+      const diff=rpSheet.numericTotal-finalTotal;
+      const rowMatch=finalSheet?rpSheet.rows===finalRows:false;
+      const totalMatch=finalSheet?Math.abs(diff)<0.02:false;
+      const state=!finalSheet?"REVISAR":(rowMatch&&totalMatch?"CUADRA":"DIFERENCIA");
+      rows.push({rp:rpFile.name,sheet:rpSheet.name,final:finalFile?.name||"Sin coincidencia",rpRows:rpSheet.rows,finalRows,rpTotal:rpSheet.numericTotal,finalTotal,diff,state});
+    }
+  }
+  $("reconChecks").textContent=rows.length;
+  $("reconOk").textContent=rows.filter(x=>x.state==="CUADRA").length;
+  $("reconDiff").textContent=rows.filter(x=>x.state==="DIFERENCIA").length;
+  $("reconTable").innerHTML=rows.length?rows.map(r=>`<tr><td>${r.rp}</td><td>${r.sheet}</td><td>${r.final}</td><td>${r.rpRows}</td><td>${r.finalRows}</td><td>${signedMoney(r.rpTotal)}</td><td>${signedMoney(r.finalTotal)}</td><td>${signedMoney(r.diff)}</td><td><span class="recon-state ${r.state==="CUADRA"?"ok":r.state==="DIFERENCIA"?"diff":"review"}">${r.state}</span></td></tr>`).join(""):'<tr><td colspan="9">No se encontraron archivos Excel comparables.</td></tr>';
+  const ok=rows.filter(x=>x.state==="CUADRA").length,diff=rows.filter(x=>x.state==="DIFERENCIA").length,review=rows.filter(x=>x.state==="REVISAR").length;
+  $("reconDiagnosis").className="exec-content";
+  $("reconDiagnosis").innerHTML=`Se ejecutaron <b>${rows.length}</b> comparaciones estructurales. <b>${ok}</b> cuadran exactamente en filas y suma numérica global; <b>${diff}</b> presentan diferencias y <b>${review}</b> requieren revisión manual.<br><br><b>Importante:</b> una diferencia aquí no demuestra por sí sola que el FINAL esté mal. Las plantillas RP pueden contener fórmulas, hojas auxiliares o transformaciones específicas. Usa esta matriz para localizar dónde debemos replicar la lógica exacta.`;
+}
+
 document.addEventListener("click",async e=>{
   const nav=e.target.closest("[data-view]");if(nav)showView(nav.dataset.view);
   const act=e.target.closest("[data-action]");
@@ -503,6 +579,9 @@ document.addEventListener("click",async e=>{
     if(a==="downloadXpv")saveBlob(workbookBlob(makeXpvWorkbook()),`Productividad XPV ${state.model.month} 26 RCV.xlsx`);
   }
   const rep=e.target.closest("[data-report]");if(rep){showView("reports");$("reportPreview").innerHTML=reportHtml(rep.dataset.report);}
+  if(e.target.closest("#browseRpZip"))$("rpZipInput").click();
+  if(e.target.closest("#browseReconFinal"))$("reconFinalZipInput").click();
+  if(e.target.closest("#runRpReconciliation"))executeReconciliation();
   if(e.target.closest("#browseBtn"))$("jdFiles").click();
   if(e.target.closest("#processBtn")){state.periodIndex=Number($("periodSelect").value);processModel();showView("home");}
   if(e.target.closest("#clearBtn")){state.sources={};state.model=null;$("jdFiles").value="";renderChecklist();clearDashboard();setStatus("uploadStatus","Aún no has seleccionado archivos.");qa("#processStats strong").forEach(x=>x.textContent="0");}
@@ -536,6 +615,28 @@ $("jdFiles").addEventListener("change",async()=>{
 $("finalZip").addEventListener("change",()=>{state.finalZipFile=$("finalZip").files[0]||null;$("validateBtn").disabled=!state.finalZipFile;setStatus("validationStatus",state.finalZipFile?`Referencia seleccionada: ${state.finalZipFile.name}`:"Sin archivo FINAL de referencia.",state.finalZipFile?"ok":"");});
 $("periodSelect").addEventListener("change",()=>{$("settingsPeriod").value=$("periodSelect").value;});
 $("question").addEventListener("keydown",e=>{if(e.key==="Enter")$("askBtn").click();});
+
+
+$("rpZipInput")?.addEventListener("change",async()=>{
+  const file=$("rpZipInput").files[0];if(!file)return;
+  reconciliationState.rpZip=file;$("rpZipName").textContent=file.name;
+  $("rpDetectedFiles").innerHTML='<div class="source-file">Leyendo paquete RP…</div>';
+  try{
+    reconciliationState.rpFiles=await inspectZipExcelFiles(file);
+    $("reconRpCount").textContent=reconciliationState.rpFiles.length;
+    $("rpDetectedFiles").innerHTML=reconciliationState.rpFiles.map(f=>`<div class="source-file detected">✓ ${f.name} · ${f.sheets.length} hoja(s)</div>`).join("");
+    $("runRpReconciliation").disabled=!(reconciliationState.rpFiles.length&&reconciliationState.finalFiles.length);
+  }catch(err){$("rpDetectedFiles").innerHTML=`<div class="source-file">Error: ${err.message}</div>`;}
+});
+$("reconFinalZipInput")?.addEventListener("change",async()=>{
+  const file=$("reconFinalZipInput").files[0];if(!file)return;
+  reconciliationState.finalZip=file;$("reconFinalName").textContent=file.name;
+  try{
+    reconciliationState.finalFiles=await inspectZipExcelFiles(file);
+    $("reconFinalCount").textContent=reconciliationState.finalFiles.length;
+    $("runRpReconciliation").disabled=!(reconciliationState.rpFiles.length&&reconciliationState.finalFiles.length);
+  }catch(err){$("reconFinalName").textContent="Error: "+err.message;}
+});
 
 renderChecklist();
 clearDashboard();

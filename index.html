@@ -73,7 +73,7 @@
       <button data-view="comparisons">▥ <span>Comparativos</span></button>
       <button data-view="managers">▣ <span>Gerencias</span></button>
       <button data-view="reports">▤ <span>Reportes</span></button>
-      <button data-view="settings">⚙ <span>Configuración</span></button>
+      <button data-view="reconciliation">✓ <span>Conciliación RP vs FINAL</span></button><button data-view="settings">⚙ <span>Configuración</span></button>
     </nav>
 
     <div class="quick-title">ACCESOS RÁPIDOS</div>
@@ -174,7 +174,7 @@
           <div id="sourceChecklist" class="checklist"></div>
         </article>
         <article class="upload-card">
-          <h3>2. Validación opcional contra FINAL.zip</h3>
+          <h3>2. Validación opcional contra FINAL.zip</h3><div class="rp-notice">¿Tus fuentes vienen del paquete RP original? Usa también <b>Conciliación RP vs FINAL</b> en el menú para validar el proceso completo.</div>
           <p>Puedes cargar el ZIP de referencia para comprobar automáticamente filas y totales de los reportes generados.</p>
           <input id="finalZip" type="file" accept=".zip" hidden>
           <div class="upload-actions"><button id="browseFinalBtn">Seleccionar FINAL.zip</button><button id="validateBtn" disabled>Validar resultados</button></div>
@@ -215,7 +215,71 @@
       <article class="report-preview" id="reportPreview"><div class="empty">Selecciona un reporte ejecutivo para visualizarlo.</div></article>
     </section>
 
-    <section class="view" data-view="settings">
+    
+<section class="view" data-view="reconciliation">
+  <header class="section-title">
+    <span>CONCILIACIÓN DE FUENTES</span>
+    <h2>RP originales vs reportes FINAL</h2>
+    <p>Compara los archivos fuente utilizados en el proceso contra los reportes FINAL oficiales y muestra diferencias de filas y totales.</p>
+  </header>
+
+  <div class="upload-layout">
+    <article class="upload-card">
+      <h3>1. Archivos RP originales</h3>
+      <p>Carga el ZIP que contiene plantillas y archivos RCV utilizados para llegar al resultado final.</p>
+      <input id="rpZipInput" type="file" accept=".zip" hidden>
+      <div class="upload-actions">
+        <button id="browseRpZip">Seleccionar RP.zip</button>
+        <span id="rpZipName" class="inline-file-status">Sin archivo seleccionado</span>
+      </div>
+      <div id="rpDetectedFiles" class="source-files"></div>
+    </article>
+
+    <article class="upload-card">
+      <h3>2. FINAL oficial</h3>
+      <p>Carga el ZIP FINAL correspondiente al mismo periodo para comprobar los resultados.</p>
+      <input id="reconFinalZipInput" type="file" accept=".zip" hidden>
+      <div class="upload-actions">
+        <button id="browseReconFinal">Seleccionar FINAL.zip</button>
+        <span id="reconFinalName" class="inline-file-status">Sin archivo seleccionado</span>
+      </div>
+    </article>
+  </div>
+
+  <article class="validation-card recon-actions-card">
+    <div>
+      <small>MOTOR DE VALIDACIÓN</small>
+      <h3>Comprobar correspondencia de archivos</h3>
+      <p>La validación compara nombres de hojas, cantidad de registros y sumas numéricas detectadas. No reemplaza la validación contable de negocio.</p>
+    </div>
+    <button id="runRpReconciliation" disabled>✓ Ejecutar conciliación</button>
+  </article>
+
+  <div class="recon-kpis">
+    <article><span>ARCHIVOS RP</span><strong id="reconRpCount">0</strong></article>
+    <article><span>ARCHIVOS FINAL</span><strong id="reconFinalCount">0</strong></article>
+    <article><span>COMPARACIONES</span><strong id="reconChecks">0</strong></article>
+    <article><span>CUADRAN</span><strong id="reconOk">0</strong></article>
+    <article><span>CON DIFERENCIA</span><strong id="reconDiff">0</strong></article>
+  </div>
+
+  <article class="table-card">
+    <div class="card-head"><div><small>MATRIZ DE VALIDACIÓN</small><h3>Resultado por archivo / hoja</h3></div></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fuente RP</th><th>Hoja / estructura</th><th>FINAL relacionado</th><th>Registros RP</th><th>Registros FINAL</th><th>Total RP</th><th>Total FINAL</th><th>Diferencia</th><th>Estado</th></tr></thead>
+        <tbody id="reconTable"><tr><td colspan="9">Carga RP.zip y FINAL.zip para iniciar.</td></tr></tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="report-preview">
+    <h3>Diagnóstico de conciliación</h3>
+    <div id="reconDiagnosis" class="empty">Todavía no se ha ejecutado la conciliación.</div>
+  </article>
+</section>
+
+<section class="view" data-view="settings">
       <header class="section-title"><span>CONFIGURACIÓN</span><h2>Parámetros del análisis</h2></header>
       <article class="settings-card"><label>Umbral de alerta crítica (%)<input id="criticalThreshold" type="number" value="10" min="1" max="100"></label><label>Periodo del reporte<select id="settingsPeriod"></select></label><button id="applySettings">Aplicar y recalcular</button></article>
     </section>

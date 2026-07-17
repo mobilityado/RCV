@@ -1,0 +1,8 @@
+Archivos detectados en rp.zip entregado por el usuario:
+
+- rp/COSTO RCV 2026 plantilla.xlsx
+- rp/Gastos RCV 2026 plantilla.xls
+- rp/Gastos RCV 2026.xls
+- rp/Productividad XPV jun 26 RCV.xls
+
+La aplicación no incluye estos archivos de negocio dentro del proyecto; se cargan desde el navegador para conciliación.
