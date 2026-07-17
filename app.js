@@ -491,117 +491,25 @@ function renderComparison(ma,mb){
     return d.toISOString().slice(0,10);
   }
   async function exportPdf(element, filename, title){
-    // Preferred path: automatic PDF when jsPDF + html2canvas are available.
-    if(window.html2canvas && window.jspdf?.jsPDF){
-      try{
-        showReportiaToast('Generando PDF','Preparando la vista ejecutiva. Esto puede tardar unos segundos.','info',2600);
-        const canvas=await html2canvas(element,{
-          scale:1.6,
-          useCORS:true,
-          backgroundColor:'#ffffff',
-          logging:false
-        });
-        const img=canvas.toDataURL('image/jpeg',0.92);
-        const {jsPDF}=window.jspdf;
-        const pdf=new jsPDF('p','mm','a4');
-        const pw=210, ph=297, margin=10, header=18;
-        pdf.setFont('helvetica','bold');
-        pdf.setFontSize(15);
-        pdf.text(title,margin,11);
-        pdf.setFont('helvetica','normal');
-        pdf.setFontSize(8);
-        pdf.text('REPORT.IA RCV · Intelligence Edition 2.1 Secure Executive',margin,16);
-        const iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
-        let y=header, remaining=ih, sy=0;
-        while(remaining>0){
-          const pageH=ph-y-margin;
-          const sliceH=Math.min(pageH,remaining);
-          pdf.addImage(img,'JPEG',margin,y-sy,iw,ih);
-          remaining-=sliceH;
-          sy+=sliceH;
-          if(remaining>0){
-            pdf.addPage();
-            y=margin;
-          }
-        }
-        pdf.save(filename);
-        showReportiaToast('PDF generado','El informe se descargó correctamente.','success',3200);
-        return;
-      }catch(err){
-        console.warn('Fallo PDF automático; se usa impresión nativa.',err);
-      }
+    if(!window.html2canvas || !window.jspdf){ alert('No se pudieron cargar las librerías de PDF. Revisa tu conexión a internet.'); return; }
+    const canvas=await html2canvas(element,{scale:1.6,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const img=canvas.toDataURL('image/jpeg',0.92);
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF('p','mm','a4');
+    const pw=210, ph=297, margin=10, header=18;
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(15); pdf.text(title,margin,11);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.text('REPORT.IA RCV · Intelligence Edition 2.0',margin,16);
+    const iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
+    let y=header, remaining=ih, sy=0;
+    while(remaining>0){
+      const pageH=ph-y-margin;
+      const sliceH=Math.min(pageH,remaining);
+      // Use same image with negative y clipping per page
+      pdf.addImage(img,'JPEG',margin,y-sy,iw,ih);
+      remaining-=sliceH; sy+=sliceH;
+      if(remaining>0){ pdf.addPage(); y=margin; }
     }
-
-    // Robust fallback: browser print dialog, no external PDF libraries required.
-    showReportiaToast(
-      'Modo PDF compatible',
-      'Tu red bloquea las librerías externas de PDF. Abriremos una vista profesional de impresión; elige "Guardar como PDF".',
-      'info',
-      5000
-    );
-    openNativePdfPrint(element,title,filename);
-  }
-
-  function openNativePdfPrint(element,title,filename){
-    const printWindow=window.open('','_blank','width=1200,height=800');
-    if(!printWindow){
-      showReportiaToast(
-        'Ventana bloqueada',
-        'Permite ventanas emergentes para REPORT.IA y vuelve a intentar exportar el PDF.',
-        'error',
-        5000
-      );
-      return;
-    }
-
-    const cloned=element.cloneNode(true);
-    cloned.querySelectorAll('button,input,select,.no-print,.export-suite').forEach(n=>n.remove());
-
-    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')]
-      .map(node=>node.outerHTML)
-      .join('
-');
-
-    printWindow.document.open();
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>${title}</title>
-${styles}
-<style>
-  body{background:#fff!important;margin:0;padding:24px;font-family:Arial,sans-serif;color:#111}
-  .sidebar,.executive-sidebar,.exec-topbar,.secure-login,.reportia-toast{display:none!important}
-  main,.main-content{margin:0!important;padding:0!important;max-width:none!important;width:100%!important}
-  .chart-card,.card,.table-card,.kpi-card{break-inside:avoid;page-break-inside:avoid}
-  canvas{max-width:100%!important}
-  @page{size:A4 portrait;margin:12mm}
-</style>
-</head>
-<body>
-<header style="margin-bottom:20px;border-bottom:2px solid #5b27dc;padding-bottom:12px">
-  <div style="font-size:20px;font-weight:800">${title}</div>
-  <div style="margin-top:4px;color:#666;font-size:11px">REPORT.IA RCV · Intelligence Edition 2.1 Secure Executive</div>
-</header>
-${cloned.outerHTML}
-<script>
-window.onload=function(){
-  setTimeout(function(){ window.print(); },600);
-};
-<\/script>
-</body>
-</html>`);
-    printWindow.document.close();
-  }
-
-  function showReportiaToast(title,text,type='info',duration=3500){
-    const toast=document.getElementById('reportiaToast');
-    if(!toast)return;
-    document.getElementById('reportiaToastTitle').textContent=title;
-    document.getElementById('reportiaToastText').textContent=text;
-    toast.className=`reportia-toast ${type}`;
-    clearTimeout(window.__reportiaToastTimer);
-    window.__reportiaToastTimer=setTimeout(()=>toast.classList.add('hidden'),duration);
+    pdf.save(filename);
   }
   async function pdfVista(){
     await exportPdf(visibleReportRoot(),`REPORTIA_RCV_Vista_${stamp()}.pdf`,'Informe Ejecutivo · Vista actual');
@@ -635,14 +543,8 @@ window.onload=function(){
     if(typeof JSZip==='undefined'){ alert('La librería ZIP no está disponible.'); return; }
     const zip=new JSZip();
     const root=visibleReportRoot();
-    if(window.html2canvas){
-      const canvas=await html2canvas(root,{scale:1.3,useCORS:true,backgroundColor:'#ffffff'});
-      zip.file(`Vista_Ejecutiva_${stamp()}.png`,canvas.toDataURL('image/png').split(',')[1],{base64:true});
-    } else {
-      zip.file('NOTA_PDF.txt',
-        'La red bloqueó la librería de captura HTML. Usa el botón PDF de la vista actual y selecciona Guardar como PDF en el diálogo de impresión del navegador.'
-      );
-    }
+    const canvas=await html2canvas(root,{scale:1.3,useCORS:true,backgroundColor:'#ffffff'});
+    zip.file(`Vista_Ejecutiva_${stamp()}.png`,canvas.toDataURL('image/png').split(',')[1],{base64:true});
     zip.file('LEEME.txt',
       'REPORT.IA RCV · Intelligence Edition 2.0\n\nPaquete ejecutivo generado desde la vista activa.\n' +
       'Use los botones individuales para generar PDF y Excel ejecutivo. Los reportes operativos se mantienen en el módulo de descargas del portal.'
@@ -661,207 +563,112 @@ window.onload=function(){
 })();
 
 
-// ===== LOGIN GARANTIZADO · LISTA LOCAL + VALIDACIÓN REMOTA =====
-const LOGIN_ENDPOINT = "https://script.google.com/macros/s/AKfycbxUhENeMAGaVJx2Gs4yR_qncJJxHyq8NlFFSfa9qu7XBDgcDu4L9HasfrzZSQBOKgwp/exec";
-const LOGIN_SESSION_KEY = 'reportia_rcv_login_garantizado';
-const LOCAL_AUTHORIZED_USERS = [{"usuario": "JOSE ANGEL LOPEZ HERNANDEZ", "tipo": "ADMINISTRADOR"}, {"usuario": "CP.DARWIN PALACIOS RODRIGUEZ", "tipo": "ADMINISTRADOR"}, {"usuario": "CP.JAIME DIAZ RODRIGUEZ", "tipo": "ADMINISTRADOR"}, {"usuario": "CP.RAUL MARTINEZ VAZQUEZ", "tipo": "ADMINISTRADOR"}, {"usuario": "COATZA", "tipo": "ADMINISTRADOR"}, {"usuario": "VILLAHERMOSA", "tipo": "ADMINISTRADOR"}, {"usuario": "TUXTLA", "tipo": "ADMINISTRADOR"}, {"usuario": "INVITADO", "tipo": "ADMINISTRADOR"}, {"usuario": "INVITADO 2", "tipo": "ADMINISTRADOR"}, {"usuario": "INVITADO 3", "tipo": "ADMINISTRADOR"}];
+// ===== SECURE EXECUTIVE LOGIN for Intelligence Edition 2.1 =====
+const SECURE_AUTH_ENDPOINT = window.REPORTIA_CONFIG?.authEndpoint || '';
+const SECURE_SESSION_KEY = 'reportia_rcv_secure_exec_session';
 
-function lgInitials(name) {
+function secureInitials(name){
   return String(name||'U').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
 }
-function lgGetSession() {
-  try { return JSON.parse(sessionStorage.getItem(LOGIN_SESSION_KEY)||'null'); }
-  catch(e) { return null; }
+function secureGetSession(){
+  try{return JSON.parse(sessionStorage.getItem(SECURE_SESSION_KEY)||'null')}catch(e){return null}
 }
-function lgSetSession(s) { sessionStorage.setItem(LOGIN_SESSION_KEY, JSON.stringify(s)); }
-function lgClearSession() { sessionStorage.removeItem(LOGIN_SESSION_KEY); }
+function secureSetSession(s){sessionStorage.setItem(SECURE_SESSION_KEY,JSON.stringify(s))}
+function secureClearSession(){sessionStorage.removeItem(SECURE_SESSION_KEY)}
 
-function lgPopulateUsers() {
-  const select = document.getElementById('loginUser');
-  const status = document.getElementById('loginStatus');
-  if(!select) return;
-
-  select.innerHTML =
-    '<option value="">Selecciona tu usuario</option>' +
-    LOCAL_AUTHORIZED_USERS.map(u => {
-      const name = String(u.usuario||'').replace(/"/g,'&quot;');
-      const role = String(u.tipo||'USUARIO').replace(/"/g,'&quot;');
-      return `<option value="${name}" data-role="${role}">${name}</option>`;
+async function secureLoadUsers(){
+  const select=document.getElementById('loginUser');
+  const status=document.getElementById('loginStatus');
+  if(!select)return;
+  select.innerHTML='<option value="">Cargando usuarios...</option>';
+  select.disabled=true;
+  try{
+    const url=new URL(SECURE_AUTH_ENDPOINT);
+    url.searchParams.set('accion','usuarios');
+    const res=await fetch(url.toString(),{cache:'no-store',redirect:'follow'});
+    const data=JSON.parse(await res.text());
+    const users=Array.isArray(data?.usuarios)?data.usuarios:[];
+    if(!data?.ok||!users.length)throw new Error(data?.mensaje||'No se encontraron usuarios.');
+    select.innerHTML='<option value="">Selecciona tu usuario</option>'+users.map(u=>{
+      const n=u.usuario||u.nombre||u.user||'';
+      const r=u.tipo||u.role||'';
+      return `<option value="${n.replace(/"/g,'&quot;')}" data-role="${r.replace(/"/g,'&quot;')}">${n}</option>`;
     }).join('');
-
-  select.disabled = false;
-
-  if(status) {
-    status.textContent = `${LOCAL_AUTHORIZED_USERS.length} usuarios disponibles.`;
-    status.className = 'secure-login-status success';
+    select.disabled=false;
+    status.textContent=`${users.length} usuarios autorizados disponibles.`;
+    status.className='secure-login-status success';
+  }catch(e){
+    select.innerHTML='<option value="">No fue posible cargar usuarios</option>';
+    select.disabled=true;
+    status.textContent=e.message||'No fue posible cargar usuarios.';
+    status.className='secure-login-status error';
   }
-
-  const note = document.getElementById('loginFallbackNote');
-  if(note) {
-    note.classList.remove('hidden');
-    note.textContent = 'La lista de usuarios está disponible localmente. La contraseña se valida de forma segura con Apps Script.';
+  secureUpdateAvatar();
+}
+function secureUpdateAvatar(){
+  const name=document.getElementById('loginUser')?.value||'';
+  const avatar=document.getElementById('loginAvatar');
+  if(avatar)avatar.textContent=name?secureInitials(name):'?';
+}
+async function secureLogin(){
+  const user=(document.getElementById('loginUser')?.value||'').trim();
+  const pass=document.getElementById('loginPassword')?.value||'';
+  const status=document.getElementById('loginStatus');
+  if(!user||!pass){
+    status.textContent='Selecciona tu usuario e ingresa tu contraseña.';
+    status.className='secure-login-status error';
+    return;
   }
-
-  lgUpdateAvatar();
-}
-
-function lgUpdateAvatar() {
-  const name = document.getElementById('loginUser')?.value || '';
-  const avatar = document.getElementById('loginAvatar');
-  if(avatar) avatar.textContent = name ? lgInitials(name) : '?';
-}
-
-function lgJsonp(params) {
-  return new Promise((resolve,reject) => {
-    const callback = 'reportiaLoginCallback_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const script = document.createElement('script');
-    const timeout = setTimeout(() => {
-      cleanup();
-      reject(new Error('Tiempo de espera agotado al validar el acceso.'));
-    }, 12000);
-
-    function cleanup() {
-      clearTimeout(timeout);
-      try { delete window[callback]; } catch(e) {}
-      script.remove();
-    }
-
-    window[callback] = data => {
-      cleanup();
-      resolve(data);
-    };
-
-    script.onerror = () => {
-      cleanup();
-      reject(new Error('No fue posible conectar con el servicio de acceso.'));
-    };
-
-    const url = new URL(LOGIN_ENDPOINT);
-    Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
-    url.searchParams.set('callback', callback);
-    script.src = url.toString();
-    document.head.appendChild(script);
-  });
-}
-
-async function lgValidateLogin(user, pass) {
-  // First try normal fetch.
-  try {
-    const url = new URL(LOGIN_ENDPOINT);
+  status.textContent='Validando acceso...';
+  status.className='secure-login-status loading';
+  try{
+    const url=new URL(SECURE_AUTH_ENDPOINT);
     url.searchParams.set('accion','login');
     url.searchParams.set('usuario',user);
     url.searchParams.set('contrasena',pass);
-    url.searchParams.set('_',Date.now());
-
-    const res = await fetch(url.toString(), {
-      method:'GET',
-      cache:'no-store',
-      redirect:'follow'
-    });
-
-    if(res.ok) {
-      const text = await res.text();
-      try {
-        const data = JSON.parse(text);
-        if(typeof data?.ok !== 'undefined') return data;
-      } catch(e) {}
-    }
-  } catch(e) {
-    console.warn('Fetch de login no disponible; se intenta JSONP.', e);
-  }
-
-  // Fallback to JSONP (requires the provided Apps Script).
-  return lgJsonp({
-    accion:'login',
-    usuario:user,
-    contrasena:pass
-  });
-}
-
-async function lgLogin() {
-  const user = (document.getElementById('loginUser')?.value || '').trim();
-  const pass = document.getElementById('loginPassword')?.value || '';
-  const status = document.getElementById('loginStatus');
-
-  if(!user || !pass) {
-    status.textContent = 'Selecciona tu usuario e ingresa tu contraseña.';
-    status.className = 'secure-login-status error';
-    return;
-  }
-
-  status.textContent = 'Validando acceso...';
-  status.className = 'secure-login-status loading';
-
-  try {
-    const data = await lgValidateLogin(user, pass);
-    if(!data?.ok) throw new Error(data?.mensaje || 'Usuario o contraseña incorrectos.');
-
-    const session = {
-      name: data.usuario || user,
-      role: String(data.tipo || document.querySelector('#loginUser option:checked')?.dataset.role || 'USUARIO').toUpperCase()
-    };
-
-    lgSetSession(session);
-    lgApplySession(session);
+    const res=await fetch(url.toString(),{cache:'no-store',redirect:'follow'});
+    const data=JSON.parse(await res.text());
+    if(!data?.ok)throw new Error(data?.mensaje||'Usuario o contraseña incorrectos.');
+    const session={name:data.usuario||user,role:(data.tipo||'USUARIO').toUpperCase()};
+    secureSetSession(session);
+    secureApplySession(session);
     document.getElementById('secureLogin')?.classList.add('hidden');
-  } catch(err) {
-    status.textContent = err.message || 'No fue posible iniciar sesión.';
-    status.className = 'secure-login-status error';
+  }catch(e){
+    status.textContent=e.message||'No fue posible iniciar sesión.';
+    status.className='secure-login-status error';
   }
 }
-
-function lgApplySession(session) {
-  const name = session?.name || 'Usuario';
-  const role = session?.role || 'USUARIO';
-  const first = name.split(/\s+/)[0];
-
-  const greeting = document.getElementById('execGreeting');
-  if(greeting) greeting.textContent = `👋 Hola, ${first}.`;
-
-  const nameEl = document.getElementById('execUserName');
-  if(nameEl) nameEl.textContent = name;
-
-  const roleEl = document.getElementById('execUserRole');
-  if(roleEl) roleEl.textContent = role;
-
-  const avatar = document.getElementById('execUserAvatar');
-  if(avatar) avatar.textContent = lgInitials(name);
+function secureApplySession(session){
+  const name=session?.name||'Usuario';
+  const role=session?.role||'USUARIO';
+  const first=name.split(/\s+/)[0];
+  const g=document.getElementById('execGreeting'); if(g)g.textContent=`👋 Hola, ${first}.`;
+  const un=document.getElementById('execUserName'); if(un)un.textContent=name;
+  const ur=document.getElementById('execUserRole'); if(ur)ur.textContent=role;
+  const av=document.getElementById('execUserAvatar'); if(av)av.textContent=secureInitials(name);
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  const session = lgGetSession();
-
-  // Populate immediately; no network needed for the dropdown.
-  lgPopulateUsers();
-
-  if(session) {
-    lgApplySession(session);
+document.addEventListener('DOMContentLoaded',()=>{
+  const session=secureGetSession();
+  if(session){
+    secureApplySession(session);
     document.getElementById('secureLogin')?.classList.add('hidden');
+  }else{
+    secureLoadUsers();
   }
+  document.getElementById('loginUser')?.addEventListener('change',secureUpdateAvatar);
+  document.getElementById('loginBtn')?.addEventListener('click',secureLogin);
+  document.getElementById('loginPassword')?.addEventListener('keydown',e=>{if(e.key==='Enter')secureLogin()});
+  document.getElementById('reloadUsersBtn')?.addEventListener('click',secureLoadUsers);
+  document.getElementById('togglePassword')?.addEventListener('click',()=>{
+    const p=document.getElementById('loginPassword'); if(p)p.type=p.type==='password'?'text':'password';
+  });
+  document.getElementById('logoutBtn')?.addEventListener('click',()=>{secureClearSession();location.reload()});
 
-  document.getElementById('loginUser')?.addEventListener('change', lgUpdateAvatar);
-  document.getElementById('loginBtn')?.addEventListener('click', lgLogin);
-  document.getElementById('loginPassword')?.addEventListener('keydown', e => {
-    if(e.key === 'Enter') lgLogin();
-  });
-  document.getElementById('reloadUsersBtn')?.addEventListener('click', lgPopulateUsers);
-  document.getElementById('togglePassword')?.addEventListener('click', () => {
-    const p = document.getElementById('loginPassword');
-    if(p) p.type = p.type === 'password' ? 'text' : 'password';
-  });
-  document.getElementById('logoutBtn')?.addEventListener('click', () => {
-    lgClearSession();
-    location.reload();
-  });
-
-  const originalMonth = document.getElementById('month');
-  const executiveMonth = document.getElementById('execMonth');
-  if(originalMonth && executiveMonth) {
-    executiveMonth.innerHTML = originalMonth.innerHTML;
-    executiveMonth.value = originalMonth.value;
-    executiveMonth.addEventListener('change', () => {
-      originalMonth.value = executiveMonth.value;
-      originalMonth.dispatchEvent(new Event('change'));
-    });
+  // mirror existing month selector into executive top bar
+  const src=document.getElementById('month'), dst=document.getElementById('execMonth');
+  if(src&&dst){
+    dst.innerHTML=src.innerHTML;
+    dst.value=src.value;
+    dst.addEventListener('change',()=>{src.value=dst.value;src.dispatchEvent(new Event('change'))});
   }
 });
