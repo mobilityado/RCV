@@ -44,3 +44,14 @@ Esta edición añade Pulso RCV 0-100, centro de alertas, bloque “Qué cambió�
 - Paleta corporativa refinada: morado profundo, blanco/gris y colores semánticos para alertas.
 
 Nota: la reproducción 1:1 de plantillas Excel con componentes propietarios (por ejemplo XLCubed) requiere validar cada plantilla original y sus conexiones; esta versión conserva el generador operativo existente y añade exportaciones ejecutivas del portal.
+
+## Intelligence Edition 2.1 — Reorganización ejecutiva
+- Jerarquía visual renovada.
+- Barra superior de identidad ejecutiva.
+- Filtros y formularios agrupados.
+- KPIs alineados en cuadrícula consistente.
+- Gráficas organizadas con espaciado uniforme.
+- Botones de acción y descarga agrupados.
+- Centro de Reportes Ejecutivos claramente separado.
+- Mejor comportamiento en tablet y celular.
+- Modo presentación más limpio.

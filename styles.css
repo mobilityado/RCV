@@ -64,3 +64,284 @@ body{background:var(--exec-bg);}
   .main-content,main{margin:0!important;padding:0!important;width:100%!important;}
 }
 .presentation-mode .export-suite{display:none!important;}
+
+/* =========================================================
+   REPORT.IA RCV · Intelligence Edition 2.1
+   Executive layout reorganization
+   ========================================================= */
+
+.executive-layout-v21{
+  --layout-bg:#f4f5f8;
+  --panel:#ffffff;
+  --panel-soft:#faf9fc;
+  --ink:#18151f;
+  --muted:#716a7b;
+  --line:#e8e3ee;
+  --purple:#6d28d9;
+  --purple-2:#8b5cf6;
+  --purple-deep:#25143d;
+  --shadow:0 10px 28px rgba(36,17,63,.07);
+  background:var(--layout-bg);
+  color:var(--ink);
+}
+
+.executive-layout-v21 main,
+.executive-layout-v21 .main-content{
+  max-width:1480px;
+  margin:0 auto;
+  padding:24px 28px 56px;
+}
+
+.layout-intro{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  padding:22px 26px;
+  margin:0 0 22px;
+  border-radius:20px;
+  color:#fff;
+  background:
+    radial-gradient(circle at 82% 15%, rgba(139,92,246,.35), transparent 28%),
+    linear-gradient(135deg,#17121f 0%,#26133d 46%,#5b21b6 100%);
+  box-shadow:0 20px 45px rgba(36,17,63,.17);
+}
+.layout-intro h1{margin:4px 0 3px;font-size:clamp(1.45rem,2vw,2.2rem);}
+.layout-intro p{margin:0;color:rgba(255,255,255,.77);}
+.layout-intro .eyebrow{color:#d8c7ff;}
+.layout-intro__badge{
+  flex:0 0 auto;
+  padding:10px 14px;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  font-size:.78rem;
+  font-weight:800;
+}
+
+/* Main information architecture */
+.executive-layout-v21 section,
+.executive-layout-v21 .content-section,
+.executive-layout-v21 .page,
+.executive-layout-v21 .view{
+  scroll-margin-top:22px;
+}
+
+.executive-layout-v21 .card,
+.executive-layout-v21 .panel,
+.executive-layout-v21 .chart-card,
+.executive-layout-v21 .kpi-card,
+.executive-layout-v21 .metric-card,
+.executive-layout-v21 .stat-card{
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--panel);
+  box-shadow:var(--shadow);
+}
+
+/* Forms and filter areas become a single executive control bar */
+.executive-layout-v21 form,
+.executive-layout-v21 .filters,
+.executive-layout-v21 .filter-bar,
+.executive-layout-v21 .controls,
+.executive-layout-v21 .toolbar,
+.executive-layout-v21 .upload-zone{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:end;
+  gap:12px;
+}
+
+.executive-layout-v21 form,
+.executive-layout-v21 .filters,
+.executive-layout-v21 .filter-bar,
+.executive-layout-v21 .toolbar{
+  padding:14px 16px;
+  margin-bottom:18px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--panel);
+  box-shadow:0 6px 18px rgba(36,17,63,.04);
+}
+
+.executive-layout-v21 label{
+  font-size:.75rem;
+  font-weight:800;
+  color:#5d5667;
+}
+
+.executive-layout-v21 input,
+.executive-layout-v21 select{
+  min-height:42px;
+  border:1px solid #ddd6e6;
+  border-radius:10px;
+  background:#fff;
+}
+
+/* Keep actions grouped instead of scattered */
+.executive-layout-v21 .btn,
+.executive-layout-v21 button{
+  min-height:42px;
+  border-radius:11px;
+}
+
+.executive-layout-v21 .actions,
+.executive-layout-v21 .button-group,
+.executive-layout-v21 .download-actions,
+.executive-layout-v21 .export-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  align-items:center;
+}
+
+/* KPI cards as a clean, consistent row */
+.executive-layout-v21 .kpi-grid,
+.executive-layout-v21 .metrics-grid,
+.executive-layout-v21 .stats-grid,
+.executive-layout-v21 .summary-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin:18px 0;
+}
+.executive-layout-v21 .kpi-card,
+.executive-layout-v21 .metric-card,
+.executive-layout-v21 .stat-card{
+  padding:18px;
+  min-height:112px;
+}
+
+/* Organize chart-heavy content into a dashboard grid */
+.executive-layout-v21 .charts-grid,
+.executive-layout-v21 .dashboard-grid,
+.executive-layout-v21 .analytics-grid{
+  display:grid;
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:16px;
+  align-items:start;
+}
+
+.executive-layout-v21 .charts-grid > *,
+.executive-layout-v21 .dashboard-grid > *,
+.executive-layout-v21 .analytics-grid > *{
+  grid-column:span 6;
+  min-width:0;
+}
+
+.executive-layout-v21 canvas{
+  max-height:360px!important;
+}
+
+/* Any direct chart cards/cards inside main get breathing room */
+.executive-layout-v21 .chart-card,
+.executive-layout-v21 .card{
+  padding:18px;
+  margin-bottom:16px;
+}
+
+/* Tables look compact and executive */
+.executive-layout-v21 table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fff;
+}
+.executive-layout-v21 th{
+  background:#f7f4fb;
+  color:#453c50;
+  font-size:.76rem;
+  letter-spacing:.02em;
+}
+.executive-layout-v21 th,
+.executive-layout-v21 td{
+  padding:10px 12px;
+  border-bottom:1px solid #eee9f3;
+}
+
+/* Executive export area at the end, clearly separated */
+.executive-layout-v21 .export-suite{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(360px,.8fr);
+  gap:24px;
+  align-items:center;
+  margin-top:30px;
+  padding:24px;
+  border-radius:20px;
+}
+.executive-layout-v21 .export-actions{
+  justify-content:flex-end;
+}
+.section-chip{
+  display:inline-flex;
+  margin-top:6px;
+  padding:5px 9px;
+  border-radius:999px;
+  background:#f0e9ff;
+  color:#5b21b6;
+  font-size:.72rem;
+  font-weight:800;
+}
+
+/* If legacy elements are absolutely positioned, neutralize them inside content */
+.executive-layout-v21 main .card,
+.executive-layout-v21 main .panel,
+.executive-layout-v21 main .chart-card,
+.executive-layout-v21 main form,
+.executive-layout-v21 main .filters,
+.executive-layout-v21 main .toolbar{
+  position:relative;
+  inset:auto;
+  float:none;
+}
+
+/* Mobile/tablet hierarchy */
+@media(max-width:1100px){
+  .executive-layout-v21 .kpi-grid,
+  .executive-layout-v21 .metrics-grid,
+  .executive-layout-v21 .stats-grid,
+  .executive-layout-v21 .summary-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .executive-layout-v21 .export-suite{
+    grid-template-columns:1fr;
+  }
+  .executive-layout-v21 .export-actions{justify-content:flex-start;}
+}
+@media(max-width:760px){
+  .executive-layout-v21 main,
+  .executive-layout-v21 .main-content{padding:14px 12px 34px;}
+  .layout-intro{padding:18px;align-items:flex-start;flex-direction:column;}
+  .layout-intro__badge{display:none;}
+  .executive-layout-v21 .kpi-grid,
+  .executive-layout-v21 .metrics-grid,
+  .executive-layout-v21 .stats-grid,
+  .executive-layout-v21 .summary-grid{
+    grid-template-columns:1fr;
+  }
+  .executive-layout-v21 .charts-grid > *,
+  .executive-layout-v21 .dashboard-grid > *,
+  .executive-layout-v21 .analytics-grid > *{
+    grid-column:1 / -1;
+  }
+  .executive-layout-v21 .export-actions .btn,
+  .executive-layout-v21 .export-actions button{
+    width:100%;
+  }
+}
+
+/* Presentation mode becomes truly clean */
+.executive-layout-v21.presentation-mode .layout-intro{
+  margin-bottom:14px;
+}
+.executive-layout-v21.presentation-mode .sidebar,
+.executive-layout-v21.presentation-mode .toolbar,
+.executive-layout-v21.presentation-mode form,
+.executive-layout-v21.presentation-mode .filters,
+.executive-layout-v21.presentation-mode .filter-bar,
+.executive-layout-v21.presentation-mode .export-suite{
+  display:none!important;
+}
