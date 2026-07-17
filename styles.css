@@ -1367,3 +1367,190 @@ body.executive-layout-v21 .card-head span{font-size:7px!important}
   body.executive-layout-v21 .executive-grid,
   body.executive-layout-v21 .pulse-layout{grid-template-columns:1fr!important}
 }
+
+/* =========================================================
+   CARGA DE ARCHIVOS EN ÁREA BLANCA · v3.3
+   ========================================================= */
+.workspace-upload-card{
+  display:grid;
+  grid-template-columns:minmax(260px,.8fr) minmax(320px,1.2fr);
+  gap:18px;
+  align-items:stretch;
+  margin:0 0 16px!important;
+  padding:16px!important;
+  border:1px solid #e8e8ef!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  box-shadow:0 5px 16px rgba(30,25,65,.035)!important;
+}
+.workspace-upload-heading{
+  grid-column:1 / -1;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding-bottom:11px;
+  border-bottom:1px solid #eeeeF3;
+}
+.workspace-kicker{
+  display:block;
+  margin-bottom:3px;
+  color:#6528df;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.08em;
+}
+.workspace-upload-heading h2{
+  margin:0;
+  font-size:16px;
+  color:#14132a;
+}
+.workspace-upload-heading p{
+  margin:4px 0 0;
+  color:#747287;
+  font-size:9px;
+}
+.workspace-info{
+  padding:6px 9px;
+  border-radius:999px;
+  background:#f2edff;
+  color:#5b21d8;
+  font-size:8px;
+  font-weight:750;
+  white-space:nowrap;
+}
+.workspace-dropzone{
+  min-height:122px!important;
+  padding:16px!important;
+  border:1px dashed #b9a7ef!important;
+  border-radius:10px!important;
+  background:#faf8ff!important;
+  display:flex!important;
+  flex-direction:column;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center;
+  gap:4px!important;
+  cursor:pointer;
+}
+.workspace-dropzone:hover{
+  border-color:#6d35e7!important;
+  background:#f6f1ff!important;
+}
+.workspace-upload-icon{
+  font-size:27px;
+  color:#5b25dc;
+  line-height:1;
+}
+.workspace-dropzone strong{
+  color:#27213d!important;
+  font-size:10px!important;
+}
+.workspace-dropzone small{
+  color:#777286!important;
+  font-size:8px!important;
+}
+.workspace-dropzone em{
+  margin-top:8px;
+  color:#9893a6;
+  font-size:7px;
+  font-style:normal;
+}
+.workspace-file-list{
+  max-height:70px;
+  overflow:auto;
+  margin-top:6px;
+}
+.workspace-validation{
+  align-self:start;
+}
+.workspace-validation .validation-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  background:none!important;
+  box-shadow:none!important;
+}
+.workspace-validation .validation-card,
+.workspace-validation .source-card,
+.workspace-validation .empty-state{
+  min-height:45px!important;
+  padding:8px!important;
+  border:1px solid #ebe8f1!important;
+  border-radius:8px!important;
+  background:#fbfbfd!important;
+  color:#686478!important;
+  font-size:8px!important;
+}
+.workspace-select-btn,
+.workspace-clear-btn,
+.workspace-process-btn{
+  min-height:34px!important;
+  border-radius:8px!important;
+  font-size:9px!important;
+  font-weight:750!important;
+}
+.workspace-select-btn{
+  border:1px solid #ded7ee!important;
+  background:#fff!important;
+  color:#4c287f!important;
+}
+.workspace-clear-btn{
+  border:1px solid #e7e4ec!important;
+  background:#fafafa!important;
+  color:#777286!important;
+}
+.workspace-process-btn{
+  border:0!important;
+  background:linear-gradient(90deg,#5723df,#6b2ff0)!important;
+  color:#fff!important;
+}
+.workspace-process-btn:disabled{opacity:.38}
+.workspace-status{
+  margin:5px 0 0!important;
+  color:#817c90!important;
+  font-size:8px!important;
+}
+
+/* Sidebar now breathes more without uploader */
+.mockup-sidebar{
+  overflow-y:auto!important;
+}
+.mockup-user{
+  margin-top:22px!important;
+}
+
+/* Keep the uploader visually compact */
+.workspace-upload-card > .workspace-dropzone{
+  grid-column:1;
+  grid-row:2 / span 4;
+}
+.workspace-upload-card > .workspace-file-list,
+.workspace-upload-card > .workspace-validation,
+.workspace-upload-card > .workspace-select-btn,
+.workspace-upload-card > .workspace-clear-btn,
+.workspace-upload-card > .workspace-process-btn,
+.workspace-upload-card > .workspace-status{
+  grid-column:2;
+}
+.workspace-upload-card > .workspace-select-btn{
+  width:64%;
+}
+.workspace-upload-card > .workspace-clear-btn{
+  width:34%;
+  justify-self:end;
+  margin-top:-34px;
+}
+.workspace-upload-card > .workspace-process-btn{
+  width:100%;
+}
+
+@media(max-width:900px){
+  .workspace-upload-card{grid-template-columns:1fr}
+  .workspace-upload-card > *{grid-column:1!important;grid-row:auto!important}
+  .workspace-upload-card > .workspace-select-btn,
+  .workspace-upload-card > .workspace-clear-btn{width:100%;margin-top:0}
+}

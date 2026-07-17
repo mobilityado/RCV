@@ -83,3 +83,9 @@ Rediseño visual completo inspirado en dashboards ejecutivos BI:
 - KPIs y alertas alineados.
 - Tendencias, mapa por gerencia y reportes ejecutivos en cuadrícula fija.
 - Preparado para GitHub Pages.
+
+
+## v3.3 — Carga en área de trabajo
+- Se retiró la carga de archivos del sidebar.
+- La carga ahora aparece como una tarjeta compacta en el área blanca superior.
+- El sidebar queda dedicado únicamente a navegación y usuario.

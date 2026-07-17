@@ -36,30 +36,7 @@
 
   <div class="mockup-separator"></div>
 
-  <section id="carga" class="mockup-upload">
-    <div class="mockup-upload-title">CARGA DE ARCHIVOS <span>ⓘ</span></div>
-
-    <div id="dropZone" class="mockup-dropzone" tabindex="0">
-      <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
-      <div class="mockup-upload-icon">⇧</div>
-      <strong>Arrastra y suelta los archivos aquí</strong>
-      <small>o haz clic para seleccionar</small>
-      <em>Formatos: .xlsx, .xls, .xlsm</em>
-    </div>
-
-    <div id="fileList" class="file-list mockup-file-list"></div>
-
-    <div id="validacion" class="mockup-validation">
-      <div id="validationGrid" class="validation-grid">
-        <div class="empty-state">Sin archivos cargados</div>
-      </div>
-    </div>
-
-    <button id="browseBtn" type="button" class="mockup-select-btn">Seleccionar archivos</button>
-    <button id="clearBtn" type="button" class="mockup-clear-btn">Limpiar</button>
-    <button id="processBtn" class="mockup-process-btn" disabled>▣ Procesar Reportes</button>
-    <p id="statusText" class="mockup-status">Carga los reportes requeridos.</p>
-  </section>
+  
 
   <div class="mockup-user">
     <div class="mockup-avatar">JH</div>
@@ -102,6 +79,37 @@
     <div class="mockup-top-avatar">JH</div>
   </div>
 </header>
+<section id="carga" class="workspace-upload-card">
+    <div class="workspace-upload-heading">
+          <div>
+            <span class="workspace-kicker">ACTUALIZAR INFORMACIÓN</span>
+            <h2>Carga de archivos</h2>
+            <p>Sube tus reportes para actualizar el dashboard y generar los reportes ejecutivos.</p>
+          </div>
+          <span class="workspace-info">Procesamiento local y seguro</span>
+        </div>
+
+    <div id="dropZone" class="workspace-dropzone" tabindex="0">
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.xlsm" multiple hidden />
+      <div class="workspace-upload-icon">⇧</div>
+      <strong>Arrastra y suelta los archivos aquí</strong>
+      <small>o haz clic para seleccionar</small>
+      <em>Formatos: .xlsx, .xls, .xlsm</em>
+    </div>
+
+    <div id="fileList" class="file-list mockup-file-list"></div>
+
+    <div id="validacion" class="workspace-validation">
+      <div id="validationGrid" class="validation-grid">
+        <div class="empty-state">Sin archivos cargados</div>
+      </div>
+    </div>
+
+    <button id="browseBtn" type="button" class="workspace-select-btn">Seleccionar archivos</button>
+    <button id="clearBtn" type="button" class="workspace-clear-btn">Limpiar</button>
+    <button id="processBtn" class="workspace-process-btn" disabled>▣ Procesar Reportes</button>
+    <p id="statusText" class="workspace-status">Carga los reportes requeridos.</p>
+  </section>
 
 
     
