@@ -296,7 +296,7 @@ function renderManagers(){
   const managers=[...new Set([...cost.keys(),...exp.keys()])].sort();
   $("managerTable").innerHTML=managers.map(m=>{const c=cost.get(m)||0,e=exp.get(m)||0,total=Math.abs(c)+Math.abs(e);return `<tr><td>${m}</td><td>${money(c)}</td><td>${money(e)}</td><td>${money(total)}</td><td><span class="pill low">Procesado</span></td></tr>`;}).join("");
 }
-function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();}
+function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();buildExecutiveIntelligence();}
 
 function tableSheet(title, headers, data, period) {
   const aoa=[["REPORT.IA RCV"],[title],["Periodo",period],[],headers,...data];
@@ -407,7 +407,88 @@ function answer(q){
   if(/riesgo/.test(l)){const d=t.deviations[0];return d?`La mayor desviación es ${d.type} en ${d.manager}: ${(d.pct*100).toFixed(2)}% respecto a 2025.`:"No hay desviaciones mayores al umbral configurado.";}
   if(/mayor gasto|gerencia.*gasto/.test(l)){const x=state.model.expenseSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];return `${x.manager} registra el mayor gasto 2026: ${money(x.y2026)}.`;}
   if(/productividad|xpv/.test(l))return `XPV real ${money(t.xpReal)} contra presupuesto ${money(t.xpBudget)}; cumplimiento ${(t.xpCompliance*100).toFixed(2)}%.`;
+  if(/junta|mencionar|discurso/.test(l))return prepareSpeech();
+  if(/80%|pareto|concentra/.test(l))return paretoAnswer();
   return "Puedo responder sobre resumen, principal riesgo, mayor gasto y productividad XPV usando el modelo procesado.";
+}
+
+
+function buildExecutiveIntelligence(){
+  if(!state.model){
+    $("directorBrief").className="exec-content empty";
+    $("directorBrief").textContent="Procesa los archivos para generar el brief ejecutivo.";
+    ["execConclusions","execRisks","execActions"].forEach(id=>$(id).innerHTML="");
+    $("alertsList").innerHTML='<div class="empty">Sin alertas disponibles.</div>';
+    $("alertsCount").textContent="0";
+    return;
+  }
+  const t=modelTotals();
+  const dev=t.deviations;
+  const topCost=state.model.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];
+  const topExpense=state.model.expenseSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];
+  const positive=[...state.model.costSummary,...state.model.expenseSummary].filter(x=>x.pct2526!=null&&x.pct2526<0).sort((a,b)=>a.pct2526-b.pct2526)[0];
+
+  const conclusions=[
+    `El cumplimiento XPV del periodo es ${(t.xpCompliance*100).toFixed(2)}%.`,
+    `${topCost?.manager||"—"} concentra el mayor costo: ${money(topCost?.y2026||0)}.`,
+    `${topExpense?.manager||"—"} registra el mayor gasto: ${money(topExpense?.y2026||0)}.`
+  ];
+  const risks=[
+    dev[0]?`${dev[0].manager} presenta la mayor desviación: ${(dev[0].pct*100).toFixed(2)}%.`:"No hay desviaciones superiores al umbral.",
+    `${new Set(dev.map(d=>d.manager)).size} gerencias requieren atención por variación adversa.`,
+    t.xpCompliance<1?`XPV se encuentra por debajo de presupuesto en ${((1-t.xpCompliance)*100).toFixed(2)} puntos porcentuales.`:"XPV cumple o supera el presupuesto."
+  ];
+  const actions=[
+    dev[0]?`Revisar causa raíz de ${dev[0].type.toLowerCase()} en ${dev[0].manager}.`:"Mantener monitoreo de variaciones.",
+    `Analizar el 80% del impacto concentrado antes de ampliar la revisión.`,
+    `Asignar responsable y fecha compromiso a las tres principales desviaciones.`
+  ];
+
+  $("execConclusions").innerHTML=conclusions.map(x=>`<div class="mini-item">${x}</div>`).join("");
+  $("execRisks").innerHTML=risks.map(x=>`<div class="mini-item">${x}</div>`).join("");
+  $("execActions").innerHTML=actions.map(x=>`<div class="mini-item">${x}</div>`).join("");
+
+  $("directorBrief").className="exec-content";
+  $("directorBrief").innerHTML=`<strong>Resumen Ejecutivo — ${state.model.month} 2026</strong><br><br>
+  El periodo presenta un cumplimiento XPV de <b>${(t.xpCompliance*100).toFixed(2)}%</b>.
+  Se identificaron <b>${new Set(dev.map(d=>d.manager)).size} gerencias con alertas</b>.
+  La mayor presión en costos se concentra en <b>${topCost?.manager||"—"}</b> con ${money(topCost?.y2026||0)},
+  mientras que la mayor presión en gastos corresponde a <b>${topExpense?.manager||"—"}</b> con ${money(topExpense?.y2026||0)}.
+  ${positive?`Como señal positiva, ${positive.manager} muestra una reducción de ${Math.abs(positive.pct2526*100).toFixed(2)}% respecto a 2025.`:""}
+  <br><br><b>Recomendación:</b> priorizar las tres mayores desviaciones, validar su causa y asignar responsables de seguimiento.`;
+
+  const alerts=[];
+  dev.slice(0,5).forEach((d,i)=>alerts.push({type:i===0?"critical":"warning",title:`${d.type} · ${d.manager}`,text:`Variación ${(d.pct*100).toFixed(2)}% vs 2025.`}));
+  if(positive)alerts.push({type:"positive",title:`Mejora · ${positive.manager}`,text:`Reducción ${Math.abs(positive.pct2526*100).toFixed(2)}% vs 2025.`});
+  alerts.push({type:"info",title:"Productividad XPV",text:`Cumplimiento ${(t.xpCompliance*100).toFixed(2)}% del presupuesto.`});
+  $("alertsList").innerHTML=alerts.map(a=>`<div class="alert-item"><i class="alert-dot ${a.type}"></i><div><strong>${a.title}</strong><span>${a.text}</span></div></div>`).join("");
+  $("alertsCount").textContent=alerts.length;
+
+  $("slideHeadline").textContent=`${state.model.month} 2026 · Estado Ejecutivo`;
+  $("slideSummary").textContent=`Cumplimiento XPV ${(t.xpCompliance*100).toFixed(2)}%, ${new Set(dev.map(d=>d.manager)).size} alertas gerenciales y foco principal en ${dev[0]?.manager||"sin desviaciones críticas"}.`;
+  $("slideCost").textContent=money(t.cost2026);$("slideExpense").textContent=money(t.expense2026);$("slideXpv").textContent=(t.xpCompliance*100).toFixed(1)+"%";$("slideAlerts").textContent=new Set(dev.map(d=>d.manager)).size;
+  $("slideRisks").innerHTML=risks.map(x=>`<div class="presentation-item">${x}</div>`).join("");
+  $("slideFindings").innerHTML=conclusions.map(x=>`<div class="presentation-item">${x}</div>`).join("");
+  $("slideActions").innerHTML=actions.map(x=>`<div class="presentation-item">${x}</div>`).join("");
+}
+let currentSlide=0;
+function showSlide(n){
+  const slides=qa(".presentation-slide");
+  currentSlide=(n+slides.length)%slides.length;
+  slides.forEach((s,i)=>s.classList.toggle("active",i===currentSlide));
+  $("slideIndicator").textContent=`${currentSlide+1} / ${slides.length}`;
+}
+function prepareSpeech(){
+  if(!state.model)return "Procesa los archivos para generar el discurso.";
+  const t=modelTotals(),d=t.deviations[0];
+  return `Buenos días. Para el periodo ${state.model.month} 2026, el cumplimiento de productividad XPV es ${(t.xpCompliance*100).toFixed(2)}%. El costo total acumulado es ${money(t.cost2026)} y el gasto total ${money(t.expense2026)}. ${d?`Nuestra principal desviación se encuentra en ${d.manager}, con un incremento de ${(d.pct*100).toFixed(2)}%.`:"No identificamos desviaciones superiores al umbral configurado."} La recomendación es concentrar la revisión en las tres mayores desviaciones y asignar responsables para su seguimiento.`;
+}
+function paretoAnswer(){
+  if(!state.model)return "Procesa los archivos primero.";
+  const map=new Map();[...state.model.costSummary,...state.model.expenseSummary].forEach(x=>map.set(x.manager,(map.get(x.manager)||0)+Math.abs(x.y2026)));
+  const arr=[...map.entries()].sort((a,b)=>b[1]-a[1]),total=arr.reduce((s,x)=>s+x[1],0);let acc=0,names=[];
+  for(const [m,v] of arr){if(acc/total<.8){names.push(m);acc+=v;}}
+  return `El 80% aproximado del impacto se concentra en ${names.length} gerencias: ${names.join(", ")}.`;
 }
 
 document.addEventListener("click",async e=>{
@@ -429,6 +510,19 @@ document.addEventListener("click",async e=>{
   if(e.target.closest("#validateBtn"))validateAgainstFinal();
   if(e.target.closest("#refreshBtn")){state.periodIndex=Number($("periodSelect").value);if(state.model)processModel();}
   if(e.target.closest("#applySettings")){state.threshold=Number($("criticalThreshold").value)||10;state.periodIndex=Number($("settingsPeriod").value);$("periodSelect").value=state.periodIndex;if(state.model)processModel();}
+  if(e.target.closest("#presentationBtn")){$("presentationOverlay").classList.add("open");showSlide(0);}
+  if(e.target.closest("#closePresentation"))$("presentationOverlay").classList.remove("open");
+  if(e.target.closest("#nextSlide"))showSlide(currentSlide+1);
+  if(e.target.closest("#prevSlide"))showSlide(currentSlide-1);
+  if(e.target.closest("#alertsBtn"))$("alertsDrawer").classList.add("open");
+  if(e.target.closest("#closeAlerts"))$("alertsDrawer").classList.remove("open");
+  const exec=e.target.closest("[data-exec]");
+  if(exec){
+    if(!state.model)return alert("Primero procesa los archivos JD.");
+    if(exec.dataset.exec==="brief"){$("directorBrief").scrollIntoView({behavior:"smooth"});}
+    if(exec.dataset.exec==="speech")alert(prepareSpeech());
+    if(exec.dataset.exec==="recommendations")alert($("execActions").innerText||"Sin recomendaciones.");
+  }
   if(e.target.closest("#copilotToggle"))$("copilot").classList.add("open");
   if(e.target.closest("#copilotClose"))$("copilot").classList.remove("open");
   const prompt=e.target.closest(".prompts button");if(prompt){$("question").value=prompt.textContent;$("askBtn").click();}
@@ -445,4 +539,5 @@ $("question").addEventListener("keydown",e=>{if(e.key==="Enter")$("askBtn").clic
 
 renderChecklist();
 clearDashboard();
+buildExecutiveIntelligence();
 })();

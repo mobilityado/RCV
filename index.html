@@ -10,6 +10,49 @@
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
+
+<div class="secure-login" id="secureLogin">
+  <div class="secure-login-bg"></div>
+  <div class="secure-login-shell">
+    <section class="secure-brand-panel">
+      <div class="secure-brand-lockup">
+        <svg viewBox="0 0 64 64" aria-hidden="true">
+          <defs><linearGradient id="loginGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d4ed8"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs>
+          <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#loginGrad)"/>
+          <path d="M17 44V19h15c7.6 0 12.5 3.9 12.5 9.5 0 4.1-2.5 7.2-6.8 8.5L47 44h-8.5l-8-6H25v6h-8Zm8-12h6.6c3 0 4.9-1.3 4.9-3.3 0-2.1-1.9-3.4-4.9-3.4H25V32Z" fill="#fff"/>
+          <path d="M42 27l4-5 4 3 5-8" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/>
+        </svg>
+        <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
+      </div>
+      <div class="secure-brand-copy">
+        <span>EXECUTIVE COMMAND CENTER</span>
+        <h1>Inteligencia confiable para decisiones reales.</h1>
+        <p>Procesa, valida y analiza la información RCV con un modelo único de datos.</p>
+      </div>
+      <div class="secure-brand-footer">Gerencia Regional de Recaudación VHT · Mobility ADO</div>
+    </section>
+    <section class="secure-form-panel">
+      <div class="secure-form-card">
+        <div class="secure-form-icon">▣</div>
+        <h2>Iniciar sesión</h2>
+        <p>Selecciona tu usuario e ingresa tu contraseña.</p>
+        <label>Usuario
+          <select id="loginUser"><option value="">Cargando usuarios…</option></select>
+        </label>
+        <label>Contraseña
+          <div class="password-wrap">
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Ingresa tu contraseña">
+            <button type="button" id="togglePassword">◉</button>
+          </div>
+        </label>
+        <button class="secure-login-btn" id="loginBtn">Entrar a REPORT.IA</button>
+        <div class="secure-login-message" id="loginMessage"></div>
+        <div class="secure-api-status" id="apiStatus">Conectando con el servicio de usuarios…</div>
+      </div>
+    </section>
+  </div>
+</div>
+
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand">
@@ -41,7 +84,7 @@
     </nav>
 
     <div class="sidebar-bottom">
-      <div class="user"><div>AD</div><span><strong>Administrador</strong><small>Administrador del sistema</small></span></div>
+      <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
       <div class="online"><i></i><span>Sistema en línea</span><b>19.0</b></div>
     </div>
   </aside>
@@ -49,10 +92,10 @@
   <main>
     <section class="view active" data-view="home">
       <header class="topbar">
-        <div><span class="eyebrow">BIENVENIDO, ADMINISTRADOR</span><h1>Centro de Mando Ejecutivo</h1><p>Información calculada directamente desde los JD que generan los reportes FINAL.</p></div>
+        <div><span class="eyebrow" id="welcomeUser">BIENVENIDO</span><h1>Centro de Mando Ejecutivo</h1><p>Información calculada directamente desde los JD que generan los reportes FINAL.</p></div>
         <div class="top-actions">
           <label>Periodo seleccionado<select id="periodSelect"></select></label>
-          <button id="refreshBtn">↻ Actualizar datos</button>
+          <button id="refreshBtn">↻ Actualizar datos</button><button id="presentationBtn">▣ Presentar</button><button id="alertsBtn">🔔 <span id="alertsCount">0</span></button>
         </div>
       </header>
 
@@ -98,10 +141,25 @@
             <button data-report="variations">Variaciones 25 vs 26</button>
             <button data-report="pareto">Pareto 80/20</button>
             <button data-report="actions">Plan de Acción</button>
-            <button class="wide" data-action="downloadAll">★ Generar paquete FINAL</button>
+            <button data-exec="brief">✨ Brief para Dirección</button><button data-exec="speech">🎤 Preparar discurso</button><button data-exec="recommendations">🧭 Recomendaciones</button><button class="wide" data-action="downloadAll">★ Generar paquete FINAL</button>
           </div>
         </article>
       </div>
+
+      <section class="exec-intelligence">
+        <article class="exec-card">
+          <div class="exec-card-head"><div><span>BRIEF PARA DIRECCIÓN</span><h3>Resumen ejecutivo automático</h3></div><button data-exec="brief">Generar</button></div>
+          <div id="directorBrief" class="exec-content empty">Procesa los archivos para generar el brief ejecutivo.</div>
+        </article>
+        <article class="exec-card">
+          <div class="exec-card-head"><div><span>3 · 3 · 3</span><h3>Conclusiones, riesgos y acciones</h3></div></div>
+          <div class="triple-grid">
+            <div><strong>Conclusiones</strong><div id="execConclusions" class="mini-list"></div></div>
+            <div><strong>Riesgos</strong><div id="execRisks" class="mini-list"></div></div>
+            <div><strong>Acciones</strong><div id="execActions" class="mini-list"></div></div>
+          </div>
+        </article>
+      </section>
     </section>
 
     <section class="view" data-view="upload">
@@ -164,16 +222,56 @@
   </main>
 </div>
 
+<aside class="alerts-drawer" id="alertsDrawer">
+  <div class="alerts-head"><strong>Centro de Alertas Inteligentes</strong><button id="closeAlerts">×</button></div>
+  <div id="alertsList" class="alerts-list"><div class="empty">Sin alertas disponibles.</div></div>
+</aside>
+
+<div class="presentation-overlay" id="presentationOverlay">
+  <div class="presentation-top"><div><span>REPORT.IA RCV</span><strong>Modo Presentación Ejecutiva</strong></div><button id="closePresentation">×</button></div>
+  <div class="presentation-stage">
+    <section class="presentation-slide active" data-slide="0">
+      <span class="slide-kicker">RESUMEN EJECUTIVO</span>
+      <h1 id="slideHeadline">Sin información procesada</h1>
+      <p id="slideSummary">Procesa los JD para iniciar la presentación.</p>
+      <div class="presentation-kpis">
+        <div><span>Costo</span><strong id="slideCost">$0</strong></div>
+        <div><span>Gasto</span><strong id="slideExpense">$0</strong></div>
+        <div><span>XPV</span><strong id="slideXpv">0%</strong></div>
+        <div><span>Alertas</span><strong id="slideAlerts">0</strong></div>
+      </div>
+    </section>
+    <section class="presentation-slide" data-slide="1">
+      <span class="slide-kicker">PRINCIPALES RIESGOS</span>
+      <h1>Qué requiere atención</h1>
+      <div id="slideRisks" class="presentation-list"></div>
+    </section>
+    <section class="presentation-slide" data-slide="2">
+      <span class="slide-kicker">HALLAZGOS</span>
+      <h1>Qué está pasando</h1>
+      <div id="slideFindings" class="presentation-list"></div>
+    </section>
+    <section class="presentation-slide" data-slide="3">
+      <span class="slide-kicker">ACCIONES</span>
+      <h1>Qué recomendamos hacer</h1>
+      <div id="slideActions" class="presentation-list"></div>
+    </section>
+  </div>
+  <div class="presentation-controls"><button id="prevSlide">← Anterior</button><span id="slideIndicator">1 / 4</span><button id="nextSlide">Siguiente →</button></div>
+</div>
+
 <div class="copilot" id="copilot">
   <button class="copilot-toggle" id="copilotToggle">🤖 <span><strong>Copiloto Ejecutivo</strong><small>Pregúntame sobre los datos procesados</small></span></button>
   <div class="copilot-panel">
     <div class="copilot-head"><strong>Copiloto REPORT.IA</strong><button id="copilotClose">×</button></div>
     <div class="chat" id="chat"><div class="bot">Hola. Primero procesa tus archivos JD. Después podré responder usando únicamente los resultados calculados.</div></div>
-    <div class="prompts"><button>Dame un resumen</button><button>¿Cuál es el principal riesgo?</button><button>¿Qué gerencia tiene mayor gasto?</button></div>
+    <div class="prompts"><button>Dame un resumen</button><button>¿Cuál es el principal riesgo?</button><button>¿Qué gerencia tiene mayor gasto?</button><button>¿Qué debo mencionar en la junta?</button><button>¿Dónde se concentra el 80%?</button></div>
     <div class="chat-input"><input id="question" placeholder="Escribe tu pregunta..."><button id="askBtn">Enviar</button></div>
   </div>
 </div>
 
+<script src="config.js"></script>
 <script src="app.js"></script>
+<script src="auth.js"></script>
 </body>
 </html>
