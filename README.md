@@ -79,3 +79,9 @@ Nota: la reproducción 1:1 de plantillas Excel con componentes propietarios (por
 - Flujo simple: desplegable > contraseña > validación.
 - Tres niveles para cargar nombres: Apps Script, Google Sheets público y fallback local.
 - Contraseñas solo se validan mediante Apps Script.
+
+## Login Garantizado
+- Usuarios cargados directamente desde el proyecto.
+- La lista no depende de CORS, Google Sheets ni Apps Script.
+- Contraseña validada remotamente.
+- Fetch con fallback JSONP para validar el acceso.

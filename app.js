@@ -661,173 +661,124 @@ window.onload=function(){
 })();
 
 
-// ===== AVA-STYLE LOGIN · SIMPLE AND STABLE =====
-const AVA_AUTH_ENDPOINT = "https://script.google.com/macros/s/AKfycbxUhENeMAGaVJx2Gs4yR_qncJJxHyq8NlFFSfa9qu7XBDgcDu4L9HasfrzZSQBOKgwp/exec";
-const AVA_SHEET_ID = "1-ubGZl24R0QMMcF9acK2_6wX4lOZcVPT0OOKTOLT0Mo";
-const AVA_SESSION_KEY = 'reportia_rcv_ava_style_session';
+// ===== LOGIN GARANTIZADO · LISTA LOCAL + VALIDACIÓN REMOTA =====
+const LOGIN_ENDPOINT = "https://script.google.com/macros/s/AKfycbxUhENeMAGaVJx2Gs4yR_qncJJxHyq8NlFFSfa9qu7XBDgcDu4L9HasfrzZSQBOKgwp/exec";
+const LOGIN_SESSION_KEY = 'reportia_rcv_login_garantizado';
+const LOCAL_AUTHORIZED_USERS = [{"usuario": "JOSE ANGEL LOPEZ HERNANDEZ", "tipo": "ADMINISTRADOR"}, {"usuario": "CP.DARWIN PALACIOS RODRIGUEZ", "tipo": "ADMINISTRADOR"}, {"usuario": "CP.JAIME DIAZ RODRIGUEZ", "tipo": "ADMINISTRADOR"}, {"usuario": "CP.RAUL MARTINEZ VAZQUEZ", "tipo": "ADMINISTRADOR"}, {"usuario": "COATZA", "tipo": "ADMINISTRADOR"}, {"usuario": "VILLAHERMOSA", "tipo": "ADMINISTRADOR"}, {"usuario": "TUXTLA", "tipo": "ADMINISTRADOR"}, {"usuario": "INVITADO", "tipo": "ADMINISTRADOR"}, {"usuario": "INVITADO 2", "tipo": "ADMINISTRADOR"}, {"usuario": "INVITADO 3", "tipo": "ADMINISTRADOR"}];
 
-// Safe fallback usernames only. No passwords are exposed here.
-// Used only if both online user-list sources fail.
-const AVA_FALLBACK_USERS = [
-  {usuario:'JOSE ANGEL LOPEZ HERNANDEZ', tipo:'ADMINISTRADOR'},
-  {usuario:'CP.DARWIN PALACIOS RODRIGUEZ', tipo:'ADMINISTRADOR'},
-  {usuario:'CP.JAIME DIAZ RODRIGUEZ', tipo:'ADMINISTRADOR'},
-  {usuario:'CP.RAUL MARTINEZ VAZQUEZ', tipo:'ADMINISTRADOR'},
-  {usuario:'COATZA', tipo:'ADMINISTRADOR'},
-  {usuario:'VILLAHERMOSA', tipo:'ADMINISTRADOR'},
-  {usuario:'TUXTLA', tipo:'ADMINISTRADOR'},
-  {usuario:'INVITADO', tipo:'ADMINISTRADOR'},
-  {usuario:'INVITADO 2', tipo:'ADMINISTRADOR'},
-  {usuario:'INVITADO 3', tipo:'ADMINISTRADOR'}
-];
-
-function avaInitials(name) {
+function lgInitials(name) {
   return String(name||'U').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
 }
-function avaGetSession() {
-  try { return JSON.parse(sessionStorage.getItem(AVA_SESSION_KEY)||'null'); }
+function lgGetSession() {
+  try { return JSON.parse(sessionStorage.getItem(LOGIN_SESSION_KEY)||'null'); }
   catch(e) { return null; }
 }
-function avaSetSession(session) {
-  sessionStorage.setItem(AVA_SESSION_KEY, JSON.stringify(session));
-}
-function avaClearSession() {
-  sessionStorage.removeItem(AVA_SESSION_KEY);
-}
+function lgSetSession(s) { sessionStorage.setItem(LOGIN_SESSION_KEY, JSON.stringify(s)); }
+function lgClearSession() { sessionStorage.removeItem(LOGIN_SESSION_KEY); }
 
-function avaPopulateUserSelect(users, mode='online') {
+function lgPopulateUsers() {
   const select = document.getElementById('loginUser');
   const status = document.getElementById('loginStatus');
-  const note = document.getElementById('loginFallbackNote');
   if(!select) return;
-
-  const clean = users
-    .map(u => typeof u === 'string' ? {usuario:u,tipo:''} : u)
-    .filter(u => String(u.usuario||'').trim());
 
   select.innerHTML =
     '<option value="">Selecciona tu usuario</option>' +
-    clean.map(u => {
-      const name = String(u.usuario||'').trim();
-      const role = String(u.tipo||'USUARIO').trim();
-      return `<option value="${name.replace(/"/g,'&quot;')}" data-role="${role.replace(/"/g,'&quot;')}">${name}</option>`;
+    LOCAL_AUTHORIZED_USERS.map(u => {
+      const name = String(u.usuario||'').replace(/"/g,'&quot;');
+      const role = String(u.tipo||'USUARIO').replace(/"/g,'&quot;');
+      return `<option value="${name}" data-role="${role}">${name}</option>`;
     }).join('');
 
   select.disabled = false;
+
   if(status) {
-    status.textContent = `${clean.length} usuarios disponibles.`;
+    status.textContent = `${LOCAL_AUTHORIZED_USERS.length} usuarios disponibles.`;
     status.className = 'secure-login-status success';
   }
+
+  const note = document.getElementById('loginFallbackNote');
   if(note) {
-    note.classList.toggle('hidden', mode === 'online');
-    note.textContent = mode === 'fallback'
-      ? 'Lista cargada en modo compatible. La contraseña se sigue validando contra Apps Script.'
-      : '';
+    note.classList.remove('hidden');
+    note.textContent = 'La lista de usuarios está disponible localmente. La contraseña se valida de forma segura con Apps Script.';
   }
-  avaUpdateAvatar();
+
+  lgUpdateAvatar();
 }
 
-async function avaLoadUsersFromAppsScript() {
-  const url = `${AVA_AUTH_ENDPOINT}?accion=usuarios&_=${Date.now()}`;
-  const res = await fetch(url, { cache:'no-store' });
-  if(!res.ok) throw new Error('Respuesta no disponible');
-  const text = await res.text();
-  const data = JSON.parse(text);
-  if(!data?.ok || !Array.isArray(data.usuarios)) throw new Error(data?.mensaje || 'Lista inválida');
-  return data.usuarios;
-}
-
-async function avaLoadUsersFromGoogleSheet() {
-  // Public CSV fallback. Only reads the first and third columns (usuario/tipo).
-  const url = `https://docs.google.com/spreadsheets/d/${AVA_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Hoja1&_=${Date.now()}`;
-  const res = await fetch(url, { cache:'no-store' });
-  if(!res.ok) throw new Error('No fue posible leer Google Sheets');
-  const csv = await res.text();
-
-  // Simple CSV parser supporting quoted cells.
-  const rows = [];
-  let row=[], cell='', quoted=false;
-  for(let i=0;i<csv.length;i++) {
-    const ch=csv[i], next=csv[i+1];
-    if(ch === '"') {
-      if(quoted && next === '"') { cell += '"'; i++; }
-      else quoted = !quoted;
-    } else if(ch === ',' && !quoted) {
-      row.push(cell); cell='';
-    } else if((ch === '\n' || ch === '\r') && !quoted) {
-      if(ch === '\r' && next === '\n') i++;
-      row.push(cell); cell='';
-      if(row.some(x=>String(x).trim())) rows.push(row);
-      row=[];
-    } else {
-      cell += ch;
-    }
-  }
-  if(cell || row.length) { row.push(cell); rows.push(row); }
-
-  return rows.slice(1).map(r=>({
-    usuario:String(r[0]||'').trim(),
-    tipo:String(r[2]||'USUARIO').trim()
-  })).filter(x=>x.usuario);
-}
-
-async function avaLoadUsers() {
-  const select = document.getElementById('loginUser');
-  const status = document.getElementById('loginStatus');
-  if(!select) return;
-
-  select.innerHTML = '<option value="">Cargando usuarios...</option>';
-  select.disabled = true;
-  if(status) {
-    status.textContent = 'Cargando usuarios autorizados...';
-    status.className = 'secure-login-status loading';
-  }
-
-  // Same practical philosophy as AVA: one straightforward source,
-  // then a simple compatible fallback.
-  try {
-    const users = await avaLoadUsersFromAppsScript();
-    avaPopulateUserSelect(users, 'online');
-    return;
-  } catch(err) {
-    console.warn('Apps Script user-list fetch failed:', err);
-  }
-
-  try {
-    const users = await avaLoadUsersFromGoogleSheet();
-    if(users.length) {
-      avaPopulateUserSelect(users, 'sheet');
-      return;
-    }
-  } catch(err) {
-    console.warn('Google Sheet fallback failed:', err);
-  }
-
-  // Last-resort names only. Login still validates password remotely.
-  avaPopulateUserSelect(AVA_FALLBACK_USERS, 'fallback');
-}
-
-function avaUpdateAvatar() {
+function lgUpdateAvatar() {
   const name = document.getElementById('loginUser')?.value || '';
   const avatar = document.getElementById('loginAvatar');
-  if(avatar) avatar.textContent = name ? avaInitials(name) : '?';
+  if(avatar) avatar.textContent = name ? lgInitials(name) : '?';
 }
 
-async function avaValidateLogin(user, pass) {
-  const url = new URL(AVA_AUTH_ENDPOINT);
-  url.searchParams.set('accion','login');
-  url.searchParams.set('usuario',user);
-  url.searchParams.set('contrasena',pass);
-  url.searchParams.set('_',Date.now());
+function lgJsonp(params) {
+  return new Promise((resolve,reject) => {
+    const callback = 'reportiaLoginCallback_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Tiempo de espera agotado al validar el acceso.'));
+    }, 12000);
 
-  const res = await fetch(url.toString(), { cache:'no-store' });
-  if(!res.ok) throw new Error('No fue posible conectar con el servicio de acceso.');
-  const text = await res.text();
-  const data = JSON.parse(text);
-  return data;
+    function cleanup() {
+      clearTimeout(timeout);
+      try { delete window[callback]; } catch(e) {}
+      script.remove();
+    }
+
+    window[callback] = data => {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('No fue posible conectar con el servicio de acceso.'));
+    };
+
+    const url = new URL(LOGIN_ENDPOINT);
+    Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+    url.searchParams.set('callback', callback);
+    script.src = url.toString();
+    document.head.appendChild(script);
+  });
 }
 
-async function avaLogin() {
+async function lgValidateLogin(user, pass) {
+  // First try normal fetch.
+  try {
+    const url = new URL(LOGIN_ENDPOINT);
+    url.searchParams.set('accion','login');
+    url.searchParams.set('usuario',user);
+    url.searchParams.set('contrasena',pass);
+    url.searchParams.set('_',Date.now());
+
+    const res = await fetch(url.toString(), {
+      method:'GET',
+      cache:'no-store',
+      redirect:'follow'
+    });
+
+    if(res.ok) {
+      const text = await res.text();
+      try {
+        const data = JSON.parse(text);
+        if(typeof data?.ok !== 'undefined') return data;
+      } catch(e) {}
+    }
+  } catch(e) {
+    console.warn('Fetch de login no disponible; se intenta JSONP.', e);
+  }
+
+  // Fallback to JSONP (requires the provided Apps Script).
+  return lgJsonp({
+    accion:'login',
+    usuario:user,
+    contrasena:pass
+  });
+}
+
+async function lgLogin() {
   const user = (document.getElementById('loginUser')?.value || '').trim();
   const pass = document.getElementById('loginPassword')?.value || '';
   const status = document.getElementById('loginStatus');
@@ -842,15 +793,16 @@ async function avaLogin() {
   status.className = 'secure-login-status loading';
 
   try {
-    const data = await avaValidateLogin(user, pass);
+    const data = await lgValidateLogin(user, pass);
     if(!data?.ok) throw new Error(data?.mensaje || 'Usuario o contraseña incorrectos.');
 
     const session = {
       name: data.usuario || user,
-      role: String(data.tipo || 'USUARIO').toUpperCase()
+      role: String(data.tipo || document.querySelector('#loginUser option:checked')?.dataset.role || 'USUARIO').toUpperCase()
     };
-    avaSetSession(session);
-    avaApplySession(session);
+
+    lgSetSession(session);
+    lgApplySession(session);
     document.getElementById('secureLogin')?.classList.add('hidden');
   } catch(err) {
     status.textContent = err.message || 'No fue posible iniciar sesión.';
@@ -858,7 +810,7 @@ async function avaLogin() {
   }
 }
 
-function avaApplySession(session) {
+function lgApplySession(session) {
   const name = session?.name || 'Usuario';
   const role = session?.role || 'USUARIO';
   const first = name.split(/\s+/)[0];
@@ -873,35 +825,35 @@ function avaApplySession(session) {
   if(roleEl) roleEl.textContent = role;
 
   const avatar = document.getElementById('execUserAvatar');
-  if(avatar) avatar.textContent = avaInitials(name);
+  if(avatar) avatar.textContent = lgInitials(name);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const session = avaGetSession();
+  const session = lgGetSession();
+
+  // Populate immediately; no network needed for the dropdown.
+  lgPopulateUsers();
 
   if(session) {
-    avaApplySession(session);
+    lgApplySession(session);
     document.getElementById('secureLogin')?.classList.add('hidden');
-  } else {
-    avaLoadUsers();
   }
 
-  document.getElementById('loginUser')?.addEventListener('change', avaUpdateAvatar);
-  document.getElementById('loginBtn')?.addEventListener('click', avaLogin);
+  document.getElementById('loginUser')?.addEventListener('change', lgUpdateAvatar);
+  document.getElementById('loginBtn')?.addEventListener('click', lgLogin);
   document.getElementById('loginPassword')?.addEventListener('keydown', e => {
-    if(e.key === 'Enter') avaLogin();
+    if(e.key === 'Enter') lgLogin();
   });
-  document.getElementById('reloadUsersBtn')?.addEventListener('click', avaLoadUsers);
+  document.getElementById('reloadUsersBtn')?.addEventListener('click', lgPopulateUsers);
   document.getElementById('togglePassword')?.addEventListener('click', () => {
     const p = document.getElementById('loginPassword');
     if(p) p.type = p.type === 'password' ? 'text' : 'password';
   });
   document.getElementById('logoutBtn')?.addEventListener('click', () => {
-    avaClearSession();
+    lgClearSession();
     location.reload();
   });
 
-  // Sync executive month selector with the original 2.1 selector.
   const originalMonth = document.getElementById('month');
   const executiveMonth = document.getElementById('execMonth');
   if(originalMonth && executiveMonth) {
