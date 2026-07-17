@@ -1394,3 +1394,173 @@ body{
     padding:12px!important;
   }
 }
+
+/* ===== REPORT.IA RCV 16.2 · Layout Core Fix + Custom Logo ===== */
+:root{
+  --sidebar-w:272px;
+  --sidebar-w-compact:232px;
+}
+
+/* Logo */
+.reportia-logo-svg{
+  width:44px;
+  height:44px;
+  flex:0 0 44px;
+  display:block;
+  filter:drop-shadow(0 8px 16px rgba(91,42,134,.22));
+}
+.sidebar .brand,
+.sidebar .sidebar-brand,
+.sidebar .logo-wrap,
+.sidebar .brand-wrap{
+  display:flex!important;
+  align-items:center!important;
+  gap:12px!important;
+}
+
+/* Core desktop geometry: force ALL major app wrappers to clear the sidebar */
+html,body{max-width:100%;overflow-x:hidden}
+.sidebar{
+  width:var(--sidebar-w)!important;
+  min-width:var(--sidebar-w)!important;
+  max-width:var(--sidebar-w)!important;
+  position:fixed!important;
+  left:0!important;
+  top:0!important;
+  bottom:0!important;
+  height:100dvh!important;
+  z-index:5000!important;
+}
+
+body.executive-layout-v21 main,
+body.executive-layout-v21 .main-content,
+body.executive-layout-v21 .content,
+body.executive-layout-v21 .app-content,
+body.executive-layout-v21 .page-content,
+body.executive-layout-v21 .dashboard-container,
+body.executive-layout-v21 .workspace,
+body.executive-layout-v21 .content-wrapper,
+body.executive-layout-v21 .main-wrapper{
+  margin-left:var(--sidebar-w)!important;
+  width:calc(100vw - var(--sidebar-w))!important;
+  max-width:calc(100vw - var(--sidebar-w))!important;
+  box-sizing:border-box!important;
+  padding-left:22px!important;
+  padding-right:22px!important;
+  overflow-x:hidden!important;
+}
+
+/* If main already wraps the others, don't add margin twice */
+body.executive-layout-v21 main .main-content,
+body.executive-layout-v21 main .content,
+body.executive-layout-v21 main .app-content,
+body.executive-layout-v21 main .page-content,
+body.executive-layout-v21 main .dashboard-container,
+body.executive-layout-v21 main .workspace,
+body.executive-layout-v21 main .content-wrapper,
+body.executive-layout-v21 main .main-wrapper{
+  margin-left:0!important;
+  width:100%!important;
+  max-width:100%!important;
+  padding-left:0!important;
+  padding-right:0!important;
+}
+
+/* Pin command/report sections inside visible content box */
+.command15,
+.report16,
+.story14,
+.insight360-center,
+.reporting-center,
+.automation-center,
+.generator-studio{
+  width:100%!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+
+/* Prevent children from causing horizontal overflow */
+.command15 *,
+.report16 *,
+.story14 *,
+.insight360-center *,
+.reporting-center *,
+.automation-center *,
+.generator-studio *{
+  min-width:0;
+}
+.c15-tablewrap,
+.r16-preview,
+.manager-matrix-wrap,
+.s14table{
+  max-width:100%;
+  overflow:auto!important;
+}
+
+/* top header specifically */
+.exec-topbar{
+  width:100%!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+.exec-greeting{
+  padding-left:0!important;
+  margin-left:0!important;
+}
+
+/* Mid screens */
+@media(max-width:1180px){
+  :root{--sidebar-w:232px}
+  body.executive-layout-v21 main,
+  body.executive-layout-v21 .main-content,
+  body.executive-layout-v21 .content,
+  body.executive-layout-v21 .app-content,
+  body.executive-layout-v21 .page-content,
+  body.executive-layout-v21 .dashboard-container,
+  body.executive-layout-v21 .workspace,
+  body.executive-layout-v21 .content-wrapper,
+  body.executive-layout-v21 .main-wrapper{
+    margin-left:var(--sidebar-w)!important;
+    width:calc(100vw - var(--sidebar-w))!important;
+    max-width:calc(100vw - var(--sidebar-w))!important;
+  }
+  body.executive-layout-v21 main .main-content,
+  body.executive-layout-v21 main .content,
+  body.executive-layout-v21 main .app-content,
+  body.executive-layout-v21 main .page-content,
+  body.executive-layout-v21 main .dashboard-container,
+  body.executive-layout-v21 main .workspace,
+  body.executive-layout-v21 main .content-wrapper,
+  body.executive-layout-v21 main .main-wrapper{
+    margin-left:0!important;
+    width:100%!important;
+    max-width:100%!important;
+  }
+}
+
+/* Mobile/tablet: sidebar becomes normal flow */
+@media(max-width:860px){
+  .sidebar{
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:auto!important;
+  }
+  body.executive-layout-v21 main,
+  body.executive-layout-v21 .main-content,
+  body.executive-layout-v21 .content,
+  body.executive-layout-v21 .app-content,
+  body.executive-layout-v21 .page-content,
+  body.executive-layout-v21 .dashboard-container,
+  body.executive-layout-v21 .workspace,
+  body.executive-layout-v21 .content-wrapper,
+  body.executive-layout-v21 .main-wrapper{
+    margin-left:0!important;
+    width:100%!important;
+    max-width:100%!important;
+    padding-left:12px!important;
+    padding-right:12px!important;
+  }
+}

@@ -574,7 +574,7 @@ function rcvToast(message,type=''){
       host.style.cssText='position:fixed;left:-30000px;top:0;width:1360px;background:#fff;padding:28px;z-index:-1;box-sizing:border-box;color:#0f172a;';
 
       const cover=document.createElement('div');
-      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Advanced Reporting Suite 16.1 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
+      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Advanced Reporting Suite 16.2 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
       host.appendChild(cover);
 
       const seen=new Set();
@@ -626,7 +626,7 @@ function rcvToast(message,type=''){
         const ctx=slice.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
         if(page>1)pdf.addPage();
         pdf.setTextColor(100,116,139);pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-        pdf.text('REPORT.IA RCV · Advanced Reporting Suite 16.1',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
+        pdf.text('REPORT.IA RCV · Advanced Reporting Suite 16.2',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
         pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
         sy+=sh;page++;
       }
@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
 
         const summary=[
-          'REPORT.IA RCV · Advanced Reporting Suite 16.1',
+          'REPORT.IA RCV · Advanced Reporting Suite 16.2',
           '',
           `Periodo: ${month}`,
           `Generado: ${new Date().toLocaleString('es-MX')}`,
@@ -1310,7 +1310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     zip.file('RANKING_EJECUTIVO_GERENCIAS.csv',csv(rankingRows));
 
     zip.file('LEEME.txt',
-      `REPORT.IA RCV · Advanced Reporting Suite 16.1\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
+      `REPORT.IA RCV · Advanced Reporting Suite 16.2\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
       'Este paquete contiene los entregables ejecutivos complementarios al paquete FINAL operativo.'
     );
 
@@ -1677,4 +1677,50 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enhanceChat);
   else enhanceChat();
+})();
+
+
+// ===== REPORT.IA RCV 16.2 · Runtime Layout Stabilizer =====
+(function(){
+  function stabilizeLayout(){
+    const sidebar=document.querySelector('.sidebar');
+    if(!sidebar)return;
+
+    const candidates=[
+      document.querySelector('main'),
+      document.querySelector('.main-content'),
+      document.querySelector('.app-content'),
+      document.querySelector('.page-content'),
+      document.querySelector('.dashboard-container'),
+      document.querySelector('.workspace'),
+      document.querySelector('.content-wrapper'),
+      document.querySelector('.main-wrapper')
+    ].filter(Boolean);
+
+    // Find the outermost visible content container that is not inside sidebar.
+    const root=candidates.find(el=>!sidebar.contains(el) && !candidates.some(other=>other!==el && other.contains(el)));
+    if(root){
+      root.classList.add('reportia-layout-root');
+    }
+
+    // If any command/report section is still geometrically under the sidebar,
+    // compensate the root explicitly.
+    requestAnimationFrame(()=>{
+      const sw=sidebar.getBoundingClientRect().width;
+      const target=document.querySelector('.command15,.report16,.story14,.insight360-center,.reporting-center,.automation-center,.generator-studio');
+      if(root && target && window.innerWidth>860){
+        const left=target.getBoundingClientRect().left;
+        if(left < sw - 4){
+          root.style.marginLeft=sw+'px';
+          root.style.width='calc(100vw - '+sw+'px)';
+          root.style.maxWidth='calc(100vw - '+sw+'px)';
+          root.style.boxSizing='border-box';
+        }
+      }
+    });
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',stabilizeLayout);
+  else stabilizeLayout();
+  window.addEventListener('resize',stabilizeLayout);
 })();
