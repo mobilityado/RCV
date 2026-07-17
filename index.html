@@ -13,7 +13,7 @@
   <div class="login-visual">
     <div class="login-brand">
       <div class="login-logo">R</div>
-      <div><strong>REPORT.IA RCV</strong><span>Signature Edition 7.2</span></div>
+      <div><strong>REPORT.IA RCV</strong><span>Signature Edition 7.3</span></div>
     </div>
     <div class="login-copy">
       <span class="login-kicker">CENTRO DE INTELIGENCIA EJECUTIVA</span>
@@ -59,57 +59,50 @@
   
   
 
-<aside class="sidebar signature-rail">
-  <div class="rail-brand" title="REPORT.IA RCV · Signature Edition 7.2">
-    <div class="rail-logo">R</div>
+
+<aside class="sidebar studio-sidebar">
+  <div class="studio-brand">
+    <div class="studio-logo">R</div>
+    <div>
+      <strong>REPORT.IA RCV</strong>
+      <span>Signature Edition 7.3</span>
+    </div>
   </div>
 
-  <nav class="rail-nav">
-    <a class="active" href="#enterpriseHome" data-route="enterpriseHome" data-tip="Inicio">
-      <span>⌂</span>
-    </a>
-    <a href="#dashboard" data-route="dashboard" data-tip="Resumen Ejecutivo">
-      <span>▥</span>
-    </a>
-    <a href="#gerencias" data-route="gerencias" data-tip="Gerencias">
-      <span>♟</span>
-    </a>
-    <a href="#costos" data-route="costos" data-tip="Costos y Gastos">
-      <span>$</span>
-    </a>
-    <a href="#xpv" data-route="xpv" data-tip="Productividad XPV">
-      <span>↗</span>
-    </a>
-    <a href="#resultados" data-route="resultados" data-tip="Reportes Ejecutivos">
-      <span>▤</span>
-    </a>
+  <nav class="studio-nav">
+    <button class="studio-nav-item active" data-route="enterpriseHome"><span>⌂</span><b>Inicio</b></button>
+    <button class="studio-nav-item" data-route="dashboard"><span>▥</span><b>Resumen Ejecutivo</b></button>
+    <button class="studio-nav-item" data-route="gerencias"><span>♟</span><b>Gerencias</b></button>
+    <button class="studio-nav-item" data-route="xpv"><span>↗</span><b>Productividad XPV</b></button>
+    <button class="studio-nav-item" data-route="resultados"><span>▤</span><b>Reportes Ejecutivos</b></button>
   </nav>
 
-  <div class="rail-spacer"></div>
+  <div class="studio-divider"></div>
 
-  <button id="railMoreBtn" class="rail-more" data-tip="Más herramientas">
-    <span>•••</span>
+  <button id="studioAnalysisBtn" class="studio-analysis-btn">
+    <span>✦</span>
+    <div><strong>Análisis avanzado</strong><small>7 herramientas</small></div>
+    <b>›</b>
   </button>
 
-  <button id="railThemeBtn" class="rail-theme" data-tip="Modo claro / oscuro">
-    <span>◐</span>
-  </button>
+  <div class="studio-spacer"></div>
 
-  <div class="rail-user" title="Usuario activo">
+  <button id="studioThemeBtn" class="studio-bottom-btn"><span>◐</span><b>Apariencia</b></button>
+  <div class="studio-user">
     <div class="mockup-avatar">JA</div>
+    <div><strong id="studioUserName">Usuario</strong><span id="studioUserRole">—</span></div>
   </div>
 </aside>
 
-<div id="railToolsFlyout" class="rail-tools-flyout hidden">
-  <div class="rail-tools-head">
-    <div>
-      <strong>Más herramientas</strong>
-      <span>Análisis avanzado</span>
-    </div>
-    <button id="railToolsClose">×</button>
+<div id="studioAnalysisFlyout" class="studio-analysis-flyout hidden">
+  <div class="studio-analysis-head">
+    <div><strong>Análisis avanzado</strong><span>Todas tus herramientas, sin saturar el menú</span></div>
+    <button id="studioAnalysisClose">×</button>
   </div>
-  <div class="rail-tools-grid">
-    <button data-route="tendencias"><span>⌁</span><div><strong>Tendencias</strong><small>Evolución del periodo</small></div></button>
+  <div class="studio-analysis-grid">
+    <button data-route="costos"><span>$</span><div><strong>Costos</strong><small>Detalle financiero</small></div></button>
+    <button data-route="gastos"><span>▣</span><div><strong>Gastos</strong><small>Comportamiento y variaciones</small></div></button>
+    <button data-route="tendencias"><span>⌁</span><div><strong>Tendencias</strong><small>Evolución acumulada</small></div></button>
     <button data-route="comparador"><span>⇄</span><div><strong>Comparador</strong><small>Gerencia vs gerencia</small></div></button>
     <button data-route="prioridades"><span>◆</span><div><strong>Prioridades</strong><small>Qué revisar primero</small></div></button>
     <button data-route="explorador"><span>⌕</span><div><strong>Explorador</strong><small>Drill-down de cuentas</small></div></button>
@@ -118,6 +111,7 @@
     <button data-route="cierreEjecutivo"><span>✓</span><div><strong>Cierre Ejecutivo</strong><small>Conclusión del periodo</small></div></button>
   </div>
 </div>
+
 
 
 
@@ -157,6 +151,18 @@
     </div>
   </div>
 </header>
+
+<nav id="moduleTabs" class="module-tabs">
+  <button class="active" data-route="dashboard">Resumen</button>
+  <button data-route="gerencias">Gerencias</button>
+  <button data-route="costos">Costos</button>
+  <button data-route="gastos">Gastos</button>
+  <button data-route="xpv">XPV</button>
+  <button data-route="tendencias">Tendencias</button>
+  <button data-route="comparador">Comparador</button>
+  <button data-route="resultados">Reportes</button>
+</nav>
+
 
 <section id="signatureHero" class="signature-hero hidden">
   <div class="signature-hero-copy">
@@ -244,6 +250,18 @@
   </button>
 </section>
 
+
+
+<section class="module-overview-grid hidden" id="moduleOverview">
+  <button data-route="dashboard"><span>▥</span><strong>Resumen Ejecutivo</strong><small>KPIs, alertas y tendencias</small></button>
+  <button data-route="gerencias"><span>♟</span><strong>Gerencias</strong><small>Mapa y análisis individual</small></button>
+  <button data-route="costos"><span>$</span><strong>Costos</strong><small>Comparativos presupuestales</small></button>
+  <button data-route="gastos"><span>▣</span><strong>Gastos</strong><small>Desviaciones y detalle</small></button>
+  <button data-route="xpv"><span>↗</span><strong>Productividad XPV</strong><small>Productividad y objetivos</small></button>
+  <button data-route="tendencias"><span>⌁</span><strong>Tendencias</strong><small>Evolución del periodo</small></button>
+  <button data-route="comparador"><span>⇄</span><strong>Comparador</strong><small>Gerencia contra gerencia</small></button>
+  <button data-route="resultados"><span>▤</span><strong>Reportes Ejecutivos</strong><small>PDF, Excel y ZIP</small></button>
+</section>
 
 <section id="enterpriseHome" class="enterprise-home hidden">
   <div class="enterprise-hero">
@@ -533,7 +551,7 @@
   </div>
   <div class="pro-report-layout">
     <article class="pro-report-cover">
-      <span class="report-badge">SIGNATURE EDITION 7.2</span>
+      <span class="report-badge">SIGNATURE EDITION 7.3</span>
       <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
       <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
       <div id="proReportScore" class="report-score">—</div>
@@ -555,7 +573,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">SIGNATURE EDITION 7.2</span>
+    <span class="eyebrow">SIGNATURE EDITION 7.3</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>

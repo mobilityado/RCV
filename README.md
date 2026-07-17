@@ -147,3 +147,10 @@ Nuevas funciones:
 - Sin scrollbar lateral.
 - Solo 6 accesos principales.
 - Herramientas avanzadas en panel flotante.
+
+
+## Signature Edition 7.3
+- Restaurados todos los módulos y reportes.
+- Sidebar profesional sin scrollbar.
+- Pestañas de navegación en el área de contenido.
+- Herramientas avanzadas agrupadas en un flyout.

@@ -1303,3 +1303,45 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   });
 });
+
+
+// ===== SIGNATURE EDITION 7.3 · FULL MODULE RESTORE =====
+function openStudioAnalysis(){document.getElementById('studioAnalysisFlyout')?.classList.remove('hidden');}
+function closeStudioAnalysis(){document.getElementById('studioAnalysisFlyout')?.classList.add('hidden');}
+
+function syncStudioRoute(route){
+  document.querySelectorAll('.studio-nav-item').forEach(b=>b.classList.toggle('active',b.dataset.route===route));
+  document.querySelectorAll('.module-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.route===route));
+}
+
+const _showRoute73 = typeof showRoute==='function' ? showRoute : null;
+if(_showRoute73){
+  showRoute=function(id){
+    _showRoute73(id);
+    syncStudioRoute(id);
+    if(id==='enterpriseHome'){
+      document.getElementById('moduleOverview')?.classList.remove('hidden');
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('studioAnalysisBtn')?.addEventListener('click',openStudioAnalysis);
+  document.getElementById('studioAnalysisClose')?.addEventListener('click',closeStudioAnalysis);
+  document.getElementById('studioThemeBtn')?.addEventListener('click',()=>{if(typeof toggleSignatureTheme==='function')toggleSignatureTheme();});
+
+  document.querySelectorAll('.studio-nav-item[data-route], .module-tabs [data-route], .module-overview-grid [data-route], .studio-analysis-grid [data-route]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      if(typeof showRoute==='function')showRoute(el.dataset.route);
+      closeStudioAnalysis();
+    });
+  });
+
+  const s=getSession?.();
+  if(s){
+    const n=document.getElementById('studioUserName');if(n)n.textContent=s.name||'Usuario';
+    const r=document.getElementById('studioUserRole');if(r)r.textContent=s.role||'—';
+  }
+
+  document.getElementById('moduleOverview')?.classList.remove('hidden');
+});

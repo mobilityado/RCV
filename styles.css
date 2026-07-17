@@ -2788,3 +2788,218 @@ body.signature-dark .rail-tools-grid button:hover{
     width:auto;
   }
 }
+
+/* =========================================================
+   SIGNATURE EDITION 7.3 · PROFESSIONAL STUDIO NAV
+   All reports, charts and summaries restored.
+   ========================================================= */
+
+.signature-rail{display:none!important}
+
+.studio-sidebar{
+  position:fixed!important;
+  inset:0 auto 0 0;
+  width:218px!important;
+  height:100vh!important;
+  display:flex!important;
+  flex-direction:column!important;
+  padding:18px 12px 14px!important;
+  overflow:hidden!important;
+  background:linear-gradient(180deg,#09081f,#0b0a29 58%,#08071d)!important;
+  border-right:1px solid rgba(255,255,255,.06)!important;
+  z-index:210;
+}
+body.executive-layout-v21 main{
+  margin-left:218px!important;
+  padding:20px 24px 34px!important;
+}
+.studio-brand{display:flex;align-items:center;gap:10px;padding:2px 6px 18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.studio-logo{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(135deg,#6c2fea,#4d1ab9);color:#fff;font-size:19px;font-weight:900}
+.studio-brand strong{display:block;color:#fff;font-size:13px}
+.studio-brand span{display:block;margin-top:3px;color:#9b96b2;font-size:7.5px}
+
+.studio-nav{display:flex;flex-direction:column;gap:4px;margin-top:14px}
+.studio-nav-item{
+  min-height:42px!important;
+  display:grid!important;
+  grid-template-columns:22px 1fr;
+  align-items:center;
+  gap:9px;
+  padding:0 11px!important;
+  border:0!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  color:#d8d4e4!important;
+  text-align:left!important;
+}
+.studio-nav-item span{font-size:14px}
+.studio-nav-item b{font-size:9.5px}
+.studio-nav-item.active{background:linear-gradient(90deg,#5121d8,#7033ef)!important;color:#fff!important}
+.studio-nav-item:hover{background:rgba(255,255,255,.05)!important}
+.studio-divider{height:1px;background:rgba(255,255,255,.07);margin:12px 4px}
+
+.studio-analysis-btn{
+  min-height:54px!important;
+  display:grid!important;
+  grid-template-columns:28px 1fr auto;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  border-radius:10px!important;
+  background:rgba(255,255,255,.035)!important;
+  color:#fff!important;
+  text-align:left!important;
+}
+.studio-analysis-btn>span{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(110,54,235,.18);color:#b89cff}
+.studio-analysis-btn strong{display:block;font-size:8.5px}
+.studio-analysis-btn small{display:block;margin-top:2px;color:#8f8aa4;font-size:6.7px}
+.studio-analysis-btn>b{color:#8f8aa4}
+.studio-spacer{flex:1}
+.studio-bottom-btn{
+  min-height:36px!important;
+  display:flex!important;
+  align-items:center;gap:8px;
+  padding:0 10px!important;
+  border:0!important;border-radius:8px!important;
+  background:transparent!important;color:#a7a2b9!important;
+  text-align:left!important;
+}
+.studio-bottom-btn b{font-size:8px}
+.studio-user{display:flex;align-items:center;gap:8px;margin-top:8px;padding:10px 5px 0;border-top:1px solid rgba(255,255,255,.07);color:#fff}
+.studio-user .mockup-avatar{width:34px!important;height:34px!important;margin:0!important}
+.studio-user strong{display:block;max-width:125px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px}
+.studio-user span{display:block;margin-top:2px;color:#8d889f;font-size:6.5px}
+
+/* No sidebar scrollbars */
+.studio-sidebar{scrollbar-width:none!important}
+.studio-sidebar::-webkit-scrollbar{display:none!important}
+
+/* Advanced tools flyout */
+.studio-analysis-flyout{
+  position:fixed;
+  left:230px;
+  bottom:18px;
+  width:430px;
+  padding:13px;
+  border:1px solid #e6e3ec;
+  border-radius:16px;
+  background:rgba(255,255,255,.98);
+  backdrop-filter:blur(18px);
+  box-shadow:0 28px 70px rgba(28,20,65,.2);
+  z-index:460;
+}
+.studio-analysis-head{display:flex;align-items:center;justify-content:space-between;padding:3px 3px 10px;border-bottom:1px solid #efedf3}
+.studio-analysis-head strong{display:block;font-size:10px}
+.studio-analysis-head span{display:block;margin-top:2px;color:#85808f;font-size:7px}
+.studio-analysis-head button{width:30px;height:30px;min-height:30px!important;border:0!important;border-radius:8px!important;background:#f3f1f6!important;color:#766f82!important;font-size:16px!important}
+.studio-analysis-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.studio-analysis-grid button{
+  min-height:74px!important;
+  padding:9px!important;
+  display:flex!important;
+  align-items:flex-start;
+  gap:8px;
+  border:1px solid #ece9f1!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#302b3e!important;
+  text-align:left!important;
+}
+.studio-analysis-grid button:hover{background:#faf8ff!important;border-color:#cdbff2!important}
+.studio-analysis-grid button>span{display:grid;place-items:center;flex:0 0 26px;height:26px;border-radius:7px;background:#f0ebff;color:#5d28df}
+.studio-analysis-grid strong{display:block;font-size:7.8px}
+.studio-analysis-grid small{display:block;margin-top:2px;color:#837e8d;font-size:6.4px}
+
+/* Module tabs in content area */
+.module-tabs{
+  display:flex;
+  gap:4px;
+  margin:0 0 14px;
+  padding:5px;
+  border:1px solid #e8e6ed;
+  border-radius:11px;
+  background:#fff;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.module-tabs::-webkit-scrollbar{display:none}
+.module-tabs button{
+  min-height:34px!important;
+  padding:0 12px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  color:#6f697c!important;
+  font-size:8px!important;
+  font-weight:800!important;
+  white-space:nowrap;
+}
+.module-tabs button.active{background:#f0ebff!important;color:#5724db!important}
+
+/* Overview cards make every module obvious */
+.module-overview-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  margin:0 0 14px!important;
+}
+.module-overview-grid button{
+  min-height:86px!important;
+  padding:12px!important;
+  display:flex!important;
+  flex-direction:column;
+  align-items:flex-start;
+  border:1px solid #e8e6ed!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  color:#292438!important;
+  text-align:left!important;
+}
+.module-overview-grid button:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(33,24,76,.06)}
+.module-overview-grid button>span{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#f1ecff;color:#5b27dd;font-size:14px}
+.module-overview-grid strong{display:block;margin-top:8px;font-size:8.5px}
+.module-overview-grid small{display:block;margin-top:3px;color:#7e798a;font-size:6.8px}
+
+/* Preserve every module; only router decides visibility */
+#dashboard,#gerencias,#costos,#gastos,#xpv,#tendencias,#comparador,#prioridades,#explorador,#historial,#informePro,#cierreEjecutivo,#resultados{
+  min-height:120px;
+}
+
+/* Copilot stays floating, never in sidebar */
+.copilot-floating-btn{
+  right:22px!important;
+  bottom:22px!important;
+  z-index:500!important;
+}
+
+/* Dark mode */
+body.signature-dark .module-tabs,
+body.signature-dark .module-overview-grid button,
+body.signature-dark .studio-analysis-flyout,
+body.signature-dark .studio-analysis-grid button{
+  background:#171824!important;
+  border-color:#2e2f3d!important;
+  color:#f0f0f5!important;
+}
+body.signature-dark .module-tabs button.active{background:#28223c!important;color:#cbb7ff!important}
+
+@media(max-width:1000px){
+  .studio-sidebar{width:190px!important}
+  body.executive-layout-v21 main{margin-left:190px!important}
+  .studio-analysis-flyout{left:202px;width:390px}
+  .module-overview-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:760px){
+  .studio-sidebar{
+    position:relative!important;
+    width:100%!important;height:auto!important;
+    padding:10px!important;
+  }
+  body.executive-layout-v21 main{margin-left:0!important}
+  .studio-brand{border-bottom:0}
+  .studio-nav{display:grid;grid-template-columns:repeat(2,1fr)}
+  .studio-spacer,.studio-bottom-btn,.studio-user{display:none}
+  .studio-analysis-flyout{left:10px;right:10px;bottom:10px;width:auto}
+  .studio-analysis-grid{grid-template-columns:repeat(2,1fr)}
+}
