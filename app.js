@@ -1225,3 +1225,51 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 });
+
+
+// ===== SIGNATURE EDITION 7.1 · CLEAN NAV + FLOATING COPILOT =====
+function toggleToolsAccordion(){
+  document.getElementById('toolsAccordionPanel')?.classList.toggle('hidden');
+  document.getElementById('toolsAccordionBtn')?.classList.toggle('open');
+}
+
+function openCopilotDrawer(){
+  document.getElementById('copilotDrawer')?.classList.remove('hidden');
+  document.getElementById('copilotDrawerBackdrop')?.classList.remove('hidden');
+  setTimeout(()=>document.getElementById('copilotDrawerInput')?.focus(),80);
+}
+function closeCopilotDrawer(){
+  document.getElementById('copilotDrawer')?.classList.add('hidden');
+  document.getElementById('copilotDrawerBackdrop')?.classList.add('hidden');
+}
+function addDrawerCopilotMessage(text,type='user'){
+  const box=document.getElementById('copilotDrawerConversation'); if(!box)return;
+  const wrap=document.createElement('div'); wrap.className=`copilot-drawer-message ${type}`;
+  wrap.innerHTML=type==='bot'
+    ?`<div class="copilot-drawer-avatar small">R</div><div><strong>Copiloto REPORT.IA</strong><p>${escapeHtml(text)}</p></div>`
+    :`<div><strong>Tú</strong><p>${escapeHtml(text)}</p></div>`;
+  box.appendChild(wrap); box.scrollTop=box.scrollHeight;
+}
+function askDrawerCopilot(q){
+  const input=document.getElementById('copilotDrawerInput');
+  const text=(q||input?.value||'').trim(); if(!text)return;
+  addDrawerCopilotMessage(text,'user');
+  if(input)input.value='';
+  setTimeout(()=>addDrawerCopilotMessage(typeof copilotAnswer==='function'?copilotAnswer(text):'Procesa los reportes para poder analizar la información.','bot'),180);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('toolsAccordionBtn')?.addEventListener('click',toggleToolsAccordion);
+  document.querySelectorAll('#toolsAccordionPanel [data-route]').forEach(a=>a.addEventListener('click',e=>{
+    e.preventDefault();
+    showRoute(a.dataset.route);
+    document.getElementById('toolsAccordionPanel')?.classList.add('hidden');
+  }));
+
+  document.getElementById('copilotFloatingBtn')?.addEventListener('click',openCopilotDrawer);
+  document.getElementById('copilotDrawerClose')?.addEventListener('click',closeCopilotDrawer);
+  document.getElementById('copilotDrawerBackdrop')?.addEventListener('click',closeCopilotDrawer);
+  document.getElementById('copilotDrawerSend')?.addEventListener('click',()=>askDrawerCopilot());
+  document.getElementById('copilotDrawerInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')askDrawerCopilot();});
+  document.querySelectorAll('.copilot-drawer-suggestions button').forEach(b=>b.addEventListener('click',()=>askDrawerCopilot(b.dataset.q)));
+});
