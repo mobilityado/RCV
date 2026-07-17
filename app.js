@@ -1079,3 +1079,149 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('loginUser')?.addEventListener('change',updateLoginSelectedAvatar);
   document.getElementById('reloadUsersBtn')?.addEventListener('click',loadAuthorizedUsers);
 });
+
+
+// ===== REPORT.IA RCV · SIGNATURE EDITION 7.0 =====
+const SIGNATURE_THEME_KEY='reportia_signature_theme';
+const SIGNATURE_SIDEBAR_KEY='reportia_signature_sidebar';
+
+function signatureSnapshot(){
+  try{return typeof proSnapshot==='function'?proSnapshot():null}catch(e){return null}
+}
+
+function renderSignatureEdition(){
+  const s=signatureSnapshot();
+  if(!s)return;
+
+  document.getElementById('signatureHero')?.classList.remove('hidden');
+  document.getElementById('signatureInsightStrip')?.classList.remove('hidden');
+
+  const name=getSession()?.name?.split(/\s+/)[0]||'José';
+  const title=document.getElementById('signatureHeroTitle');
+  const text=document.getElementById('signatureHeroText');
+
+  if(title) title.textContent=`${s.score>=85?'Excelente trabajo':s.score>=70?'Buen desempeño':'Atención requerida'}, ${name}.`;
+  if(text) text.textContent=executiveSummaryText()||'El análisis del periodo está disponible.';
+
+  const ring=document.getElementById('signaturePulseRing');
+  if(ring) ring.style.setProperty('--score',s.score);
+  const score=document.getElementById('signaturePulseScore');
+  if(score) score.textContent=`${s.score}/100`;
+  const status=document.getElementById('signaturePulseStatus');
+  if(status) status.textContent=s.score>=85?'Desempeño sólido':s.score>=70?'Desempeño estable':s.score>=55?'Requiere atención':'Prioridad crítica';
+
+  const history=loadProHistory?.()||[];
+  const prev=history.length?history[history.length-1]:null;
+  const delta=prev ? s.score-prev.score : null;
+  const pd=document.getElementById('signaturePulseDelta');
+  if(pd) pd.textContent=delta===null?'Sin histórico':`${delta>=0?'+':''}${delta} pts`;
+
+  const fin=proFinancialRows();
+  const managers=aggregate(fin,['manager'],['real26','budget26']).map(addVariance).sort((a,b)=>b.varBudgetPct-a.varBudgetPct);
+  const critical=managers.filter(x=>(x.varBudgetPct||0)>.10);
+  const attention=managers.filter(x=>(x.varBudgetPct||0)>0&&(x.varBudgetPct||0)<=.10);
+  const best=managers[managers.length-1];
+
+  const c1=document.getElementById('sigCriticalTitle');
+  const c2=document.getElementById('sigCriticalText');
+  if(c1)c1.textContent=critical.length?`${critical.length} foco${critical.length===1?'':'s'} crítico${critical.length===1?'':'s'}`:'Sin focos críticos';
+  if(c2)c2.textContent=critical[0]?`${critical[0].manager} lidera la presión presupuestal.`:'La operación no presenta gerencias críticas.';
+
+  const a1=document.getElementById('sigAttentionTitle');
+  const a2=document.getElementById('sigAttentionText');
+  if(a1)a1.textContent=attention.length?`${attention.length} gerencia${attention.length===1?'':'s'} requiere${attention.length===1?'':'n'} atención`:'Sin alertas intermedias';
+  if(a2)a2.textContent=attention[0]?`${attention[0].manager} necesita seguimiento preventivo.`:'No hay desviaciones moderadas relevantes.';
+
+  const o1=document.getElementById('sigOpportunityTitle');
+  const o2=document.getElementById('sigOpportunityText');
+  if(o1)o1.textContent=best?`${best.manager} destaca este periodo`:'Sin oportunidad destacada';
+  if(o2)o2.textContent=best?`Variación de ${pct(best.varBudgetPct||0)} frente al presupuesto.`:'Aún no hay información suficiente.';
+
+  animateSignatureNumbers();
+  enhanceKpiCards();
+}
+
+function animateSignatureNumbers(){
+  document.querySelectorAll('.kpi-value').forEach(el=>{
+    if(el.dataset.signatureAnimated)return;
+    el.dataset.signatureAnimated='1';
+    el.classList.add('signature-number-enter');
+  });
+}
+
+function enhanceKpiCards(){
+  document.querySelectorAll('.kpi-card').forEach((card,index)=>{
+    if(card.querySelector('.signature-mini-spark'))return;
+    const spark=document.createElement('div');
+    spark.className='signature-mini-spark';
+    spark.innerHTML='<i></i><i></i><i></i><i></i><i></i><i></i><i></i>';
+    [...spark.children].forEach((bar,i)=>bar.style.height=`${24+((i*17+index*11)%65)}%`);
+    card.appendChild(spark);
+  });
+}
+
+function setSignatureTheme(mode){
+  document.body.classList.toggle('signature-dark',mode==='dark');
+  localStorage.setItem(SIGNATURE_THEME_KEY,mode);
+}
+function toggleSignatureTheme(){
+  const dark=!document.body.classList.contains('signature-dark');
+  setSignatureTheme(dark?'dark':'light');
+}
+function setSidebarCollapsed(collapsed){
+  document.body.classList.toggle('signature-sidebar-collapsed',collapsed);
+  localStorage.setItem(SIGNATURE_SIDEBAR_KEY,collapsed?'1':'0');
+}
+function toggleSidebarCollapsed(){
+  setSidebarCollapsed(!document.body.classList.contains('signature-sidebar-collapsed'));
+}
+function toggleCommandPalette(force){
+  const el=document.getElementById('signatureCommandPalette');
+  if(!el)return;
+  const show=force===undefined?el.classList.contains('hidden'):force;
+  el.classList.toggle('hidden',!show);
+  if(show)setTimeout(()=>document.getElementById('signatureCommandSearch')?.focus(),50);
+}
+function wireSignatureNavigation(){
+  document.querySelectorAll('[data-go]').forEach(el=>{
+    if(el.dataset.signatureWired)return;
+    el.dataset.signatureWired='1';
+    el.addEventListener('click',()=>{
+      const id=el.dataset.go;
+      if(typeof showRoute==='function')showRoute(id);
+      else document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+      toggleCommandPalette(false);
+    });
+  });
+}
+function filterCommandPalette(){
+  const q=(document.getElementById('signatureCommandSearch')?.value||'').toLowerCase();
+  document.querySelectorAll('.command-options button').forEach(b=>{
+    b.style.display=b.textContent.toLowerCase().includes(q)?'block':'none';
+  });
+}
+
+const _signatureOldRenderEnterpriseHome=typeof renderEnterpriseHome==='function'?renderEnterpriseHome:null;
+if(_signatureOldRenderEnterpriseHome){
+  renderEnterpriseHome=function(...args){
+    _signatureOldRenderEnterpriseHome(...args);
+    renderSignatureEdition();
+  }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  setSignatureTheme(localStorage.getItem(SIGNATURE_THEME_KEY)||'light');
+  setSidebarCollapsed(localStorage.getItem(SIGNATURE_SIDEBAR_KEY)==='1');
+  wireSignatureNavigation();
+
+  document.getElementById('darkModeBtn')?.addEventListener('click',toggleSignatureTheme);
+  document.getElementById('collapseSidebarBtn')?.addEventListener('click',toggleSidebarCollapsed);
+  document.getElementById('signatureCommandBtn')?.addEventListener('click',()=>toggleCommandPalette());
+  document.getElementById('signatureCommandSearch')?.addEventListener('input',filterCommandPalette);
+
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+      e.preventDefault();toggleCommandPalette();
+    }
+  });
+});

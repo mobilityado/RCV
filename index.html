@@ -13,7 +13,7 @@
   <div class="login-visual">
     <div class="login-brand">
       <div class="login-logo">R</div>
-      <div><strong>REPORT.IA RCV</strong><span>Enterprise Edition 6.2</span></div>
+      <div><strong>REPORT.IA RCV</strong><span>Signature Edition 7.0</span></div>
     </div>
     <div class="login-copy">
       <span class="login-kicker">CENTRO DE INTELIGENCIA EJECUTIVA</span>
@@ -59,11 +59,15 @@
   
   
 <aside class="sidebar mockup-sidebar">
-  <div class="mockup-brand">
+  <div class="signature-sidebar-tools">
+      <button id="collapseSidebarBtn" title="Contraer menú">☰</button>
+      <button id="darkModeBtn" title="Cambiar apariencia">◐</button>
+    </div>
+    <div class="mockup-brand">
     <div class="mockup-logo">R</div>
     <div>
       <strong>REPORT.IA RCV</strong>
-      <span>Enterprise Edition 6.2</span>
+      <span>Signature Edition 7.0</span>
     </div>
   </div>
 
@@ -142,6 +146,32 @@
     </div>
   </div>
 </header>
+
+<section id="signatureHero" class="signature-hero hidden">
+  <div class="signature-hero-copy">
+    <span class="signature-kicker">REPORT.IA RCV · SIGNATURE EDITION</span>
+    <h2 id="signatureHeroTitle">Tu operación, convertida en decisiones.</h2>
+    <p id="signatureHeroText">Procesa los reportes para revelar tendencias, prioridades y oportunidades del periodo.</p>
+    <div class="signature-hero-actions">
+      <button class="signature-primary" data-go="dashboard">Ver resumen ejecutivo</button>
+      <button class="signature-secondary" data-go="copiloto">Preguntar al Copiloto</button>
+    </div>
+  </div>
+  <div class="signature-pulse-card">
+    <div class="pulse-ring" id="signaturePulseRing" style="--score:0">
+      <div class="pulse-ring-inner">
+        <span>PULSO RCV</span>
+        <strong id="signaturePulseScore">—</strong>
+        <small id="signaturePulseStatus">Pendiente</small>
+      </div>
+    </div>
+    <div class="pulse-trend">
+      <span>vs periodo anterior</span>
+      <strong id="signaturePulseDelta">—</strong>
+    </div>
+  </div>
+</section>
+
 <section id="carga" class="workspace-upload-card">
     <div class="workspace-upload-heading">
           <div>
@@ -230,6 +260,23 @@
     <button class="home-launch" data-go="explorador"><span>⌕</span><div><strong>Explorar desviaciones</strong><small>Gerencia → agrupador → cuenta</small></div><b>→</b></button>
     <button class="home-launch" data-go="resultados"><span>▤</span><div><strong>Generar reportes</strong><small>PDF, Excel y paquete ejecutivo</small></div><b>→</b></button>
   </div>
+</section>
+
+
+<section class="signature-insight-strip hidden" id="signatureInsightStrip">
+  <div class="signature-insight">
+    <span class="dot critical"></span>
+    <div><strong id="sigCriticalTitle">Sin alertas críticas</strong><small id="sigCriticalText">Procesa los datos para analizar riesgos.</small></div>
+  </div>
+  <div class="signature-insight">
+    <span class="dot attention"></span>
+    <div><strong id="sigAttentionTitle">Sin focos de atención</strong><small id="sigAttentionText">Aún no hay un periodo analizado.</small></div>
+  </div>
+  <div class="signature-insight">
+    <span class="dot good"></span>
+    <div><strong id="sigOpportunityTitle">Sin oportunidad destacada</strong><small id="sigOpportunityText">REPORT.IA mostrará el mejor desempeño.</small></div>
+  </div>
+  <button class="signature-insight-cta" data-go="prioridades">Ver prioridades →</button>
 </section>
 
 <section id="dashboard" class="dashboard hidden">
@@ -475,7 +522,7 @@
   </div>
   <div class="pro-report-layout">
     <article class="pro-report-cover">
-      <span class="report-badge">ENTERPRISE EDITION 6.2</span>
+      <span class="report-badge">SIGNATURE EDITION 7.0</span>
       <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
       <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
       <div id="proReportScore" class="report-score">—</div>
@@ -497,7 +544,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">ENTERPRISE EDITION 6.2</span>
+    <span class="eyebrow">SIGNATURE EDITION 7.0</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>
@@ -510,6 +557,20 @@
   <div class="export-note">El PDF respeta el módulo visible y sus filtros. El Excel ejecutivo usa la información procesada disponible en el navegador.</div>
 </section>
 
+<button id="signatureCommandBtn" class="signature-command-btn" title="Abrir accesos rápidos">⌘</button>
+<div id="signatureCommandPalette" class="signature-command-palette hidden">
+  <div class="command-search">
+    <input id="signatureCommandSearch" placeholder="Ir a una sección..." />
+  </div>
+  <div class="command-options">
+    <button data-go="enterpriseHome">Inicio</button>
+    <button data-go="dashboard">Resumen Ejecutivo</button>
+    <button data-go="gerencias">Gerencias</button>
+    <button data-go="explorador">Explorador</button>
+    <button data-go="copiloto">Copiloto</button>
+    <button data-go="resultados">Reportes Ejecutivos</button>
+  </div>
+</div>
 </main>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>

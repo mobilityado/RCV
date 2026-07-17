@@ -126,3 +126,11 @@ Nuevas funciones:
 - Intenta `fetch` y usa JSONP automáticamente como respaldo.
 - Apps Script actualizado con soporte `callback`.
 - Botón para recargar usuarios en la pantalla de acceso.
+
+## Signature Edition 7.0
+- Rediseño visual premium.
+- Hero ejecutivo y Pulso RCV circular.
+- Microinteracciones y sparklines.
+- Sidebar colapsable.
+- Modo oscuro.
+- Command Palette.
