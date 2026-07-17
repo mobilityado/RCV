@@ -107,38 +107,82 @@ function headerIndex(headers, alternatives){
   return -1;
 }
 function parseFinalLikeSheet(ws, kind){
+  if(!ws)return [];
   const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
-  const required=kind==="XPV"?["GERENCIA","REAL"]:["GERENCIA","2026"];
-  const hr=findHeaderRow(arr,required);
-  if(hr<0)return [];
-  const headers=arr[hr]||[];
-  const idxManager=headerIndex(headers,["GERENCIA"]);
-  const idxAgr=headerIndex(headers,["AGRUPADOR"]);
-  const idxAccount=headerIndex(headers,["CTA CONTABLE","CUENTA CONTABLE"]);
-  const idxBrand=headerIndex(headers,["CIA MARCA","MARCA"]);
-  const idxCenter=headerIndex(headers,["CENTRO DE GESTION","CENTRO / SUBLIBRO","CENTRO"]);
-  if(kind==="XPV"){
-    const idxReal=headerIndex(headers,["REAL GESTION","REAL"]);
-    const idxBudget=headerIndex(headers,["PRESUPUESTO","PTTO"]);
-    return arr.slice(hr+1).filter(r=>cleanText(r[idxManager])||cleanText(r[idxAccount])).map(r=>{
-      const real=parseNumber(r[idxReal]),budget=parseNumber(r[idxBudget]);
-      return {manager:cleanText(r[idxManager])||"SIN CLASIFICAR",account:outputText(r[idxAccount]),center:outputText(r[idxCenter]),brand:outputText(r[idxBrand]),real,budget,diff:real-budget,pct:pct(real-budget,budget)};
-    }).filter(r=>r.manager||r.account);
+  if(!arr.length)return [];
+
+  // Locate the most likely header row. RP files may use merged titles and different column names.
+  let hr=-1,bestScore=-1;
+  const tokens=["GERENCIA","UNIDAD","CENTRO","CUENTA","CTA","AGRUPADOR","MARCA","REAL","PRESUPUESTO","PTTO","2025","2026","XPV","PRODUCTIVIDAD"];
+  for(let i=0;i<Math.min(arr.length,60);i++){
+    const row=(arr[i]||[]).map(v=>cleanText(v).toUpperCase());
+    const nonempty=row.filter(Boolean).length;
+    const score=tokens.reduce((n,t)=>n+(row.some(v=>v.includes(t))?1:0),0)+(nonempty>=3?1:0);
+    if(score>bestScore){bestScore=score;hr=i;}
   }
-  const idx2025=headerIndex(headers,["2025"]);
-  const idxBudget=headerIndex(headers,["PTTO. 2026","PRESUPUESTO 2026","PTTO"]);
-  let idx2026=-1;
-  const hs=headers.map(v=>cleanText(v).toUpperCase());
-  for(let i=0;i<hs.length;i++){if(hs[i]==="2026"){idx2026=i;break;}}
-  if(idx2026<0) idx2026=headerIndex(headers,["REAL 2026"]);
-  return arr.slice(hr+1).filter(r=>cleanText(r[idxManager])||cleanText(r[idxAccount])).map(r=>{
-    const y2025=parseNumber(r[idx2025]),budget2026=parseNumber(r[idxBudget]),y2026=parseNumber(r[idx2026]);
-    return {
-      agrupador:outputText(r[idxAgr]),brand:outputText(r[idxBrand]),account:outputText(r[idxAccount]),
-      manager:cleanText(r[idxManager])||"SIN CLASIFICAR",center:outputText(r[idxCenter]),
+  if(hr<0||bestScore<1)return [];
+
+  const headers=(arr[hr]||[]).map(v=>cleanText(v));
+  const idx=(alts)=>{
+    const hs=headers.map(v=>v.toUpperCase());
+    for(const a of alts){
+      let p=hs.findIndex(v=>v===a);
+      if(p>=0)return p;
+      p=hs.findIndex(v=>v.includes(a));
+      if(p>=0)return p;
+    }
+    return -1;
+  };
+  const idxManager=idx(["GERENCIA","UNIDAD","REGION","REGIÓN","DIVISION","DIVISIÓN"]);
+  const idxAgr=idx(["AGRUPADOR","CONCEPTO","RUBRO"]);
+  const idxAccount=idx(["CTA CONTABLE","CUENTA CONTABLE","CUENTA","CTA"]);
+  const idxBrand=idx(["CIA MARCA","MARCA","CIA"]);
+  const idxCenter=idx(["CENTRO DE GESTION","CENTRO DE GESTIÓN","CENTRO / SUBLIBRO","CENTRO","SUBLIBRO"]);
+  const idx2025=idx(["2025"]);
+  const idxBudget=idx(["PTTO. 2026","PRESUPUESTO 2026","PRESUPUESTO","PTTO"]);
+  let idx2026=headers.findIndex(v=>v.toUpperCase()==="2026");
+  if(idx2026<0)idx2026=idx(["REAL 2026","REAL"]);
+  const idxReal=idx(["REAL GESTION","REAL GESTIÓN","REAL","XPV"]);
+  const numericCandidates=[];
+  headers.forEach((h,i)=>{
+    const H=h.toUpperCase();
+    if(/2025|2026|REAL|PRESUPUESTO|PTTO|TOTAL|IMPORTE|MONTO|XPV/.test(H))numericCandidates.push(i);
+  });
+
+  const data=arr.slice(hr+1).filter(r=>r.some(v=>cleanText(v)!==""));
+  const labelAt=(r,preferred)=>{
+    if(preferred>=0&&cleanText(r[preferred]))return cleanText(r[preferred]);
+    for(let i=0;i<r.length;i++){
+      const v=r[i];
+      if(typeof v==="string"&&cleanText(v)&&!/^[-+]?\d+([.,]\d+)?$/.test(cleanText(v)))return cleanText(v);
+    }
+    return "SIN CLASIFICAR";
+  };
+  const numAt=(r,i)=>i>=0?parseNumber(r[i]):0;
+  const fallbackNums=(r)=>r.map((v,i)=>({i,n:parseNumber(v),raw:v})).filter(x=>typeof x.raw==="number"&&Number.isFinite(x.raw));
+
+  return data.map(r=>{
+    const nums=fallbackNums(r);
+    const manager=labelAt(r,idxManager);
+    const account=idxAccount>=0?outputText(r[idxAccount]):(idxAgr>=0?outputText(r[idxAgr]):manager);
+    const center=idxCenter>=0?outputText(r[idxCenter]):"";
+    const brand=idxBrand>=0?outputText(r[idxBrand]):"";
+    if(kind==="XPV"){
+      let real=numAt(r,idxReal),budget=numAt(r,idxBudget);
+      if(idxReal<0&&nums.length)real=nums[nums.length-1].n;
+      if(idxBudget<0&&nums.length>1)budget=nums[nums.length-2].n;
+      return {manager,account,center,brand,real,budget,diff:real-budget,pct:pct(real-budget,budget)};
+    }
+    let y2025=numAt(r,idx2025),budget2026=numAt(r,idxBudget),y2026=numAt(r,idx2026);
+    if(idx2026<0&&nums.length)y2026=nums[nums.length-1].n;
+    if(idxBudget<0&&nums.length>1)budget2026=nums[nums.length-2].n;
+    if(idx2025<0&&nums.length>2)y2025=nums[nums.length-3].n;
+    return {agrupador:idxAgr>=0?outputText(r[idxAgr]):"",brand,account,manager,center,
       y2025,budget2026,y2026,diff2526:y2026-y2025,pct2526:pct(y2026-y2025,y2025),
-      diffBudget:y2026-budget2026,pctBudget:pct(y2026-budget2026,budget2026)
-    };
+      diffBudget:y2026-budget2026,pctBudget:pct(y2026-budget2026,budget2026)};
+  }).filter(r=>{
+    if(kind==="XPV")return r.manager!=="SIN CLASIFICAR"||r.real!==0||r.budget!==0;
+    return r.manager!=="SIN CLASIFICAR"||r.y2025!==0||r.y2026!==0||r.budget2026!==0;
   });
 }
 function chooseWorkbookByName(items,token){
@@ -201,14 +245,18 @@ function processRpModel(){
   const premises=parseFinalLikeSheet(getSheet(costItem.wb,["premisas 26","PREMISAS 2026"])||costItem.wb.Sheets[costItem.wb.SheetNames[2]||costItem.wb.SheetNames[0]],"COST");
   const smo=parseFinalLikeSheet(getSheet(costItem.wb,["SMO"])||costItem.wb.Sheets[costItem.wb.SheetNames[3]||costItem.wb.SheetNames[0]],"COST");
 
-  const expenseSheet=getSheet(expenseItem.wb,["GASTOS RCV"])||expenseItem.wb.Sheets[expenseItem.wb.SheetNames[0]];
-  const expenses=parseFinalLikeSheet(expenseSheet,"COST");
+  const expenseCandidatesSheets=expenseItem.wb.SheetNames.map(n=>expenseItem.wb.Sheets[n]);
+  let expenses=[];
+  for(const ws of expenseCandidatesSheets){
+    const parsed=parseFinalLikeSheet(ws,"COST");
+    if(parsed.length>expenses.length)expenses=parsed;
+  }
 
   const xpvSheet=getSheet(xpvItem.wb,["PRODUCTIVIDAD XPV"])||xpvItem.wb.Sheets[xpvItem.wb.SheetNames[0]];
   const xpv=parseFinalLikeSheet(xpvSheet,"XPV");
 
   if(!costOperating.length&&!costMaintenance.length)throw new Error("El archivo de Costos RP no contiene una estructura reconocible.");
-  if(!expenses.length)throw new Error("El archivo de Gastos RP no contiene una estructura reconocible.");
+  if(!expenses.length)throw new Error("No se encontraron filas de datos utilizables en el archivo de Gastos RP. Revisa que el archivo no esté protegido o vacío.");
   if(!xpv.length)throw new Error("El archivo de Productividad XPV no contiene una estructura reconocible.");
 
   const expenseSummary=aggregateByManager(expenses);
@@ -508,7 +556,7 @@ async function downloadAll(){
   zip.file("COSTO RCV 2026.xlsx",workbookBlob(makeCostWorkbook()));
   zip.file("Gastos RCV 2026.xlsx",workbookBlob(makeExpenseWorkbook()));
   zip.file(`Productividad XPV ${state.model.month} 26 RCV.xlsx`,workbookBlob(makeXpvWorkbook()));
-  zip.file("LEEME.txt","REPORT.IA RCV 19.0 · Archivos generados directamente desde los JD procesados.");
+  zip.file("LEEME.txt","REPORT.IA RCV 21.2 · Archivos generados directamente desde los JD procesados.");
   saveBlob(await zip.generateAsync({type:"blob"}),`FINAL_${state.model.month}_2026.zip`);
 }
 
