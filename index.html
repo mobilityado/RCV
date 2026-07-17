@@ -107,7 +107,7 @@
 
 <div class="layout-intro no-print">
   <div>
-    <span class="eyebrow">REPORT.IA RCV · INTELLIGENCE EDITION 2.1 · SECURE EXECUTIVE</span>
+    <span class="eyebrow">REPORT.IA RCV · INTELLIGENCE EDITION 2.1 · SECURE EXECUTIVE PDF FIX</span>
     <h1>Centro de Inteligencia Ejecutiva</h1>
     <p>Una sola vista para analizar, comparar, explicar y exportar resultados.</p>
   </div>
@@ -292,7 +292,20 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+
   <script src="config.js"></script>
   <script src="app.js"></script>
+
+<div id="reportiaToast" class="reportia-toast hidden">
+  <div class="reportia-toast-icon">i</div>
+  <div>
+    <strong id="reportiaToastTitle">REPORT.IA</strong>
+    <p id="reportiaToastText"></p>
+  </div>
+  <button id="reportiaToastClose">×</button>
+</div>
 </body>
 </html>

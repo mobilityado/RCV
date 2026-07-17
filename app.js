@@ -491,25 +491,117 @@ function renderComparison(ma,mb){
     return d.toISOString().slice(0,10);
   }
   async function exportPdf(element, filename, title){
-    if(!window.html2canvas || !window.jspdf){ alert('No se pudieron cargar las librerías de PDF. Revisa tu conexión a internet.'); return; }
-    const canvas=await html2canvas(element,{scale:1.6,useCORS:true,backgroundColor:'#ffffff',logging:false});
-    const img=canvas.toDataURL('image/jpeg',0.92);
-    const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF('p','mm','a4');
-    const pw=210, ph=297, margin=10, header=18;
-    pdf.setFont('helvetica','bold'); pdf.setFontSize(15); pdf.text(title,margin,11);
-    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.text('REPORT.IA RCV · Intelligence Edition 2.0',margin,16);
-    const iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
-    let y=header, remaining=ih, sy=0;
-    while(remaining>0){
-      const pageH=ph-y-margin;
-      const sliceH=Math.min(pageH,remaining);
-      // Use same image with negative y clipping per page
-      pdf.addImage(img,'JPEG',margin,y-sy,iw,ih);
-      remaining-=sliceH; sy+=sliceH;
-      if(remaining>0){ pdf.addPage(); y=margin; }
+    // Preferred path: automatic PDF when jsPDF + html2canvas are available.
+    if(window.html2canvas && window.jspdf?.jsPDF){
+      try{
+        showReportiaToast('Generando PDF','Preparando la vista ejecutiva. Esto puede tardar unos segundos.','info',2600);
+        const canvas=await html2canvas(element,{
+          scale:1.6,
+          useCORS:true,
+          backgroundColor:'#ffffff',
+          logging:false
+        });
+        const img=canvas.toDataURL('image/jpeg',0.92);
+        const {jsPDF}=window.jspdf;
+        const pdf=new jsPDF('p','mm','a4');
+        const pw=210, ph=297, margin=10, header=18;
+        pdf.setFont('helvetica','bold');
+        pdf.setFontSize(15);
+        pdf.text(title,margin,11);
+        pdf.setFont('helvetica','normal');
+        pdf.setFontSize(8);
+        pdf.text('REPORT.IA RCV · Intelligence Edition 2.1 Secure Executive',margin,16);
+        const iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
+        let y=header, remaining=ih, sy=0;
+        while(remaining>0){
+          const pageH=ph-y-margin;
+          const sliceH=Math.min(pageH,remaining);
+          pdf.addImage(img,'JPEG',margin,y-sy,iw,ih);
+          remaining-=sliceH;
+          sy+=sliceH;
+          if(remaining>0){
+            pdf.addPage();
+            y=margin;
+          }
+        }
+        pdf.save(filename);
+        showReportiaToast('PDF generado','El informe se descargó correctamente.','success',3200);
+        return;
+      }catch(err){
+        console.warn('Fallo PDF automático; se usa impresión nativa.',err);
+      }
     }
-    pdf.save(filename);
+
+    // Robust fallback: browser print dialog, no external PDF libraries required.
+    showReportiaToast(
+      'Modo PDF compatible',
+      'Tu red bloquea las librerías externas de PDF. Abriremos una vista profesional de impresión; elige "Guardar como PDF".',
+      'info',
+      5000
+    );
+    openNativePdfPrint(element,title,filename);
+  }
+
+  function openNativePdfPrint(element,title,filename){
+    const printWindow=window.open('','_blank','width=1200,height=800');
+    if(!printWindow){
+      showReportiaToast(
+        'Ventana bloqueada',
+        'Permite ventanas emergentes para REPORT.IA y vuelve a intentar exportar el PDF.',
+        'error',
+        5000
+      );
+      return;
+    }
+
+    const cloned=element.cloneNode(true);
+    cloned.querySelectorAll('button,input,select,.no-print,.export-suite').forEach(n=>n.remove());
+
+    const styles=[...document.querySelectorAll('style,link[rel="stylesheet"]')]
+      .map(node=>node.outerHTML)
+      .join('
+');
+
+    printWindow.document.open();
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>${title}</title>
+${styles}
+<style>
+  body{background:#fff!important;margin:0;padding:24px;font-family:Arial,sans-serif;color:#111}
+  .sidebar,.executive-sidebar,.exec-topbar,.secure-login,.reportia-toast{display:none!important}
+  main,.main-content{margin:0!important;padding:0!important;max-width:none!important;width:100%!important}
+  .chart-card,.card,.table-card,.kpi-card{break-inside:avoid;page-break-inside:avoid}
+  canvas{max-width:100%!important}
+  @page{size:A4 portrait;margin:12mm}
+</style>
+</head>
+<body>
+<header style="margin-bottom:20px;border-bottom:2px solid #5b27dc;padding-bottom:12px">
+  <div style="font-size:20px;font-weight:800">${title}</div>
+  <div style="margin-top:4px;color:#666;font-size:11px">REPORT.IA RCV · Intelligence Edition 2.1 Secure Executive</div>
+</header>
+${cloned.outerHTML}
+<script>
+window.onload=function(){
+  setTimeout(function(){ window.print(); },600);
+};
+<\/script>
+</body>
+</html>`);
+    printWindow.document.close();
+  }
+
+  function showReportiaToast(title,text,type='info',duration=3500){
+    const toast=document.getElementById('reportiaToast');
+    if(!toast)return;
+    document.getElementById('reportiaToastTitle').textContent=title;
+    document.getElementById('reportiaToastText').textContent=text;
+    toast.className=`reportia-toast ${type}`;
+    clearTimeout(window.__reportiaToastTimer);
+    window.__reportiaToastTimer=setTimeout(()=>toast.classList.add('hidden'),duration);
   }
   async function pdfVista(){
     await exportPdf(visibleReportRoot(),`REPORTIA_RCV_Vista_${stamp()}.pdf`,'Informe Ejecutivo · Vista actual');
@@ -543,8 +635,14 @@ function renderComparison(ma,mb){
     if(typeof JSZip==='undefined'){ alert('La librería ZIP no está disponible.'); return; }
     const zip=new JSZip();
     const root=visibleReportRoot();
-    const canvas=await html2canvas(root,{scale:1.3,useCORS:true,backgroundColor:'#ffffff'});
-    zip.file(`Vista_Ejecutiva_${stamp()}.png`,canvas.toDataURL('image/png').split(',')[1],{base64:true});
+    if(window.html2canvas){
+      const canvas=await html2canvas(root,{scale:1.3,useCORS:true,backgroundColor:'#ffffff'});
+      zip.file(`Vista_Ejecutiva_${stamp()}.png`,canvas.toDataURL('image/png').split(',')[1],{base64:true});
+    } else {
+      zip.file('NOTA_PDF.txt',
+        'La red bloqueó la librería de captura HTML. Usa el botón PDF de la vista actual y selecciona Guardar como PDF en el diálogo de impresión del navegador.'
+      );
+    }
     zip.file('LEEME.txt',
       'REPORT.IA RCV · Intelligence Edition 2.0\n\nPaquete ejecutivo generado desde la vista activa.\n' +
       'Use los botones individuales para generar PDF y Excel ejecutivo. Los reportes operativos se mantienen en el módulo de descargas del portal.'
@@ -671,4 +769,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     dst.value=src.value;
     dst.addEventListener('change',()=>{src.value=dst.value;src.dispatchEvent(new Event('change'))});
   }
+});
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('reportiaToastClose')?.addEventListener('click',()=>{
+    document.getElementById('reportiaToast')?.classList.add('hidden');
+  });
 });

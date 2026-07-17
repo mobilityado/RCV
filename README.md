@@ -61,3 +61,9 @@ Nota: la reproducción 1:1 de plantillas Excel con componentes propietarios (por
 - Base funcional restaurada desde Intelligence Edition 2.1.
 - Login integrado con Apps Script.
 - Vista ejecutiva premium sin eliminar ningún módulo original.
+
+
+## PDF Fix
+- Exportación PDF automática cuando las librerías están disponibles.
+- Fallback nativo con Guardar como PDF si la red corporativa bloquea los CDN.
+- Notificaciones profesionales en lugar de alertas del navegador.
