@@ -42,6 +42,7 @@ function obtenerUsuariosDatos() {
     const ss = SpreadsheetApp.openById(ID_SHEET);
     const sh = ss.getSheets()[0];
     const values = sh.getDataRange().getDisplayValues();
+
     const usuarios = [];
 
     for (let i = 1; i < values.length; i++) {
@@ -105,7 +106,6 @@ function validarLoginDatos(usuario, contrasena) {
   }
 }
 
-// Responde JSON normal o JSONP cuando el portal envía callback=...
 function responder(objeto, callback) {
   const json = JSON.stringify(objeto);
 

@@ -678,31 +678,112 @@ async function secureLoadUsers(){
   const select=document.getElementById('loginUser');
   const status=document.getElementById('loginStatus');
   if(!select)return;
+
   select.innerHTML='<option value="">Cargando usuarios...</option>';
   select.disabled=true;
+
+  if(status){
+    status.textContent='Cargando usuarios autorizados...';
+    status.className='secure-login-status loading';
+  }
+
   try{
-    const url=new URL(SECURE_AUTH_ENDPOINT);
-    url.searchParams.set('accion','usuarios');
-    const res=await fetch(url.toString(),{cache:'no-store',redirect:'follow'});
-    const data=JSON.parse(await res.text());
+    let data=null;
+
+    // Intento 1: fetch normal.
+    try{
+      const url=new URL(SECURE_AUTH_ENDPOINT);
+      url.searchParams.set('accion','usuarios');
+      const res=await fetch(url.toString(),{
+        method:'GET',
+        cache:'no-store',
+        redirect:'follow'
+      });
+
+      if(res.ok){
+        const text=await res.text();
+        try{
+          data=JSON.parse(text);
+        }catch(e){
+          console.warn('La respuesta fetch no fue JSON válido.');
+        }
+      }
+    }catch(fetchError){
+      console.warn('Fetch directo bloqueado. Se intentará JSONP.',fetchError);
+    }
+
+    // Intento 2: JSONP para evitar restricciones CORS/redirecciones.
+    if(!data || !data.ok){
+      data=await secureLoadUsersViaJsonp();
+    }
+
     const users=Array.isArray(data?.usuarios)?data.usuarios:[];
-    if(!data?.ok||!users.length)throw new Error(data?.mensaje||'No se encontraron usuarios.');
-    select.innerHTML='<option value="">Selecciona tu usuario</option>'+users.map(u=>{
-      const n=u.usuario||u.nombre||u.user||'';
-      const r=u.tipo||u.role||'';
-      return `<option value="${n.replace(/"/g,'&quot;')}" data-role="${r.replace(/"/g,'&quot;')}">${n}</option>`;
-    }).join('');
+    if(!data?.ok || !users.length){
+      throw new Error(data?.mensaje||'No se encontraron usuarios autorizados.');
+    }
+
+    select.innerHTML='<option value="">Selecciona tu usuario</option>'+
+      users.map(u=>{
+        const name=typeof u==='string'?u:(u.usuario||u.nombre||u.user||'');
+        const role=typeof u==='string'?'':(u.tipo||u.role||u.rango||'');
+        return `<option value="${escapeHtml(name)}" data-role="${escapeHtml(role)}">${escapeHtml(name)}</option>`;
+      }).join('');
+
     select.disabled=false;
-    status.textContent=`${users.length} usuarios autorizados disponibles.`;
-    status.className='secure-login-status success';
+
+    if(status){
+      status.textContent=`${users.length} usuarios autorizados disponibles.`;
+      status.className='secure-login-status success';
+    }
+
   }catch(e){
     select.innerHTML='<option value="">No fue posible cargar usuarios</option>';
     select.disabled=true;
-    status.textContent=e.message||'No fue posible cargar usuarios.';
-    status.className='secure-login-status error';
+
+    if(status){
+      status.textContent=e.message||'No fue posible cargar usuarios.';
+      status.className='secure-login-status error';
+    }
   }
+
   secureUpdateAvatar();
 }
+
+function secureLoadUsersViaJsonp(){
+  return new Promise((resolve,reject)=>{
+    const callback='reportiaUsers_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+
+    const timeout=setTimeout(()=>{
+      cleanup();
+      reject(new Error('Tiempo de espera agotado al cargar usuarios.'));
+    },12000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      try{delete window[callback]}catch(e){}
+      script.remove();
+    }
+
+    window[callback]=(data)=>{
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror=()=>{
+      cleanup();
+      reject(new Error('No fue posible conectar con la lista de usuarios.'));
+    };
+
+    const url=new URL(SECURE_AUTH_ENDPOINT);
+    url.searchParams.set('accion','usuarios');
+    url.searchParams.set('callback',callback);
+
+    script.src=url.toString();
+    document.head.appendChild(script);
+  });
+}
+
 function secureUpdateAvatar(){
   const name=document.getElementById('loginUser')?.value||'';
   const avatar=document.getElementById('loginAvatar');
@@ -712,30 +793,99 @@ async function secureLogin(){
   const user=(document.getElementById('loginUser')?.value||'').trim();
   const pass=document.getElementById('loginPassword')?.value||'';
   const status=document.getElementById('loginStatus');
+
   if(!user||!pass){
     status.textContent='Selecciona tu usuario e ingresa tu contraseña.';
     status.className='secure-login-status error';
     return;
   }
+
   status.textContent='Validando acceso...';
   status.className='secure-login-status loading';
+
   try{
-    const url=new URL(SECURE_AUTH_ENDPOINT);
-    url.searchParams.set('accion','login');
-    url.searchParams.set('usuario',user);
-    url.searchParams.set('contrasena',pass);
-    const res=await fetch(url.toString(),{cache:'no-store',redirect:'follow'});
-    const data=JSON.parse(await res.text());
-    if(!data?.ok)throw new Error(data?.mensaje||'Usuario o contraseña incorrectos.');
-    const session={name:data.usuario||user,role:(data.tipo||'USUARIO').toUpperCase()};
+    let data=null;
+
+    try{
+      const url=new URL(SECURE_AUTH_ENDPOINT);
+      url.searchParams.set('accion','login');
+      url.searchParams.set('usuario',user);
+      url.searchParams.set('contrasena',pass);
+
+      const res=await fetch(url.toString(),{
+        method:'GET',
+        cache:'no-store',
+        redirect:'follow'
+      });
+
+      if(res.ok){
+        const text=await res.text();
+        try{data=JSON.parse(text)}catch(e){}
+      }
+    }catch(fetchError){
+      console.warn('Fetch de login bloqueado; usando JSONP.',fetchError);
+    }
+
+    if(!data || typeof data.ok==='undefined'){
+      data=await secureLoginViaJsonp(user,pass);
+    }
+
+    if(!data?.ok){
+      throw new Error(data?.mensaje||'Usuario o contraseña incorrectos.');
+    }
+
+    const session={
+      name:data.usuario||user,
+      role:(data.tipo||'USUARIO').toUpperCase()
+    };
+
     secureSetSession(session);
     secureApplySession(session);
     document.getElementById('secureLogin')?.classList.add('hidden');
+
   }catch(e){
     status.textContent=e.message||'No fue posible iniciar sesión.';
     status.className='secure-login-status error';
   }
 }
+
+function secureLoginViaJsonp(user,pass){
+  return new Promise((resolve,reject)=>{
+    const callback='reportiaLogin_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+
+    const timeout=setTimeout(()=>{
+      cleanup();
+      reject(new Error('Tiempo de espera agotado al validar el acceso.'));
+    },12000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      try{delete window[callback]}catch(e){}
+      script.remove();
+    }
+
+    window[callback]=(data)=>{
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror=()=>{
+      cleanup();
+      reject(new Error('No fue posible conectar con el servicio de acceso.'));
+    };
+
+    const url=new URL(SECURE_AUTH_ENDPOINT);
+    url.searchParams.set('accion','login');
+    url.searchParams.set('usuario',user);
+    url.searchParams.set('contrasena',pass);
+    url.searchParams.set('callback',callback);
+
+    script.src=url.toString();
+    document.head.appendChild(script);
+  });
+}
+
 function secureApplySession(session){
   const name=session?.name||'Usuario';
   const role=session?.role||'USUARIO';

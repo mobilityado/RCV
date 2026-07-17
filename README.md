@@ -67,3 +67,9 @@ Nota: la reproducción 1:1 de plantillas Excel con componentes propietarios (por
 - Exportación PDF automática cuando las librerías están disponibles.
 - Fallback nativo con Guardar como PDF si la red corporativa bloquea los CDN.
 - Notificaciones profesionales en lugar de alertas del navegador.
+
+## Secure Executive Stable
+- Restaurado el cargado de usuarios.
+- Fetch + JSONP para GitHub Pages.
+- Login también usa fallback JSONP.
+- Mantiene PDF Fix.
