@@ -474,3 +474,90 @@ function renderComparison(ma,mb){
     const f=document.getElementById('focusBtn'); if(f)f.onclick=()=>document.getElementById('inteligencia')?.scrollIntoView({behavior:'smooth'});
   });
 })();
+
+// ===== REPORT.IA RCV Intelligence Edition 2.0: Executive exports =====
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  function visibleReportRoot(){
+    const candidates = [...document.querySelectorAll('main section, main .page, main .view, main .content-section')];
+    const visible = candidates.find(el => {
+      const s=getComputedStyle(el);
+      return el.id!=='exportSuite' && s.display!=='none' && el.offsetParent!==null && el.offsetHeight>120;
+    });
+    return visible || document.querySelector('main') || document.body;
+  }
+  function stamp(){
+    const d=new Date();
+    return d.toISOString().slice(0,10);
+  }
+  async function exportPdf(element, filename, title){
+    if(!window.html2canvas || !window.jspdf){ alert('No se pudieron cargar las librerías de PDF. Revisa tu conexión a internet.'); return; }
+    const canvas=await html2canvas(element,{scale:1.6,useCORS:true,backgroundColor:'#ffffff',logging:false});
+    const img=canvas.toDataURL('image/jpeg',0.92);
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF('p','mm','a4');
+    const pw=210, ph=297, margin=10, header=18;
+    pdf.setFont('helvetica','bold'); pdf.setFontSize(15); pdf.text(title,margin,11);
+    pdf.setFont('helvetica','normal'); pdf.setFontSize(8); pdf.text('REPORT.IA RCV · Intelligence Edition 2.0',margin,16);
+    const iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
+    let y=header, remaining=ih, sy=0;
+    while(remaining>0){
+      const pageH=ph-y-margin;
+      const sliceH=Math.min(pageH,remaining);
+      // Use same image with negative y clipping per page
+      pdf.addImage(img,'JPEG',margin,y-sy,iw,ih);
+      remaining-=sliceH; sy+=sliceH;
+      if(remaining>0){ pdf.addPage(); y=margin; }
+    }
+    pdf.save(filename);
+  }
+  async function pdfVista(){
+    await exportPdf(visibleReportRoot(),`REPORTIA_RCV_Vista_${stamp()}.pdf`,'Informe Ejecutivo · Vista actual');
+  }
+  async function pdfGerencia(){
+    const sel=document.querySelector('select[id*="gerencia" i], select[name*="gerencia" i]');
+    const g=sel?.selectedOptions?.[0]?.textContent?.trim() || 'Gerencia seleccionada';
+    await exportPdf(visibleReportRoot(),`REPORTIA_RCV_${g.replace(/[^\w\-]+/g,'_')}_${stamp()}.pdf`,`Informe Ejecutivo · ${g}`);
+  }
+  function excelEjecutivo(){
+    if(typeof XLSX==='undefined'){ alert('La librería de Excel no está disponible.'); return; }
+    const wb=XLSX.utils.book_new();
+    const summary=[
+      ['REPORT.IA RCV · INFORME EJECUTIVO'],
+      ['Fecha de generación',new Date().toLocaleString('es-MX')],
+      ['Vista','Intelligence Edition 2.0'],
+      [],
+      ['Indicador','Valor']
+    ];
+    document.querySelectorAll('.kpi-card,.metric-card,.stat-card,.card').forEach(card=>{
+      const t=card.querySelector('h3,h4,.title,.label')?.textContent?.trim();
+      const v=card.querySelector('.value,.kpi-value,.metric-value,strong')?.textContent?.trim();
+      if(t&&v&&t.length<80&&v.length<80) summary.push([t,v]);
+    });
+    const ws=XLSX.utils.aoa_to_sheet(summary);
+    ws['!cols']=[{wch:38},{wch:28}];
+    XLSX.utils.book_append_sheet(wb,ws,'Resumen Ejecutivo');
+    XLSX.writeFile(wb,`REPORTIA_RCV_Ejecutivo_${stamp()}.xlsx`);
+  }
+  async function paquete(){
+    if(typeof JSZip==='undefined'){ alert('La librería ZIP no está disponible.'); return; }
+    const zip=new JSZip();
+    const root=visibleReportRoot();
+    const canvas=await html2canvas(root,{scale:1.3,useCORS:true,backgroundColor:'#ffffff'});
+    zip.file(`Vista_Ejecutiva_${stamp()}.png`,canvas.toDataURL('image/png').split(',')[1],{base64:true});
+    zip.file('LEEME.txt',
+      'REPORT.IA RCV · Intelligence Edition 2.0\n\nPaquete ejecutivo generado desde la vista activa.\n' +
+      'Use los botones individuales para generar PDF y Excel ejecutivo. Los reportes operativos se mantienen en el módulo de descargas del portal.'
+    );
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`REPORTIA_RCV_Paquete_Ejecutivo_${stamp()}.zip`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  }
+  document.addEventListener('DOMContentLoaded',()=>{
+    $('btnPdfVista')?.addEventListener('click',pdfVista);
+    $('btnPdfGerencia')?.addEventListener('click',pdfGerencia);
+    $('btnExcelEjecutivo')?.addEventListener('click',excelEjecutivo);
+    $('btnPaqueteEjecutivo')?.addEventListener('click',paquete);
+  });
+})();

@@ -187,7 +187,23 @@
     </section>
 
     <footer>REPORT.IA RCV · Centro Ejecutivo de Automatización · Mobility ADO</footer>
-  </main>
+  
+<section class="export-suite card" id="exportSuite">
+  <div>
+    <span class="eyebrow">INTELLIGENCE EDITION 2.0</span>
+    <h2>Centro de Reportes Ejecutivos</h2>
+    <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
+  </div>
+  <div class="export-actions">
+    <button class="btn btn-primary" id="btnPdfVista">📄 PDF de la vista actual</button>
+    <button class="btn btn-secondary" id="btnExcelEjecutivo">📊 Excel Ejecutivo</button>
+    <button class="btn btn-secondary" id="btnPdfGerencia">🏢 PDF por Gerencia</button>
+    <button class="btn btn-dark" id="btnPaqueteEjecutivo">📦 Paquete Ejecutivo</button>
+  </div>
+  <div class="export-note">El PDF respeta el módulo visible y sus filtros. El Excel ejecutivo usa la información procesada disponible en el navegador.</div>
+</section>
+
+</main>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>

@@ -34,3 +34,13 @@ La lógica de generación reconstruye los cálculos en JavaScript y no depende d
 
 ## Intelligence Edition
 Esta edición añade Pulso RCV 0-100, centro de alertas, bloque “Qué cambió”, comparador de gerencias y modo presentación. Las funciones trabajan sobre los datos procesados localmente y no requieren backend.
+
+
+## Intelligence Edition 2.0
+- Exportación de la vista actual a PDF.
+- Exportación PDF por gerencia seleccionada.
+- Excel Ejecutivo de KPIs visibles.
+- Paquete Ejecutivo ZIP.
+- Paleta corporativa refinada: morado profundo, blanco/gris y colores semánticos para alertas.
+
+Nota: la reproducción 1:1 de plantillas Excel con componentes propietarios (por ejemplo XLCubed) requiere validar cada plantilla original y sus conexiones; esta versión conserva el generador operativo existente y añade exportaciones ejecutivas del portal.
