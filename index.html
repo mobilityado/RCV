@@ -166,11 +166,11 @@
       <header class="section-title"><span>PROCESAMIENTO VALIDADO</span><h2>Cargar y generar los reportes FINAL</h2><p>Admite un Excel consolidado con las cuatro pestañas o varios Excel que contengan las fuentes por separado.</p></header>
       <div class="upload-layout">
         <article class="upload-card">
-          <h3>1. Selecciona los archivos JD</h3>
-          <p>Se requieren: <b>CATALOGO DE GERENTES</b>, <b>JD COSTO RCV</b>, <b>JD GASTOS RCV</b> y <b>JD XPV RCV</b>.</p>
-          <input id="jdFiles" type="file" accept=".xlsx,.xls" multiple hidden>
-          <div class="upload-actions"><button id="browseBtn">Seleccionar Excel</button><button id="processBtn" disabled>Procesar información</button><button class="secondary" id="clearBtn">Limpiar</button></div>
-          <div id="uploadStatus" class="status">Aún no has seleccionado archivos.</div>
+          <h3>1. Selecciona tus archivos de origen</h3>
+          <p>Puedes cargar <b>reportes JD.xlsx</b> con las cuatro pestañas, o cargar los archivos RP <b>Costos</b>, <b>Gastos</b> y <b>Productividad XPV</b> por separado. También puedes seleccionar un ZIP que los contenga.</p>
+          <input id="jdFiles" type="file" accept=".xlsx,.xls,.zip" multiple hidden>
+          <div class="upload-actions"><button id="browseBtn">Seleccionar archivos</button><button id="processBtn" disabled>Procesar información</button><button class="secondary" id="clearBtn">Limpiar</button></div>
+          <div id="uploadStatus" class="status">Aún no has seleccionado archivos. Puedes usar el consolidado reportes JD o los archivos RP sueltos/ZIP.</div><div id="inputMode" class="input-mode">Modo de entrada: <b>Sin detectar</b></div>
           <div id="sourceChecklist" class="checklist"></div>
         </article>
         <article class="upload-card">
