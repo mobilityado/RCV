@@ -521,10 +521,67 @@ function renderProcessStats(){
   qa("#processStats strong").forEach((el,i)=>el.textContent=vals[i]??0);
 }
 function renderAnalysis(){
-  const t=modelTotals(); if(!t){$("analysisCards").innerHTML='<article><span>Estado</span><strong>Sin datos</strong></article>';$("analysisTable").innerHTML="";return;}
-  const cards=[["Costo total",money(t.cost2026)],["Gasto total",money(t.expense2026)],["XPV real",money(t.xpReal)],["XPV presupuesto",money(t.xpBudget)],["Cumplimiento XPV",(t.xpCompliance*100).toFixed(2)+"%"],["Gerencias activas",t.managers]];
+  const t=modelTotals();
+  if(!t){
+    $("analysisCards").innerHTML='<article><span>Estado</span><strong>Sin datos</strong></article>';
+    $("analysisTable").innerHTML='<tr><td colspan="5">Sin información procesada.</td></tr>';
+    return;
+  }
+
+  const cards=[
+    ["Costo total",money(t.cost2026)],
+    ["Gasto total",money(t.expense2026)],
+    ["XPV real",money(t.xpReal)],
+    ["XPV presupuesto",money(t.xpBudget)],
+    ["Cumplimiento XPV",(t.xpCompliance*100).toFixed(2)+"%"],
+    ["Gerencias activas",t.managers]
+  ];
   $("analysisCards").innerHTML=cards.map(x=>`<article><span>${x[0]}</span><strong>${x[1]}</strong></article>`).join("");
-  $("analysisTable").innerHTML=t.deviations.slice(0,30).map(d=>`<tr><td>${d.type}</td><td>${d.manager}</td><td>${signedMoney(d.y2025)}</td><td>${signedMoney(d.y2026)}</td><td>${(d.pct*100).toFixed(2)}%</td></tr>`).join("");
+
+  // If there are critical deviations, show them.
+  // Otherwise, show the most relevant real 2025 vs 2026 variations.
+  let rows=t.deviations.slice();
+
+  if(!rows.length && state.model){
+    rows=[
+      ...state.model.costSummary.map(x=>({
+        type:"Costo",
+        manager:x.manager,
+        y2025:x.y2025,
+        y2026:x.y2026,
+        pct:x.pct2526,
+        impact:Math.abs(x.diff2526||0)
+      })),
+      ...state.model.expenseSummary.map(x=>({
+        type:"Gasto",
+        manager:x.manager,
+        y2025:x.y2025,
+        y2026:x.y2026,
+        pct:x.pct2526,
+        impact:Math.abs(x.diff2526||0)
+      }))
+    ]
+    .filter(x=>Number.isFinite(x.pct))
+    .sort((a,b)=>Math.abs(b.pct)-Math.abs(a.pct));
+  }
+
+  if(!rows.length){
+    $("analysisTable").innerHTML='<tr><td colspan="5">No hay variaciones calculables para el periodo.</td></tr>';
+    return;
+  }
+
+  $("analysisTable").innerHTML=rows.slice(0,30).map(d=>{
+    const p=Number.isFinite(d.pct)?d.pct:0;
+    const cls=p>0?"var-up":p<0?"var-down":"var-flat";
+    const label=p>0?"Aumento":p<0?"Reducción":"Sin cambio";
+    return `<tr>
+      <td>${d.type}</td>
+      <td>${d.manager}</td>
+      <td>${signedMoney(d.y2025)}</td>
+      <td>${signedMoney(d.y2026)}</td>
+      <td><span class="variation-pill ${cls}">${label} ${Math.abs(p*100).toFixed(2)}%</span></td>
+    </tr>`;
+  }).join("");
 }
 function renderComparisons(){
   if(!state.model){$("comparisonTable").innerHTML="";return;}
@@ -648,7 +705,7 @@ async function downloadAll(){
   zip.file("COSTO RCV 2026.xlsx",workbookBlob(makeCostWorkbook()));
   zip.file("Gastos RCV 2026.xlsx",workbookBlob(makeExpenseWorkbook()));
   zip.file(`Productividad XPV ${state.model.month} 26 RCV.xlsx`,workbookBlob(makeXpvWorkbook()));
-  zip.file("LEEME.txt","REPORT.IA RCV 21.3 · Archivos generados directamente desde los JD procesados.");
+  zip.file("LEEME.txt","REPORT.IA RCV 21.4 · Archivos generados directamente desde los JD procesados.");
   saveBlob(await zip.generateAsync({type:"blob"}),`FINAL_${state.model.month}_2026.zip`);
 }
 
