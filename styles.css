@@ -1564,3 +1564,282 @@ body.executive-layout-v21 main .main-wrapper{
     padding-right:12px!important;
   }
 }
+
+/* ===== REPORT.IA RCV 16.3 · TRUE GRID LAYOUT + EXECUTIVE BLUE ===== */
+:root{
+  --blue-sidebar:276px;
+  --blue-950:#102a56;
+  --blue-900:#173b78;
+  --blue-800:#1d4ed8;
+  --blue-700:#2563eb;
+  --blue-600:#3b82f6;
+  --indigo-700:#4338ca;
+  --blue-soft:#eff6ff;
+  --blue-bg:#f4f7fc;
+  --blue-line:#dbe7f5;
+  --blue-ink:#172033;
+  --blue-muted:#64748b;
+}
+
+/* 
+  Structural reset:
+  The body itself becomes the two-column app shell.
+  Sidebar and main can no longer overlap.
+*/
+body.executive-layout-v21{
+  display:grid !important;
+  grid-template-columns:var(--blue-sidebar) minmax(0,1fr) !important;
+  grid-template-rows:auto !important;
+  align-items:start !important;
+  min-height:100vh !important;
+  width:100% !important;
+  max-width:100% !important;
+  overflow-x:hidden !important;
+  background:
+    radial-gradient(circle at 86% 5%,rgba(59,130,246,.11),transparent 25%),
+    linear-gradient(180deg,#f8fbff 0%,var(--blue-bg) 100%) !important;
+}
+
+/* Login remains a full-screen overlay, independent of grid */
+body.executive-layout-v21 > .secure-login{
+  position:fixed!important;
+  inset:0!important;
+  z-index:99999!important;
+}
+
+/* Sidebar is now a real grid column, not a floating layer */
+body.executive-layout-v21 > .sidebar{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  position:sticky !important;
+  top:0 !important;
+  left:auto !important;
+  bottom:auto !important;
+  width:var(--blue-sidebar) !important;
+  min-width:var(--blue-sidebar) !important;
+  max-width:var(--blue-sidebar) !important;
+  height:100vh !important;
+  min-height:100vh !important;
+  box-sizing:border-box !important;
+  overflow-y:auto !important;
+  z-index:50 !important;
+  margin:0 !important;
+  padding:27px 20px !important;
+  background:
+    radial-gradient(circle at 22% 5%,rgba(96,165,250,.18),transparent 22%),
+    radial-gradient(circle at 85% 80%,rgba(67,56,202,.20),transparent 28%),
+    linear-gradient(180deg,#102a56 0%,#173b78 48%,#1d3d77 100%) !important;
+  box-shadow:12px 0 34px rgba(23,59,120,.15) !important;
+}
+
+/* Main is a true second grid column */
+body.executive-layout-v21 > main{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  position:relative !important;
+  margin:0 !important;
+  margin-left:0 !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:none !important;
+  box-sizing:border-box !important;
+  padding:0 24px 30px !important;
+  overflow-x:hidden !important;
+}
+
+/* Neutralize ALL legacy margin-left rules inside main */
+body.executive-layout-v21 > main,
+body.executive-layout-v21 > main *,
+body.executive-layout-v21 > main .main-content,
+body.executive-layout-v21 > main .content,
+body.executive-layout-v21 > main .app-content,
+body.executive-layout-v21 > main .page-content,
+body.executive-layout-v21 > main .dashboard-container,
+body.executive-layout-v21 > main .workspace,
+body.executive-layout-v21 > main .content-wrapper,
+body.executive-layout-v21 > main .main-wrapper{
+  box-sizing:border-box;
+}
+body.executive-layout-v21 > main .main-content,
+body.executive-layout-v21 > main .content,
+body.executive-layout-v21 > main .app-content,
+body.executive-layout-v21 > main .page-content,
+body.executive-layout-v21 > main .dashboard-container,
+body.executive-layout-v21 > main .workspace,
+body.executive-layout-v21 > main .content-wrapper,
+body.executive-layout-v21 > main .main-wrapper{
+  margin-left:0!important;
+  width:100%!important;
+  max-width:100%!important;
+}
+
+/* Ensure every major module remains inside the available content column */
+.exec-topbar,
+.generator-studio,
+.automation-center,
+.reporting-center,
+.insight360-center,
+.command15,
+.report16,
+.story14,
+#validacion,
+.dashboard,
+.panel,
+.analytics-section,
+.intelligence-shell{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin-left:0!important;
+  margin-right:0!important;
+  box-sizing:border-box!important;
+}
+
+/* No horizontal child can push content under/behind sidebar */
+body.executive-layout-v21 > main *{
+  min-width:0;
+}
+.c15-tablewrap,
+.r16-preview,
+.manager-matrix-wrap,
+.s14table,
+.table-wrap,
+.chart-wrap{
+  max-width:100%!important;
+  overflow:auto!important;
+}
+
+/* New elegant blue identity */
+.exec-topbar{
+  margin-top:0!important;
+  background:rgba(255,255,255,.96)!important;
+  border:1px solid var(--blue-line)!important;
+  border-top:3px solid var(--blue-700)!important;
+  box-shadow:0 12px 30px rgba(29,78,216,.07)!important;
+}
+.exec-greeting h1{color:var(--blue-950)!important}
+
+.sidebar a.active,
+.sidebar .nav-item.active{
+  background:linear-gradient(90deg,rgba(59,130,246,.26),rgba(67,56,202,.18))!important;
+  border-left:3px solid #93c5fd!important;
+  color:#fff!important;
+}
+.sidebar a:hover,
+.sidebar .nav-item:hover{
+  background:rgba(255,255,255,.075)!important;
+}
+
+.brand-icon-custom{
+  width:46px!important;
+  height:46px!important;
+  padding:0!important;
+  border-radius:15px!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  box-shadow:0 10px 24px rgba(8,47,107,.24)!important;
+}
+.reportia-logo-svg-blue{
+  width:46px;
+  height:46px;
+  display:block;
+}
+.sidebar .brand strong{color:#fff!important}
+.sidebar .brand span{color:#bfdbfe!important}
+
+/* Main hero / Generator Studio */
+.generator-studio{
+  background:
+    radial-gradient(circle at 80% 8%,rgba(96,165,250,.20),transparent 26%),
+    radial-gradient(circle at 10% 95%,rgba(67,56,202,.23),transparent 28%),
+    linear-gradient(135deg,#102a56 0%,#1d4ed8 52%,#4338ca 100%)!important;
+  border-color:rgba(255,255,255,.20)!important;
+  box-shadow:0 28px 60px rgba(29,78,216,.15)!important;
+}
+.generator-badge{
+  border-color:rgba(255,255,255,.26)!important;
+  background:rgba(255,255,255,.11)!important;
+}
+.generator-story .eyebrow{color:#bfdbfe!important}
+
+/* Buttons */
+.compact-process,
+.reporting-btn.primary,
+.automation-btn.primary,
+.v10-btn.primary,
+.c15-filters button,
+.c15-card button,
+.c15-decisions button,
+.c15-settings button,
+.c15-chatbox button,
+.r16-card button,
+.r16-actions button,
+.story-btn.primary{
+  background:linear-gradient(135deg,#1d4ed8,#2563eb,#4338ca)!important;
+  color:#fff!important;
+  border:0!important;
+  box-shadow:0 9px 22px rgba(37,99,235,.18)!important;
+}
+
+/* Cards and accents */
+.card,.kpi-card,.metric-card,.stat-card,.automation-card,.reporting-card,
+.report-preview-card,.generation-history-card,.c15-card,.c15-decisions,.c15-assistant,
+.report16,.r16-card,.story-panel,.insight-panel{
+  border-color:var(--blue-line)!important;
+  box-shadow:0 10px 26px rgba(30,64,175,.045)!important;
+}
+.kpi-card:nth-child(4n+1),.metric-card:nth-child(4n+1){border-top:3px solid #1d4ed8!important}
+.kpi-card:nth-child(4n+2),.metric-card:nth-child(4n+2){border-top:3px solid #3b82f6!important}
+.kpi-card:nth-child(4n+3),.metric-card:nth-child(4n+3){border-top:3px solid #4338ca!important}
+.kpi-card:nth-child(4n+4),.metric-card:nth-child(4n+4){border-top:3px solid #0891b2!important}
+
+.c15-eyebrow,.c15-label,.reporting-kicker,.reporting-label,.automation-kicker,.automation-label,
+.insight360-kicker,.story-kicker,.r16-head span{
+  color:#1d4ed8!important;
+}
+.c15-nav button.active{
+  background:linear-gradient(135deg,#102a56,#1d4ed8)!important;
+}
+.c15-health,.r16-badge{
+  background:linear-gradient(135deg,#102a56,#173b78)!important;
+}
+.r16-card.master,.r16-report-cover{
+  background:
+    radial-gradient(circle at 90% 0%,rgba(96,165,250,.22),transparent 25%),
+    linear-gradient(135deg,#102a56,#1d4ed8,#4338ca)!important;
+}
+
+/* Login logo also becomes blue even if old SVG remains */
+.secure-logo{
+  background:linear-gradient(135deg,#1d4ed8,#4338ca)!important;
+}
+.secure-logo svg rect{
+  fill:#2563eb!important;
+}
+
+/* Tablet/mobile: switch to one column */
+@media(max-width:900px){
+  body.executive-layout-v21{
+    display:block!important;
+  }
+  body.executive-layout-v21 > .sidebar{
+    position:relative!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:auto!important;
+    min-height:0!important;
+  }
+  body.executive-layout-v21 > main{
+    width:100%!important;
+    margin:0!important;
+    padding:12px!important;
+  }
+}
+
+/* Extra narrow */
+@media(max-width:580px){
+  body.executive-layout-v21 > .sidebar{
+    display:flex!important;
+  }
+}
