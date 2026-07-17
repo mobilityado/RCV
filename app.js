@@ -550,51 +550,74 @@ function rcvToast(message,type=''){
     }
     let host=null;
     try{
-      rcvToast('Preparando reporte ejecutivo…');
+      rcvToast('Preparando reporte completo…');
       if(document.fonts?.ready){try{await document.fonts.ready;}catch(_){}}
 
-      // Elegir el contenido analítico real. La zona de carga se excluye del PDF.
-      const source=document.querySelector('#dashboard')
-        || document.querySelector('.dashboard')
-        || document.querySelector('.main-content')
-        || document.querySelector('main')
-        || element;
+      const excludeSelector=[
+        '#carga','.generator-studio','#automationCenter','#reportingCenter',
+        '.sidebar','.exec-topbar','.rcv-v9-toolbar','.rcv-v9-panel',
+        '.v10-fab-stack','.v10-sheet','.modal','.toast','[role="dialog"]',
+        'input[type="file"]','button'
+      ].join(',');
 
-      host=document.createElement('div');
-      host.style.cssText='position:fixed;left:-20000px;top:0;width:1360px;background:#fff;padding:24px;z-index:-1;box-sizing:border-box;color:#0f172a;';
-      const clone=source.cloneNode(true);
-      clone.style.margin='0';clone.style.width='100%';clone.style.maxWidth='none';clone.style.transform='none';
-
-      clone.querySelectorAll(
-        '#carga,.generator-studio,#rcvSmartImport,.rcv-smart-import,.upload-section,.upload-panel,.file-drop,.drop-zone,'+
-        '[class*="upload"],input[type="file"],.sidebar,.exec-topbar,.rcv-v9-toolbar,.rcv-v9-panel,'+
-        '.v10-fab-stack,.v10-sheet,.modal,.toast,[role="dialog"]'
-      ).forEach(el=>el.remove());
-
-      // Los canvas clonados quedan vacíos: reemplazarlos con imágenes de los canvas originales.
-      const originals=[...source.querySelectorAll('canvas')];
-      const cloned=[...clone.querySelectorAll('canvas')];
-      cloned.forEach((c,i)=>{
-        const orig=originals[i];if(!orig)return;
-        try{
-          const img=document.createElement('img');
-          img.src=orig.toDataURL('image/png');
-          const rect=orig.getBoundingClientRect();
-          img.style.width=(rect.width||orig.width)+'px';img.style.maxWidth='100%';img.style.height='auto';
-          c.replaceWith(img);
-        }catch(_){}
+      const candidates=[...document.querySelectorAll(
+        'main section, main .card, main .dashboard-section, main .report-section, '+
+        '.tab-content, .panel, .chart-card, .table-card, .kpi-grid, .metrics-grid'
+      )].filter(el=>{
+        if(el.matches(excludeSelector) || el.closest(excludeSelector)) return false;
+        const t=(el.innerText||'').trim();
+        return t.length>20 || el.querySelector('canvas,svg,table,.kpi-card,.metric-card,.stat-card');
       });
-      clone.querySelectorAll('svg').forEach(svg=>{svg.style.maxWidth='100%';});
 
-      host.appendChild(clone);document.body.appendChild(host);
+      const sections=candidates.filter((el,i,arr)=>!arr.some((o,j)=>j!==i&&o.contains(el)));
+      host=document.createElement('div');
+      host.style.cssText='position:fixed;left:-30000px;top:0;width:1360px;background:#fff;padding:28px;z-index:-1;box-sizing:border-box;color:#0f172a;';
+
+      const cover=document.createElement('div');
+      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Executive Insight 13.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
+      host.appendChild(cover);
+
+      const seen=new Set();
+      for(const source of sections){
+        const clone=source.cloneNode(true);
+        clone.removeAttribute('hidden');
+        clone.style.display='block';clone.style.visibility='visible';clone.style.opacity='1';
+        clone.style.height='auto';clone.style.maxHeight='none';clone.style.overflow='visible';
+        clone.style.margin='0 0 18px';clone.style.width='100%';clone.style.maxWidth='none';clone.style.transform='none';
+        clone.querySelectorAll('[hidden]').forEach(el=>el.removeAttribute('hidden'));
+        clone.querySelectorAll(excludeSelector).forEach(el=>el.remove());
+
+        const oc=[...source.querySelectorAll('canvas')];
+        const cc=[...clone.querySelectorAll('canvas')];
+        cc.forEach((c,i)=>{
+          const orig=oc[i];if(!orig)return;
+          try{
+            const img=document.createElement('img');
+            img.src=orig.toDataURL('image/png');
+            const r=orig.getBoundingClientRect();
+            img.style.width=Math.max(r.width||orig.width,300)+'px';
+            img.style.maxWidth='100%';img.style.height='auto';img.style.display='block';
+            c.replaceWith(img);
+          }catch(_){}
+        });
+        clone.querySelectorAll('svg').forEach(svg=>{svg.style.maxWidth='100%';svg.style.height='auto';});
+        const fp=(clone.innerText||'').trim().slice(0,500);
+        if(fp&&seen.has(fp))continue;
+        if(fp)seen.add(fp);
+        const wrap=document.createElement('div');
+        wrap.style.cssText='margin-bottom:18px;padding:4px;';
+        wrap.appendChild(clone);host.appendChild(wrap);
+      }
+
+      document.body.appendChild(host);
       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
-      const canvas=await html2canvas(host,{scale:1.4,useCORS:true,allowTaint:false,backgroundColor:'#fff',logging:false,imageTimeout:12000,width:host.scrollWidth,height:host.scrollHeight,windowWidth:1360,scrollX:0,scrollY:0});
+      const canvas=await html2canvas(host,{scale:1.35,useCORS:true,allowTaint:false,backgroundColor:'#fff',logging:false,imageTimeout:15000,width:host.scrollWidth,height:host.scrollHeight,windowWidth:1360,scrollX:0,scrollY:0});
       if(!canvas||canvas.width<50||canvas.height<50)throw new Error('Captura vacía');
 
       const {jsPDF}=window.jspdf;
       const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4',compress:true});
-      const pw=210,ph=297,margin=9,header=22,footer=8,usableW=pw-margin*2,usableH=ph-header-footer-margin;
+      const pw=210,ph=297,margin=9,header=18,footer=8,usableW=pw-margin*2,usableH=ph-header-footer-margin;
       const pxPerMm=canvas.width/usableW,slicePx=Math.max(1,Math.floor(usableH*pxPerMm));
       let sy=0,page=1;
       while(sy<canvas.height){
@@ -602,15 +625,16 @@ function rcvToast(message,type=''){
         const slice=document.createElement('canvas');slice.width=canvas.width;slice.height=sh;
         const ctx=slice.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
         if(page>1)pdf.addPage();
-        pdf.setTextColor(15,23,42);pdf.setFont('helvetica','bold');pdf.setFontSize(14);pdf.text(title,margin,11);
-        pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(100,116,139);pdf.text('REPORT.IA RCV · Intelligence Decision 10.2',margin,16);pdf.text(new Date().toLocaleString('es-MX'),pw-margin,16,{align:'right'});
-        pdf.addImage(slice.toDataURL('image/jpeg',.94),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
-        pdf.setFontSize(7);pdf.setTextColor(148,163,184);pdf.text(`Página ${page}`,pw-margin,ph-4,{align:'right'});
+        pdf.setTextColor(100,116,139);pdf.setFont('helvetica','normal');pdf.setFontSize(7);
+        pdf.text('REPORT.IA RCV · Executive Insight 13.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
+        pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
         sy+=sh;page++;
       }
-      pdf.save(filename);rcvToast('PDF ejecutivo generado correctamente.','ok');
+      pdf.save(filename);
+      rcvToast('PDF completo generado ('+(page-1)+' páginas).','ok');
     }catch(err){
-      console.error('PDF ejecutivo:',err);rcvToast('No fue posible generar el PDF automáticamente.','error');
+      console.error('PDF completo:',err);
+      rcvToast('No fue posible generar el PDF completo automáticamente.','error');
       if(confirm('¿Deseas usar Imprimir → Guardar como PDF?'))window.print();
     }finally{try{host?.remove();}catch(_){}}
   }
@@ -1007,7 +1031,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
 
         const summary=[
-          'REPORT.IA RCV · Executive Reporting 12.0',
+          'REPORT.IA RCV · Executive Insight 13.0',
           '',
           `Periodo: ${month}`,
           `Generado: ${new Date().toLocaleString('es-MX')}`,
@@ -1286,7 +1310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     zip.file('RANKING_EJECUTIVO_GERENCIAS.csv',csv(rankingRows));
 
     zip.file('LEEME.txt',
-      `REPORT.IA RCV · Executive Reporting 12.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
+      `REPORT.IA RCV · Executive Insight 13.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
       'Este paquete contiene los entregables ejecutivos complementarios al paquete FINAL operativo.'
     );
 
@@ -1322,4 +1346,34 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     if(e.target.closest('#downloadExecutiveBundleBtn'))executiveBundle();
   });
+})();
+
+// ===== REPORT.IA RCV 13.0 · Insights 360 =====
+(function(){
+  function $(id){return document.getElementById(id);}
+  function bodyText(){return document.body.innerText||'';}
+  function pctValues(){return (bodyText().match(/-?\d+(?:\.\d+)?%/g)||[]).map(x=>Number(x.replace('%',''))).filter(Number.isFinite);}
+  function gerencias(){return [...new Set([...document.querySelectorAll('h2,h3,h4,.title,.label,td')].map(x=>x.textContent.trim()).filter(x=>/gerenc/i.test(x)&&x.length<80))];}
+  function build(){
+    const p=pctValues(),critical=p.filter(x=>x<70).length,warning=p.filter(x=>x>=70&&x<90).length;
+    const avg=p.length?p.reduce((a,b)=>a+b,0)/p.length:null,gs=gerencias();
+    let health='Estable';if(critical>=3)health='Crítico';else if(critical>0||warning>=3)health='Atención';else if(avg!==null&&avg>=95)health='Excelente';
+    if($('insightHealth'))$('insightHealth').textContent=health;
+    if($('insightCritical'))$('insightCritical').textContent=String(critical);
+    if($('insightManagers'))$('insightManagers').textContent=String(gs.length);
+    if($('insightQuality'))$('insightQuality').textContent=$('qualityScore')?.textContent?.trim()||'N/D';
+
+    const risks=[];
+    if(critical)risks.push({c:'#dc2626',t:'Indicadores críticos',d:'Se detectaron '+critical+' indicadores porcentuales por debajo de 70%.'});
+    if(warning)risks.push({c:'#d97706',t:'Indicadores en observación',d:warning+' indicadores se encuentran entre 70% y 90%.'});
+    if(/gasto/i.test(bodyText()))risks.push({c:'#2563eb',t:'Presión de gasto',d:'Conviene revisar las gerencias con mayor crecimiento de gasto frente a productividad.'});
+    if(/productividad|xpv/i.test(bodyText()))risks.push({c:'#0f766e',t:'Productividad XPV',d:'Contrasta las variaciones de XPV con los cambios de costos y gastos.'});
+    if(!risks.length)risks.push({c:'#16a34a',t:'Sin riesgos críticos evidentes',d:'La vista actual no muestra alertas severas.'});
+    if($('insightRiskList'))$('insightRiskList').innerHTML=risks.slice(0,5).map(r=>'<div class="insight-item"><span class="dot" style="background:'+r.c+'"></span><div><strong>'+r.t+'</strong><span>'+r.d+'</span></div></div>').join('');
+
+    const meeting=['Validar las tres mayores desviaciones antes de presentar resultados.','Comparar gerencias de mejor y peor desempeño con el mismo periodo.','Separar cambios estructurales de variaciones extraordinarias.','Cerrar con tres acciones concretas y responsables definidos.'];
+    if($('insightMeetingList'))$('insightMeetingList').innerHTML=meeting.map((m,i)=>'<div class="insight-item"><span class="dot" style="background:'+['#2563eb','#0891b2','#6d28d9','#b7791f'][i]+'"></span><div><strong>Punto '+(i+1)+'</strong><span>'+m+'</span></div></div>').join('');
+  }
+  document.addEventListener('click',e=>{if(e.target.closest('#refreshInsight360Btn'))build();});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
 })();
