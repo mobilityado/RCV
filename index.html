@@ -608,6 +608,103 @@
 </body>
 </html>
 
+
+<section class="ecc17 no-print" id="ecc17">
+  <header class="ecc17-top">
+    <div>
+      <span class="ecc17-kicker">INICIO EJECUTIVO</span>
+      <h1>Centro de Mando Ejecutivo</h1>
+      <p>Inteligencia para decisiones que generan resultados.</p>
+    </div>
+    <div class="ecc17-top-actions">
+      <label class="ecc17-period">Periodo seleccionado
+        <select id="ecc17Period">
+          <option>Periodo actual</option>
+          <option>Mes anterior</option>
+          <option>Últimos 6 meses</option>
+        </select>
+      </label>
+      <button id="ecc17Refresh">↻ Actualizar datos</button>
+    </div>
+  </header>
+
+  <div class="ecc17-filters">
+    <label>Gerencia Regional<select id="ecc17Manager"><option>Todas las gerencias</option></select></label>
+    <label>Marca<select id="ecc17Brand"><option>Todas</option><option>ADO</option><option>TRT</option><option>SUR</option></select></label>
+    <label>Tipo de reporte<select id="ecc17Type"><option>Todos</option><option>Costos</option><option>Gastos</option><option>Productividad XPV</option></select></label>
+    <label class="ecc17-search">Buscar<input id="ecc17Search" placeholder="Buscar gerencia..."></label>
+  </div>
+
+  <div class="ecc17-kpis">
+    <article><span class="ecc17-icon blue">$</span><div><small>COSTO TOTAL</small><strong id="ecc17Cost">$ 0</strong><em id="ecc17CostTrend">vs Mes anterior</em></div></article>
+    <article><span class="ecc17-icon violet">▤</span><div><small>GASTO TOTAL</small><strong id="ecc17Expense">$ 0</strong><em id="ecc17ExpenseTrend">vs Mes anterior</em></div></article>
+    <article><span class="ecc17-icon cyan">↗</span><div><small>PRODUCTIVIDAD XPV</small><strong id="ecc17Xpv">0</strong><em id="ecc17XpvTrend">vs Mes anterior</em></div></article>
+    <article><span class="ecc17-icon teal">👥</span><div><small>GERENCIAS ACTIVAS</small><strong id="ecc17Managers">0</strong><em>Unidades detectadas</em></div></article>
+    <article><span class="ecc17-icon amber">⚠</span><div><small>ALERTAS CRÍTICAS</small><strong id="ecc17Critical">0</strong><em>Requieren atención</em></div></article>
+  </div>
+
+  <div class="ecc17-main-grid">
+    <article class="ecc17-card ecc17-wide">
+      <div class="ecc17-card-head"><div><span>RENDIMIENTO GENERAL</span><h3>Costos, gastos y XPV</h3></div><select><option>Últimos 6 meses</option></select></div>
+      <div class="ecc17-chart"><canvas id="ecc17TrendCanvas" width="760" height="230"></canvas></div>
+    </article>
+
+    <article class="ecc17-card">
+      <div class="ecc17-card-head"><div><span>TOP 5 GERENCIAS POR COSTO</span><h3>Ranking ejecutivo</h3></div></div>
+      <div id="ecc17TopManagers" class="ecc17-ranking"></div>
+    </article>
+
+    <article class="ecc17-card ecc17-gauge-card">
+      <div class="ecc17-card-head"><div><span>CUMPLIMIENTO DEL PERIODO</span><h3>Índice ejecutivo</h3></div></div>
+      <div class="ecc17-gauge"><div id="ecc17Gauge">0%</div><span>Cumplimiento</span></div>
+      <div class="ecc17-gauge-foot">Basado en indicadores y calidad de datos</div>
+    </article>
+  </div>
+
+  <div class="ecc17-bottom-grid">
+    <article class="ecc17-card">
+      <div class="ecc17-card-head"><div><span>DESVIACIONES CRÍTICAS</span><h3>Qué requiere atención</h3></div><button class="link-btn" data-scroll="report16">Ver todas</button></div>
+      <div id="ecc17Deviations" class="ecc17-list"></div>
+    </article>
+
+    <article class="ecc17-card">
+      <div class="ecc17-card-head"><div><span>HALLAZGOS PRINCIPALES (IA)</span><h3>Lectura automática</h3></div><button class="link-btn" data-scroll="insight360Center">Ver análisis</button></div>
+      <div id="ecc17Findings" class="ecc17-findings"></div>
+    </article>
+
+    <article class="ecc17-card">
+      <div class="ecc17-card-head"><div><span>ACCESOS RÁPIDOS</span><h3>Reportes especializados</h3></div></div>
+      <div class="ecc17-quick">
+        <button data-report="deviations">◫<span>Desviaciones y Excepciones</span></button>
+        <button data-report="savings">💲<span>Oportunidades de Ahorro</span></button>
+        <button data-report="efficiency">↗<span>Eficiencia Gerencial</span></button>
+        <button data-report="variations">⤢<span>Variaciones Periodo vs Periodo</span></button>
+        <button data-report="pareto">◔<span>Pareto 80/20</span></button>
+        <button data-report="actions">▣<span>Plan de Acción Ejecutivo</span></button>
+        <button class="master" data-report="master">▤<span>Reporte Maestro Ejecutivo</span></button>
+      </div>
+    </article>
+  </div>
+</section>
+
+<div class="ecc17-copilot" id="ecc17Copilot">
+  <button class="ecc17-copilot-main" id="ecc17CopilotToggle">
+    <span class="bot-head">🤖</span>
+    <div><strong>Copiloto Ejecutivo</strong><small>Pregúntame cualquier cosa</small></div>
+    <b>›</b>
+  </button>
+  <div class="ecc17-copilot-panel" id="ecc17CopilotPanel">
+    <div class="ecc17-copilot-header"><strong>Copiloto REPORT.IA</strong><button id="ecc17CopilotClose">×</button></div>
+    <div id="ecc17CopilotChat" class="ecc17-copilot-chat">
+      <div class="bot-msg">Hola. Puedo ayudarte con riesgos, costos, gastos, productividad XPV, gerencias, Pareto, ahorro y prioridades.</div>
+    </div>
+    <div class="ecc17-prompts">
+      <button>Dame un resumen</button><button>¿Qué revisar primero?</button><button>¿Cuál es el mayor riesgo?</button>
+    </div>
+    <div class="ecc17-copilot-input"><input id="ecc17CopilotInput" placeholder="Escribe tu pregunta..."><button id="ecc17CopilotAsk">Enviar</button></div>
+  </div>
+</div>
+
 <section class="command15 no-print" id="command15">
   <header class="c15-header">
     <div>

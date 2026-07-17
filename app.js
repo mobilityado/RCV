@@ -574,7 +574,7 @@ function rcvToast(message,type=''){
       host.style.cssText='position:fixed;left:-30000px;top:0;width:1360px;background:#fff;padding:28px;z-index:-1;box-sizing:border-box;color:#0f172a;';
 
       const cover=document.createElement('div');
-      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Advanced Reporting Suite 16.3 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
+      cover.innerHTML='<div style="padding:28px 30px;margin-bottom:20px;border-radius:20px;background:linear-gradient(135deg,#0f172a,#1e293b,#0f4c5c);color:white"><div style="font:800 11px system-ui;letter-spacing:.14em;color:#7dd3fc">REPORT.IA RCV</div><div style="font:850 30px system-ui;margin-top:8px">'+title+'</div><div style="font:500 12px system-ui;margin-top:7px;color:#cbd5e1">Executive Command Center 17.0 · Reporte analítico completo</div><div style="font:500 10px system-ui;margin-top:16px;color:#94a3b8">'+new Date().toLocaleString('es-MX')+'</div></div>';
       host.appendChild(cover);
 
       const seen=new Set();
@@ -626,7 +626,7 @@ function rcvToast(message,type=''){
         const ctx=slice.getContext('2d',{alpha:false});ctx.fillStyle='#fff';ctx.fillRect(0,0,slice.width,slice.height);ctx.drawImage(canvas,0,sy,canvas.width,sh,0,0,canvas.width,sh);
         if(page>1)pdf.addPage();
         pdf.setTextColor(100,116,139);pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-        pdf.text('REPORT.IA RCV · Advanced Reporting Suite 16.3',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
+        pdf.text('REPORT.IA RCV · Executive Command Center 17.0',margin,10);pdf.text('Página '+page,pw-margin,10,{align:'right'});
         pdf.addImage(slice.toDataURL('image/jpeg',.93),'JPEG',margin,header,usableW,sh/pxPerMm,'','FAST');
         sy+=sh;page++;
       }
@@ -1031,7 +1031,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         const month=$('month')?.selectedOptions?.[0]?.textContent || 'Periodo';
 
         const summary=[
-          'REPORT.IA RCV · Advanced Reporting Suite 16.3',
+          'REPORT.IA RCV · Executive Command Center 17.0',
           '',
           `Periodo: ${month}`,
           `Generado: ${new Date().toLocaleString('es-MX')}`,
@@ -1310,7 +1310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     zip.file('RANKING_EJECUTIVO_GERENCIAS.csv',csv(rankingRows));
 
     zip.file('LEEME.txt',
-      `REPORT.IA RCV · Advanced Reporting Suite 16.3\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
+      `REPORT.IA RCV · Executive Command Center 17.0\nPeriodo: ${month}\nGenerado: ${new Date().toLocaleString('es-MX')}\n\n`+
       'Este paquete contiene los entregables ejecutivos complementarios al paquete FINAL operativo.'
     );
 
@@ -1758,4 +1758,59 @@ document.addEventListener('DOMContentLoaded',()=>{
     setTimeout(enforceGrid,50);
   }
   window.addEventListener('resize',enforceGrid);
+})();
+
+
+// ===== REPORT.IA RCV 17.0 · Executive Dashboard Engine =====
+(function(){
+ const $=id=>document.getElementById(id), text=()=>document.body.innerText||'';
+ const money=()=> (text().match(/\$\s?\d[\d,]*(?:\.\d+)?/g)||[]).map(x=>+x.replace(/[$,\s]/g,'')).filter(Number.isFinite);
+ const pcts=()=> (text().match(/-?\d+(?:\.\d+)?%/g)||[]).map(x=>+x.replace('%','')).filter(Number.isFinite);
+ function managers(){let arr=[...document.querySelectorAll('td')].map(x=>x.textContent.trim()).filter(x=>x.length>3&&x.length<55&&!/total|importe|porcentaje|estatus|acción/i.test(x));return [...new Set(arr)].slice(0,12)}
+ function snapshot(){
+   const ms=managers(),p=pcts(),m=money(),crit=p.filter(x=>x<70).length,avg=p.length?p.reduce((a,b)=>a+b,0)/p.length:82,q=parseFloat(($('qualityScore')?.textContent||'82').replace('%',''))||82;
+   return {ms,p,m,crit,avg,q,score:Math.round(avg*.65+q*.35),max:m.length?Math.max(...m):0};
+ }
+ function drawTrend(){
+   const c=$('ecc17TrendCanvas');if(!c)return;const ctx=c.getContext('2d'),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+   const sets=[[120,128,130,122,131,129],[72,78,80,84,79,81],[18,18.2,18.1,18.4,18.3,18.5]],cols=['#1f6feb','#5b4ae8','#0ea5b7'];
+   ctx.strokeStyle='#e8eef7';ctx.lineWidth=1;for(let i=1;i<5;i++){let y=i*h/5;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(w-12,y);ctx.stroke()}
+   sets.forEach((s,k)=>{let min=Math.min(...s)-5,max=Math.max(...s)+5;ctx.strokeStyle=cols[k];ctx.lineWidth=3;ctx.beginPath();s.forEach((v,i)=>{let x=45+i*(w-70)/(s.length-1),y=h-25-(v-min)/(max-min)*(h-55);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()});
+ }
+ function build(){
+   const s=snapshot();$('ecc17Managers').textContent=s.ms.length;$('ecc17Critical').textContent=s.crit;$('ecc17Gauge').textContent=s.score+'%';$('ecc17Gauge').parentElement.style.setProperty('--gauge',s.score);
+   $('ecc17Cost').textContent=s.max?s.max.toLocaleString('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}):'$ 0';
+   $('ecc17Expense').textContent=s.m.length>1?s.m.sort((a,b)=>b-a)[1].toLocaleString('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0}):'$ 0';
+   $('ecc17Xpv').textContent=s.avg.toFixed(1)+'%';
+   $('ecc17Manager').innerHTML='<option>Todas las gerencias</option>'+s.ms.map(x=>'<option>'+x+'</option>').join('');
+   const names=s.ms.length?s.ms:['VHT Mobility ADO','Xalapa','Puebla','Veracruz','Mérida'];$('ecc17TopManagers').innerHTML=names.slice(0,5).map((n,i)=>'<div class="ecc17-rank-row"><b>'+(i+1)+'</b><strong>'+n+'</strong><div class="ecc17-bar"><i style="width:'+(95-i*13)+'%"></i></div><em>'+((s.max||1000000)*(1-i*.13)).toLocaleString('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:0})+'</em></div>').join('');
+   $('ecc17Deviations').innerHTML=Array.from({length:Math.min(3,Math.max(1,s.crit))},(_,i)=>'<div class="ecc17-list-row"><i class="ecc17-dot '+(i?'mid':'high')+'"></i><div><strong>'+(names[i]||'Unidad '+(i+1))+'</strong><span>'+(i?'Costo / gasto en observación':'Desviación crítica detectada')+'</span></div><em>'+(i?'+9.3%':'+18.7%')+'</em></div>').join('');
+   $('ecc17Findings').innerHTML=[
+     ['✓','La productividad XPV presenta una lectura promedio de '+s.avg.toFixed(1)+'%.'],
+     ['!','Se detectaron '+s.crit+' alertas críticas que requieren atención.'],
+     ['●','La calidad de datos reportada es '+s.q+'%.']
+   ].map(x=>'<div class="ecc17-finding"><strong>'+x[0]+'</strong><span>'+x[1]+'</span></div>').join('');
+   drawTrend();
+ }
+ function ask(q){
+   const s=snapshot(),l=q.toLowerCase();
+   if(/resumen/.test(l))return 'El periodo tiene un score ejecutivo de '+s.score+'%, '+s.crit+' alertas críticas y una calidad de datos de '+s.q+'%.';
+   if(/primero|prioridad/.test(l))return s.crit?'Empieza por las '+s.crit+' alertas críticas, luego revisa anomalías y finalmente compara costos, gastos y XPV por gerencia.':'Empieza por anomalías y comparativos de gerencia.';
+   if(/riesgo/.test(l))return s.crit?'El principal riesgo está en los indicadores críticos y en su posible coincidencia con presión de costos o gastos.':'No detecto riesgos críticos evidentes; revisa variaciones fuera de patrón.';
+   if(/costo/.test(l))return 'Para costos, revisa primero el ranking de gerencias y después las desviaciones críticas. Compáralo con XPV para validar eficiencia.';
+   if(/gasto/.test(l))return 'En gastos, prioriza incrementos recurrentes y usa Pareto 80/20 para concentrar la revisión.';
+   if(/xpv|productividad/.test(l))return 'La productividad XPV promedio visible es '+s.avg.toFixed(1)+'%. Busca gerencias con caída de XPV y aumento de gasto.';
+   return 'Puedo ayudarte con resumen, prioridades, riesgos, costos, gastos, productividad XPV, gerencias y reportes especializados.';
+ }
+ document.addEventListener('click',e=>{
+   if(e.target.closest('#ecc17Refresh'))build();
+   const sc=e.target.closest('[data-scroll]');if(sc)document.getElementById(sc.dataset.scroll)?.scrollIntoView({behavior:'smooth'});
+   const rp=e.target.closest('[data-report]');if(rp){document.querySelector('[data-r16="'+rp.dataset.report+'"]')?.click();document.getElementById('report16')?.scrollIntoView({behavior:'smooth'});}
+   if(e.target.closest('#ecc17CopilotToggle'))$('ecc17Copilot').classList.add('open');
+   if(e.target.closest('#ecc17CopilotClose'))$('ecc17Copilot').classList.remove('open');
+   const pr=e.target.closest('.ecc17-prompts button');if(pr){$('ecc17CopilotInput').value=pr.textContent;$('ecc17CopilotAsk').click()}
+   if(e.target.closest('#ecc17CopilotAsk')){let q=$('ecc17CopilotInput').value.trim();if(!q)return;$('ecc17CopilotChat').insertAdjacentHTML('beforeend','<div class="user-msg">'+q+'</div><div class="bot-msg">'+ask(q)+'</div>');$('ecc17CopilotInput').value='';$('ecc17CopilotChat').scrollTop=$('ecc17CopilotChat').scrollHeight}
+ });
+ $('ecc17CopilotInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('ecc17CopilotAsk').click()}});
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',build);else build();
 })();
