@@ -38,7 +38,7 @@ async function loadFiles(files){
 }
 
 function removeFile(i){state.files.splice(i,1);renderFiles();parseSources()}
-function reset(){state.files=[];state.sources={};state.outputs={};state.analysis=null;destroyCharts();$('#fileInput').value='';renderFiles();renderValidation();['dashboard','gerencias','costos','gastos','xpv','tendencias','inteligencia','comparador','explorador','historial','informePro','resultados'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
+function reset(){state.files=[];state.sources={};state.outputs={};state.analysis=null;destroyCharts();$('#fileInput').value='';renderFiles();renderValidation();['dashboard','gerencias','costos','gastos','xpv','tendencias','inteligencia','comparador','prioridades','copiloto','explorador','historial','informePro','cierreEjecutivo','resultados'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
 function renderFiles(){
   $('#fileList').innerHTML=state.files.map((f,i)=>`<div class="file-item"><div class="file-meta"><div class="file-badge">XLS</div><div><strong>${escapeHtml(f.name)}</strong><small>${formatBytes(f.size)}</small></div></div><button class="remove" data-i="${i}" title="Quitar">×</button></div>`).join('');
   document.querySelectorAll('.remove').forEach(b=>b.onclick=()=>removeFile(+b.dataset.i));
@@ -614,6 +614,8 @@ function renderProEdition(costRows,expenseRows,xpvRows,cutoff){
   renderHistoryModule();
   renderProNarrative();
   enrichComparator();
+  renderPriorityCenter();
+  renderExecutiveClose();
 }
 function setupDrilldown(){
   const manager=document.getElementById('drillManager'),group=document.getElementById('drillGroup'),account=document.getElementById('drillAccount');
@@ -714,4 +716,134 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('saveSnapshotBtn')?.addEventListener('click',()=>{const s=proSnapshot();if(!s){alert('Primero procesa los reportes.');return;}saveProHistory(s)});
   document.getElementById('clearHistoryBtn')?.addEventListener('click',()=>{if(confirm('¿Deseas limpiar el historial local de REPORT.IA?')){localStorage.removeItem(PRO_HISTORY_KEY);renderHistoryModule();}});
   document.getElementById('downloadNarrativePdf')?.addEventListener('click',downloadNarrativePdf);
+});
+
+
+// ===== REPORT.IA RCV · PRO EDITION 5.0 =====
+function renderPriorityCenter(){
+  if(!state.analysis)return;
+  const fin=proFinancialRows();
+  const xpv=state.analysis.xpvRows||[];
+  const managers=aggregate(fin,['manager'],['real26','budget26']).map(addVariance);
+  const critical=managers.filter(x=>(x.varBudgetPct||0)>.10).sort((a,b)=>b.varBudgetPct-a.varBudgetPct);
+  const attention=managers.filter(x=>(x.varBudgetPct||0)>0&&(x.varBudgetPct||0)<=.10).sort((a,b)=>b.varBudgetPct-a.varBudgetPct);
+  const favorable=managers.filter(x=>(x.varBudgetPct||0)<=0).sort((a,b)=>a.varBudgetPct-b.varBudgetPct);
+  const accounts=topByAbs(aggregate(fin,['account','group'],['real26','budget26']).map(addVariance),'varBudget',5);
+  const xpvReal=sum(xpv,'real'),xpvBudget=sum(xpv,'budget'),xpvVar=xpvBudget?(xpvReal-xpvBudget)/xpvBudget:0;
+  const items=[
+    {
+      cls:'critical',icon:'!',title:`${critical.length} gerencia${critical.length===1?'':'s'} crítica${critical.length===1?'':'s'}`,
+      text:critical[0]?`${critical[0].manager} encabeza la presión presupuestal con ${pct(critical[0].varBudgetPct)}.`:'No hay gerencias en estado crítico.',
+      target:'gerencias',cta:'Revisar gerencias'
+    },
+    {
+      cls:'attention',icon:'⌁',title:`${attention.length} foco${attention.length===1?'':'s'} de atención`,
+      text:accounts[0]?`La cuenta ${accounts[0].account||'sin clasificar'} concentra un impacto de ${money(accounts[0].varBudget)}.`:'No se detectaron desviaciones relevantes.',
+      target:'explorador',cta:'Abrir explorador'
+    },
+    {
+      cls:'good',icon:'↗',title:'Productividad XPV',
+      text:`XPV se encuentra ${xpvVar>=0?pct(xpvVar)+' arriba':pct(Math.abs(xpvVar))+' abajo'} del objetivo del periodo.`,
+      target:'xpv',cta:'Ver productividad'
+    },
+    {
+      cls:'insight',icon:'✦',title:'Oportunidad ejecutiva',
+      text:favorable[0]?`${favorable[0].manager} presenta la mejor posición frente al presupuesto con ${pct(favorable[0].varBudgetPct)}.`:'Aún no hay una oportunidad destacada.',
+      target:'comparador',cta:'Comparar desempeño'
+    }
+  ];
+  const grid=document.getElementById('priorityGrid');
+  if(grid)grid.innerHTML=items.map(i=>`<article class="priority-card ${i.cls}" data-target="${i.target}">
+    <div class="priority-icon">${i.icon}</div>
+    <div><span>${i.title}</span><p>${i.text}</p><button>${i.cta} →</button></div>
+  </article>`).join('');
+  grid?.querySelectorAll('[data-target]').forEach(el=>el.addEventListener('click',()=>document.getElementById(el.dataset.target)?.scrollIntoView({behavior:'smooth'})));
+}
+function executiveSummaryText(){
+  const s=proSnapshot();if(!s)return null;
+  const fin=proFinancialRows();
+  const managers=aggregate(fin,['manager'],['real26','budget26']).map(addVariance).sort((a,b)=>b.varBudgetPct-a.varBudgetPct);
+  const worst=managers[0], best=managers[managers.length-1];
+  let intro=s.budgetVar>0
+    ?`El periodo cierra con una desviación desfavorable de ${money(s.real-s.budget)}, equivalente a ${pct(Math.abs(s.budgetVar))} sobre presupuesto.`
+    :`El periodo mantiene una posición favorable de ${money(Math.abs(s.real-s.budget))}, equivalente a ${pct(Math.abs(s.budgetVar))} por debajo del presupuesto.`;
+  let middle=` ${s.favorable} de ${s.totalManagers} gerencias se encuentran dentro del objetivo.`;
+  let focus=worst?` El principal foco se concentra en ${worst.manager}, con una desviación de ${pct(worst.varBudgetPct||0)}.`:'';
+  let opportunity=best?` La mejor posición corresponde a ${best.manager}.`:'';
+  return intro+middle+focus+opportunity;
+}
+function renderExecutiveClose(){
+  const s=proSnapshot();if(!s)return;
+  const text=executiveSummaryText();
+  const el=document.getElementById('closeNarrative');if(el)el.textContent=text;
+  document.getElementById('closeTitle').textContent=`Conclusión ejecutiva · ${s.label}`;
+  document.getElementById('closeScore').textContent=`${s.score}/100`;
+  document.getElementById('closeStatus').textContent=s.score>=85?'Desempeño sólido':s.score>=70?'Desempeño estable':s.score>=55?'Requiere atención':'Prioridad crítica';
+}
+function copilotAnswer(question){
+  if(!state.analysis)return 'Primero procesa los reportes para que pueda analizar la información.';
+  const q=(question||'').toLowerCase();
+  const fin=proFinancialRows(),xpv=state.analysis.xpvRows||[];
+  const managers=aggregate(fin,['manager'],['real26','budget26']).map(addVariance).sort((a,b)=>b.varBudgetPct-a.varBudgetPct);
+  const worst=managers[0],best=managers[managers.length-1];
+  const xpvReal=sum(xpv,'real'),xpvBudget=sum(xpv,'budget'),xpvVar=xpvBudget?(xpvReal-xpvBudget)/xpvBudget:0;
+  if(q.includes('peor')||q.includes('crít')||q.includes('presupuesto')){
+    return worst?`${worst.manager} presenta actualmente la mayor presión presupuestal: ${pct(worst.varBudgetPct||0)} de desviación, equivalente a ${money(worst.varBudget)}.`:'No encontré información suficiente.';
+  }
+  if(q.includes('mejor')){
+    return best?`${best.manager} tiene la mejor posición frente al presupuesto con una variación de ${pct(best.varBudgetPct||0)}.`:'No encontré información suficiente.';
+  }
+  if(q.includes('xpv')||q.includes('productividad')){
+    return `La productividad XPV registra ${money(xpvReal)} frente a un objetivo de ${money(xpvBudget)}. La variación es de ${pct(xpvVar)}.`;
+  }
+  if(q.includes('prioridad')||q.includes('revisar')||q.includes('atención')){
+    const critical=managers.filter(x=>(x.varBudgetPct||0)>.10);
+    return critical.length?`Yo priorizaría ${critical.slice(0,3).map(x=>x.manager).join(', ')}. Son las gerencias con mayor desviación relativa frente al presupuesto.`:'No hay gerencias críticas. Conviene revisar las mayores desviaciones absolutas desde el Explorador.';
+  }
+  const matched=managers.find(m=>q.includes(String(m.manager||'').toLowerCase()));
+  if(matched){
+    return `${matched.manager}: Real ${money(matched.real26)}, Presupuesto ${money(matched.budget26)}, desviación ${money(matched.varBudget)} (${pct(matched.varBudgetPct||0)}).`;
+  }
+  return executiveSummaryText()||'No pude interpretar esa pregunta. Prueba con una gerencia específica, presupuesto, XPV o prioridades.';
+}
+function addCopilotMessage(text,type='user'){
+  const box=document.getElementById('copilotConversation');if(!box)return;
+  const wrap=document.createElement('div');wrap.className=`copilot-message ${type}`;
+  wrap.innerHTML=type==='bot'
+    ?`<div class="copilot-avatar">R</div><div><strong>Copiloto REPORT.IA</strong><p>${escapeHtml(text)}</p></div>`
+    :`<div><strong>Tú</strong><p>${escapeHtml(text)}</p></div>`;
+  box.appendChild(wrap);box.scrollTop=box.scrollHeight;
+}
+function askCopilot(q){
+  const text=(q||document.getElementById('copilotInput')?.value||'').trim();if(!text)return;
+  addCopilotMessage(text,'user');
+  setTimeout(()=>addCopilotMessage(copilotAnswer(text),'bot'),150);
+  const input=document.getElementById('copilotInput');if(input)input.value='';
+}
+function enterCommitteeMode(){
+  document.body.classList.add('committee-mode');
+  const sections=['dashboard','prioridades','gerencias','tendencias','cierreEjecutivo'];
+  document.querySelectorAll('main > section').forEach(s=>{
+    if(s.id && !sections.includes(s.id))s.classList.add('committee-hidden');
+  });
+  document.getElementById('dashboard')?.scrollIntoView({behavior:'smooth'});
+}
+function exitCommitteeMode(){
+  document.body.classList.remove('committee-mode');
+  document.querySelectorAll('.committee-hidden').forEach(s=>s.classList.remove('committee-hidden'));
+}
+function toggleCommitteeMode(){
+  if(document.body.classList.contains('committee-mode'))exitCommitteeMode();else enterCommitteeMode();
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('copilotSendBtn')?.addEventListener('click',()=>askCopilot());
+  document.getElementById('copilotInput')?.addEventListener('keydown',e=>{if(e.key==='Enter')askCopilot();});
+  document.querySelectorAll('.copilot-suggestions button').forEach(b=>b.addEventListener('click',()=>askCopilot(b.dataset.q)));
+  document.getElementById('committeeBtn')?.addEventListener('click',toggleCommitteeMode);
+  document.getElementById('closeCommitteeBtn')?.addEventListener('click',enterCommitteeMode);
+  document.getElementById('closePdfBtn')?.addEventListener('click',downloadNarrativePdf);
+  document.querySelectorAll('#closeActions [data-target]').forEach(b=>b.addEventListener('click',()=>document.getElementById(b.dataset.target)?.scrollIntoView({behavior:'smooth'})));
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&document.body.classList.contains('committee-mode'))exitCommitteeMode();
+  });
 });

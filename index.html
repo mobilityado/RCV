@@ -16,7 +16,7 @@
     <div class="mockup-logo">R</div>
     <div>
       <strong>REPORT.IA RCV</strong>
-      <span>Pro Edition 4.0</span>
+      <span>Pro Edition 5.0</span>
     </div>
   </div>
 
@@ -33,7 +33,10 @@
     <a href="#inteligencia"><span>✺</span>Resumen Inteligente</a>
     <a href="#explorador"><span>⌕</span>Explorador</a>
     <a href="#historial"><span>◷</span>Historial</a>
+    <a href="#prioridades"><span>◆</span>Prioridades</a>
+    <a href="#copiloto"><span>✦</span>Copiloto REPORT.IA</a>
     <a href="#informePro"><span>✦</span>Informe Ejecutivo</a>
+    <a href="#cierreEjecutivo"><span>✓</span>Cierre Ejecutivo</a>
     <a href="#resultados"><span>▤</span>Reportes Ejecutivos</a>
   </nav>
 
@@ -79,6 +82,7 @@
       </select>
     </div>
     <button id="presentationBtn" class="mockup-refresh">Actualizar datos ⟳</button>
+    <button id="committeeBtn" class="mockup-committee">◉ Modo Comité</button>
     <div class="mockup-top-avatar">JH</div>
   </div>
 </header>
@@ -253,6 +257,19 @@
     </section>
 
     
+
+<section id="prioridades" class="analytics-section hidden">
+  <div class="module-head pro-module-head">
+    <div>
+      <p class="eyebrow">CENTRO DE PRIORIDADES</p>
+      <h2>Hoy deberías revisar esto</h2>
+      <p>REPORT.IA ordena los principales focos de atención del periodo para ayudarte a decidir qué revisar primero.</p>
+    </div>
+    <span class="priority-live">ANÁLISIS ACTIVO</span>
+  </div>
+  <div id="priorityGrid" class="priority-grid"></div>
+</section>
+
 <section id="explorador" class="analytics-section hidden">
   <div class="module-head pro-module-head">
     <div>
@@ -310,6 +327,58 @@
   </div>
 </section>
 
+
+<section id="copiloto" class="analytics-section hidden">
+  <div class="module-head pro-module-head">
+    <div>
+      <p class="eyebrow">COPILOTO REPORT.IA</p>
+      <h2>Pregunta directamente sobre tus resultados</h2>
+      <p>Haz preguntas en lenguaje natural y REPORT.IA responderá usando los datos procesados en esta sesión.</p>
+    </div>
+  </div>
+  <div class="copilot-shell">
+    <div id="copilotConversation" class="copilot-conversation">
+      <div class="copilot-message bot">
+        <div class="copilot-avatar">R</div>
+        <div>
+          <strong>Copiloto REPORT.IA</strong>
+          <p>Hola, José. Después de procesar tus reportes puedes preguntarme por desviaciones, gerencias, cuentas y productividad XPV.</p>
+        </div>
+      </div>
+    </div>
+    <div class="copilot-suggestions">
+      <button data-q="¿Qué gerencia está peor contra presupuesto?">¿Qué gerencia está peor contra presupuesto?</button>
+      <button data-q="¿Cuál es la mejor gerencia?">¿Cuál es la mejor gerencia?</button>
+      <button data-q="¿Cómo va la productividad XPV?">¿Cómo va la productividad XPV?</button>
+      <button data-q="¿Cuáles son las principales prioridades?">¿Cuáles son las principales prioridades?</button>
+    </div>
+    <div class="copilot-input-row">
+      <input id="copilotInput" type="text" placeholder="Escribe una pregunta sobre el periodo..." />
+      <button id="copilotSendBtn">Preguntar</button>
+    </div>
+  </div>
+</section>
+
+<section id="cierreEjecutivo" class="analytics-section hidden">
+  <div class="executive-close-card">
+    <div class="executive-close-main">
+      <span class="eyebrow">CIERRE EJECUTIVO DEL PERIODO</span>
+      <h2 id="closeTitle">Conclusión del periodo</h2>
+      <p id="closeNarrative">Procesa tus reportes para generar una conclusión ejecutiva automática.</p>
+      <div id="closeActions" class="close-actions">
+        <button data-target="prioridades" class="pro-ghost-btn">Ver prioridades</button>
+        <button id="closePdfBtn" class="pro-action-btn">Generar PDF</button>
+        <button id="closeCommitteeBtn" class="pro-action-btn accent">◉ Presentar en Comité</button>
+      </div>
+    </div>
+    <div class="executive-close-score">
+      <span>PULSO RCV</span>
+      <strong id="closeScore">—</strong>
+      <small id="closeStatus">Sin análisis</small>
+    </div>
+  </div>
+</section>
+
 <section id="informePro" class="analytics-section hidden">
   <div class="module-head pro-module-head">
     <div>
@@ -321,7 +390,7 @@
   </div>
   <div class="pro-report-layout">
     <article class="pro-report-cover">
-      <span class="report-badge">PRO EDITION 4.0</span>
+      <span class="report-badge">PRO EDITION 5.0</span>
       <h3 id="proReportTitle">Informe Ejecutivo RCV</h3>
       <p id="proReportSubtitle">Procesa los archivos para generar el análisis.</p>
       <div id="proReportScore" class="report-score">—</div>
@@ -343,7 +412,7 @@
   
 <section class="export-suite card" id="exportSuite">
   <div>
-    <span class="eyebrow">PRO EDITION 4.0</span>
+    <span class="eyebrow">PRO EDITION 5.0</span>
     <h2>Centro de Reportes Ejecutivos</h2><span class="section-chip">PDF · Excel · ZIP</span>
     <p>Exporta la vista actual, la gerencia seleccionada o un paquete completo para comité.</p>
   </div>

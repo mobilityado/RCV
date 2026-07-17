@@ -1629,3 +1629,196 @@ body.executive-layout-v21 .card-head span{font-size:7px!important}
   .drill-controls{width:100%}
   .drill-controls label,.drill-controls select{width:100%}
 }
+
+/* =========================================================
+   REPORT.IA RCV · PRO EDITION 5.0
+   Priorities, Copilot, Executive Close, Committee Mode
+   ========================================================= */
+.mockup-committee{
+  min-height:40px!important;
+  padding:0 14px!important;
+  border:1px solid #dfd9ee!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:#472080!important;
+  font-size:8.5px!important;
+  font-weight:800!important;
+}
+
+.priority-live{
+  padding:6px 9px;
+  border-radius:999px;
+  background:#ecfdf3;
+  color:#15803d;
+  font-size:7px;
+  font-weight:850;
+}
+.priority-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+}
+.priority-card{
+  display:flex;
+  gap:10px;
+  min-height:126px;
+  padding:14px;
+  border:1px solid #e8e7ee;
+  border-radius:11px;
+  background:#fff;
+  cursor:pointer;
+}
+.priority-card:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(34,24,76,.06)}
+.priority-icon{display:grid;place-items:center;flex:0 0 32px;height:32px;border-radius:8px;font-weight:900}
+.priority-card span{font-size:9px;font-weight:850}
+.priority-card p{margin:6px 0 9px;color:#6f6b7c;font-size:8px;line-height:1.45}
+.priority-card button{min-height:auto!important;padding:0!important;border:0!important;background:none!important;color:#5a27d9!important;font-size:8px!important;font-weight:800!important}
+.priority-card.critical .priority-icon{background:#fff0f2;color:#d92d3a}
+.priority-card.attention .priority-icon{background:#fff6df;color:#bb7900}
+.priority-card.good .priority-icon{background:#ebfbf0;color:#16813f}
+.priority-card.insight .priority-icon{background:#f1ebff;color:#5c27dc}
+
+.copilot-shell{
+  border:1px solid #e7e4ee;
+  border-radius:14px;
+  background:#fff;
+  overflow:hidden;
+}
+.copilot-conversation{
+  min-height:280px;
+  max-height:420px;
+  overflow:auto;
+  padding:18px;
+  background:linear-gradient(180deg,#fcfbff,#fff);
+}
+.copilot-message{
+  display:flex;
+  gap:10px;
+  max-width:76%;
+  margin-bottom:12px;
+}
+.copilot-message.user{margin-left:auto;justify-content:flex-end}
+.copilot-message>div:last-child{
+  padding:10px 12px;
+  border-radius:10px;
+  background:#f6f3fb;
+}
+.copilot-message.user>div:last-child{background:#5b27dd;color:#fff}
+.copilot-message strong{font-size:8px}
+.copilot-message p{margin:4px 0 0;font-size:8.5px;line-height:1.5}
+.copilot-avatar{display:grid;place-items:center;flex:0 0 28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#5c24de,#7a3af0);color:#fff;font-weight:900}
+.copilot-suggestions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:10px 14px;
+  border-top:1px solid #eeebf2;
+  background:#fbfbfd;
+}
+.copilot-suggestions button{
+  min-height:28px!important;
+  padding:0 9px!important;
+  border:1px solid #e4e0ed!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#554d67!important;
+  font-size:7.5px!important;
+}
+.copilot-input-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  padding:12px 14px;
+  border-top:1px solid #eeebf2;
+}
+.copilot-input-row input{
+  min-height:38px!important;
+  padding:0 12px!important;
+  border:1px solid #dfdbe8!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  font-size:9px!important;
+}
+.copilot-input-row button{
+  min-height:38px!important;
+  padding:0 14px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:linear-gradient(90deg,#5723df,#6e32ef)!important;
+  color:#fff!important;
+  font-size:8.5px!important;
+  font-weight:800!important;
+}
+
+.executive-close-card{
+  display:grid;
+  grid-template-columns:1fr 180px;
+  gap:20px;
+  padding:22px;
+  border-radius:15px;
+  background:
+    radial-gradient(circle at 85% 15%,rgba(129,82,255,.3),transparent 30%),
+    linear-gradient(135deg,#17102f,#30116f 52%,#5e26d9);
+  color:#fff;
+}
+.executive-close-main h2{margin:5px 0 8px;font-size:22px}
+.executive-close-main p{max-width:850px;margin:0;color:#ddd5f2;font-size:9px;line-height:1.6}
+.close-actions{display:flex;gap:8px;margin-top:16px}
+.executive-close-card .pro-ghost-btn{background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.16)!important;color:#fff!important}
+.executive-close-score{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  border-left:1px solid rgba(255,255,255,.15);
+}
+.executive-close-score span{font-size:7px;letter-spacing:.1em;color:#c7b8ef}
+.executive-close-score strong{font-size:38px;letter-spacing:-.04em;margin:5px 0}
+.executive-close-score small{font-size:8px;color:#e2d9f4}
+
+/* Committee mode */
+body.committee-mode{
+  overflow-x:hidden;
+}
+body.committee-mode .mockup-sidebar,
+body.committee-mode .workspace-upload-card,
+body.committee-mode .pro-command-strip,
+body.committee-mode .mockup-top-controls,
+body.committee-mode .export-suite,
+body.committee-mode #resultados{
+  display:none!important;
+}
+body.committee-mode main{
+  margin-left:0!important;
+  max-width:1500px!important;
+  margin-right:auto!important;
+  padding:28px 40px!important;
+}
+body.committee-mode .committee-hidden{display:none!important}
+body.committee-mode main > section:not(.committee-hidden){
+  min-height:calc(100vh - 70px);
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  margin-bottom:35px!important;
+}
+body.committee-mode .mockup-topbar{
+  position:sticky;
+  top:0;
+  z-index:20;
+  padding:12px 0;
+  background:rgba(247,248,252,.94);
+  backdrop-filter:blur(8px);
+}
+
+@media(max-width:1000px){
+  .priority-grid{grid-template-columns:repeat(2,1fr)}
+  .executive-close-card{grid-template-columns:1fr}
+  .executive-close-score{border-left:0;border-top:1px solid rgba(255,255,255,.15)}
+}
+@media(max-width:620px){
+  .priority-grid{grid-template-columns:1fr}
+  .copilot-message{max-width:92%}
+  .close-actions{flex-direction:column}
+}

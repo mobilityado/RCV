@@ -98,3 +98,10 @@ Nuevas funciones:
 - Módulo "Qué cambió" integrado con el análisis.
 - Informe ejecutivo automático con narrativa y PDF.
 - Barra de accesos rápidos para análisis avanzado.
+
+## REPORT.IA RCV · Pro Edition 5.0
+Nuevas funciones:
+- Centro de Prioridades con focos críticos y oportunidades.
+- Copiloto REPORT.IA con preguntas en lenguaje natural sobre los datos cargados.
+- Cierre Ejecutivo automático del periodo.
+- Modo Comité para presentación limpia de Resumen, Prioridades, Gerencias, Tendencias y Conclusión.
