@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>REPORT.IA RCV · Validated Engine v21.4</title>
+  <title>REPORT.IA RCV · Validated Engine v22.0</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -64,7 +64,7 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v21.4</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v22.0</div>
 
     <nav id="nav">
       <button class="active" data-view="home">⌂ <span>Inicio Ejecutivo</span></button>
@@ -72,7 +72,7 @@
       <button data-view="analysis">⌁ <span>Análisis</span></button>
       <button data-view="comparisons">▥ <span>Comparativos</span></button>
       <button data-view="managers">▣ <span>Gerencias</span></button>
-      <button data-view="trends">↗ <span>Tendencias</span></button><button data-view="reports">▤ <span>Reportes</span></button>
+      <button data-view="trends">↗ <span>Tendencias</span></button><button data-view="audit">✓ <span>Audit Trail</span></button><button data-view="semaphore">◉ <span>Semáforo Gerencial</span></button><button data-view="actions">⚑ <span>Plan de Acción</span></button><button data-view="reports">▤ <span>Reportes</span></button>
       <button data-view="reconciliation">✓ <span>Conciliación RP vs FINAL</span></button><button data-view="settings">⚙ <span>Configuración</span></button>
     </nav>
 
@@ -85,7 +85,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v21.4</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v22.0</b></div>
     </div>
   </aside>
 
@@ -231,6 +231,38 @@
       <div id="trendMovers" class="trend-movers"><div class="empty">Procesa información para ver tendencias.</div></div>
     </article>
   </div>
+</section>
+
+
+<section class="view" data-view="audit">
+  <header class="section-title"><span>REPORT.IA AUDIT TRAIL</span><h2>Trazabilidad y confianza del dato</h2><p>Comprueba la integridad del procesamiento desde las fuentes cargadas hasta los indicadores ejecutivos.</p></header>
+  <div class="audit-score">
+    <article><small>CONFIANZA DEL DATO</small><strong id="auditConfidence">0%</strong><span id="auditStatus">Sin validar</span></article>
+    <article><small>FUENTES DETECTADAS</small><strong id="auditSources">0</strong><span>Archivos / fuentes reconocidas</span></article>
+    <article><small>REGISTROS PROCESADOS</small><strong id="auditRows">0</strong><span>Filas útiles transformadas</span></article>
+    <article><small>INCIDENCIAS</small><strong id="auditIssues">0</strong><span>Observaciones de calidad</span></article>
+  </div>
+  <div class="audit-flow">
+    <div><b>1</b><strong>Fuentes</strong><span>RP / JD</span></div><i>→</i><div><b>2</b><strong>Validación</strong><span>Estructura</span></div><i>→</i><div><b>3</b><strong>Transformación</strong><span>Modelo FINAL</span></div><i>→</i><div><b>4</b><strong>Indicadores</strong><span>Dashboard</span></div><i>→</i><div><b>5</b><strong>Decisión</strong><span>Hallazgos</span></div>
+  </div>
+  <div class="trends-grid">
+    <article class="card"><div class="card-head"><div><small>CONTROL DE CALIDAD</small><h3>Validaciones automáticas</h3></div></div><div id="auditChecks" class="audit-checks"></div></article>
+    <article class="card"><div class="card-head"><div><small>BITÁCORA</small><h3>Último procesamiento</h3></div></div><div id="auditLog" class="audit-log"></div></article>
+  </div>
+</section>
+
+<section class="view" data-view="semaphore">
+  <header class="section-title"><span>SEMÁFORO EJECUTIVO</span><h2>Salud por gerencia</h2><p>Prioriza gerencias según el comportamiento conjunto de costo, gasto y productividad.</p></header>
+  <div class="semaphore-legend"><span class="green">● Favorable</span><span class="yellow">● Atención</span><span class="red">● Crítico</span></div>
+  <div class="card"><div class="card-head"><div><small>MATRIZ GERENCIAL</small><h3>Indicadores consolidados</h3></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Gerencia</th><th>Costo</th><th>Gasto</th><th>XPV</th><th>Variación</th><th>Estado</th></tr></thead><tbody id="semaphoreTable"></tbody></table></div>
+  </div>
+</section>
+
+<section class="view" data-view="actions">
+  <header class="section-title"><span>DECISION CENTER</span><h2>Plan de Acción Ejecutivo</h2><p>Convierte automáticamente las variaciones más relevantes en prioridades de seguimiento.</p></header>
+  <div class="action-summary"><article><small>PRIORIDAD ALTA</small><strong id="actionHigh">0</strong></article><article><small>PRIORIDAD MEDIA</small><strong id="actionMedium">0</strong></article><article><small>OPORTUNIDADES</small><strong id="actionOpportunities">0</strong></article></div>
+  <div class="card"><div class="card-head"><div><small>ACCIONES SUGERIDAS</small><h3>Hallazgo → impacto → recomendación</h3></div></div><div id="actionList" class="action-list"></div></div>
 </section>
 
 <section class="view" data-view="reports">

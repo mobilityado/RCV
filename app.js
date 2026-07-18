@@ -657,7 +657,69 @@ function drawTrendDetail(){
   }
 }
 
-function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();}
+
+function auditMetrics(){
+  if(!state.model)return null;
+  const cost=(state.model.costSummary||[]).length, exp=(state.model.expenseSummary||[]).length, xpv=(state.model.xpvSummary||[]).length;
+  const rows=cost+exp+xpv;
+  const issues=[];
+  if(!cost)issues.push("Sin registros de costo");
+  if(!exp)issues.push("Sin registros de gasto");
+  if(!xpv)issues.push("Sin registros de productividad XPV");
+  const totals=modelTotals();
+  if(totals && !Number.isFinite(totals.cost2026))issues.push("Costo total no calculable");
+  if(totals && !Number.isFinite(totals.expense2026))issues.push("Gasto total no calculable");
+  const sources=state.inputMode==="JD"?1:3;
+  const confidence=Math.max(0,Math.min(100,100-issues.length*20));
+  return {cost,exp,xpv,rows,issues,sources,confidence};
+}
+function renderAudit(){
+  const a=auditMetrics();
+  if(!a){$("auditConfidence").textContent="0%";$("auditStatus").textContent="Sin validar";$("auditSources").textContent="0";$("auditRows").textContent="0";$("auditIssues").textContent="0";$("auditChecks").innerHTML='<div class="empty">Procesa información para ejecutar la validación.</div>';$("auditLog").innerHTML='<div class="empty">Sin procesamiento registrado.</div>';return;}
+  $("auditConfidence").textContent=a.confidence+"%";$("auditStatus").textContent=a.confidence===100?"Procesamiento validado":a.confidence>=80?"Validado con observaciones":"Requiere revisión";$("auditSources").textContent=a.sources;$("auditRows").textContent=a.rows.toLocaleString();$("auditIssues").textContent=a.issues.length;
+  const checks=[
+    ["Fuente de costos",a.cost>0,`${a.cost} registros`],
+    ["Fuente de gastos",a.exp>0,`${a.exp} registros`],
+    ["Fuente XPV",a.xpv>0,`${a.xpv} registros`],
+    ["Modelo ejecutivo",a.rows>0,"Indicadores calculados desde datos procesados"]
+  ];
+  $("auditChecks").innerHTML=checks.map(x=>`<div class="audit-check ${x[1]?"ok":"bad"}"><b>${x[1]?"✓":"!"}</b><div><strong>${x[0]}</strong><span>${x[2]}</span></div></div>`).join("");
+  $("auditLog").innerHTML=`<div class="log-row"><span>Modo de entrada</span><strong>${state.inputMode||"—"}</strong></div><div class="log-row"><span>Periodo</span><strong>${MONTH_LABELS[state.periodIndex]||"Periodo actual"}</strong></div><div class="log-row"><span>Resultado</span><strong>${a.confidence===100?"Validado":"Con observaciones"}</strong></div><div class="log-row"><span>Incidencias</span><strong>${a.issues.length?a.issues.join(", "):"Ninguna detectada"}</strong></div>`;
+}
+function managerHealth(){
+  if(!state.model)return [];
+  const map={};
+  const add=(arr,type)=>arr.forEach(x=>{const k=x.manager||"SIN CLASIFICAR";map[k]??={manager:k,cost:null,expense:null,xpv:null};map[k][type]=x;});
+  add(state.model.costSummary||[],"cost");add(state.model.expenseSummary||[],"expense");add(state.model.xpvSummary||[],"xpv");
+  return Object.values(map).map(m=>{
+    const cp=m.cost?.pct2526??0, ep=m.expense?.pct2526??0;
+    const xp=m.xpv?(m.xpv.budget?((m.xpv.real-m.xpv.budget)/Math.abs(m.xpv.budget)):0):0;
+    const pressure=(Math.max(0,cp)+Math.max(0,ep)+Math.max(0,-xp))/3;
+    const status=pressure>.15?"Crítico":pressure>.05?"Atención":"Favorable";
+    return {...m,cp,ep,xp,pressure,status};
+  }).sort((a,b)=>b.pressure-a.pressure);
+}
+function renderSemaphore(){
+  const rows=managerHealth();
+  if(!rows.length){$("semaphoreTable").innerHTML='<tr><td colspan="6">Sin datos procesados.</td></tr>';return;}
+  $("semaphoreTable").innerHTML=rows.map(r=>`<tr><td><strong>${r.manager}</strong></td><td>${r.cost?pctText(r.cp):"—"}</td><td>${r.expense?pctText(r.ep):"—"}</td><td>${r.xpv?pctText(r.xp):"—"}</td><td>${pctText(r.pressure)}</td><td><span class="health ${r.status==="Crítico"?"red":r.status==="Atención"?"yellow":"green"}">${r.status}</span></td></tr>`).join("");
+}
+function actionItems(){
+  const rows=managerHealth(); const out=[];
+  rows.slice(0,12).forEach(r=>{
+    if(r.status==="Crítico")out.push({priority:"Alta",manager:r.manager,impact:pctText(r.pressure),finding:"Variaciones combinadas requieren revisión prioritaria.",action:"Revisar los rubros con mayor incremento y documentar causa raíz."});
+    else if(r.status==="Atención")out.push({priority:"Media",manager:r.manager,impact:pctText(r.pressure),finding:"Se detecta presión moderada en los indicadores.",action:"Dar seguimiento al siguiente periodo y validar desviaciones relevantes."});
+    else out.push({priority:"Oportunidad",manager:r.manager,impact:pctText(r.pressure),finding:"Comportamiento dentro de parámetros favorables.",action:"Identificar prácticas replicables y mantener seguimiento."});
+  }); return out;
+}
+function renderActions(){
+  const items=actionItems();
+  const hi=items.filter(x=>x.priority==="Alta").length, med=items.filter(x=>x.priority==="Media").length, opp=items.filter(x=>x.priority==="Oportunidad").length;
+  $("actionHigh").textContent=hi;$("actionMedium").textContent=med;$("actionOpportunities").textContent=opp;
+  $("actionList").innerHTML=items.length?items.map(x=>`<div class="action-item ${x.priority.toLowerCase()}"><div><span>${x.priority}</span><strong>${x.manager}</strong></div><p>${x.finding}</p><em>Impacto ${x.impact}</em><b>${x.action}</b></div>`).join(""):'<div class="empty">Procesa información para generar el plan de acción.</div>';
+}
+
+function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();}
 
 function tableSheet(title, headers, data, period) {
   const aoa=[["REPORT.IA RCV"],[title],["Periodo",period],[],headers,...data];
@@ -705,7 +767,7 @@ async function downloadAll(){
   zip.file("COSTO RCV 2026.xlsx",workbookBlob(makeCostWorkbook()));
   zip.file("Gastos RCV 2026.xlsx",workbookBlob(makeExpenseWorkbook()));
   zip.file(`Productividad XPV ${state.model.month} 26 RCV.xlsx`,workbookBlob(makeXpvWorkbook()));
-  zip.file("LEEME.txt","REPORT.IA RCV 21.4 · Archivos generados directamente desde los JD procesados.");
+  zip.file("LEEME.txt","REPORT.IA RCV 22.0 · Archivos generados directamente desde los JD procesados.");
   saveBlob(await zip.generateAsync({type:"blob"}),`FINAL_${state.model.month}_2026.zip`);
 }
 
