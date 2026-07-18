@@ -783,7 +783,83 @@ function refreshWelcomeCommand(){
   }
 }
 
-function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();renderManager360Options();refreshWelcomeCommand();}
+
+function detailedVariations(){
+ if(!state.model)return [];
+ return [
+  ...(state.model.costSummary||[]).map(x=>({type:"Costo",manager:x.manager,y2025:x.y2025||0,y2026:x.y2026||0,pct:x.pct2526||0,diff:(x.y2026||0)-(x.y2025||0)})),
+  ...(state.model.expenseSummary||[]).map(x=>({type:"Gasto",manager:x.manager,y2025:x.y2025||0,y2026:x.y2026||0,pct:x.pct2526||0,diff:(x.y2026||0)-(x.y2025||0)}))
+ ].filter(x=>Number.isFinite(x.diff)).sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff));
+}
+function dataQualityMetrics(){
+ if(!state.model)return null;
+ const groups=[
+  ["Costo",(state.model.costSummary||[]).length],
+  ["Gasto",(state.model.expenseSummary||[]).length],
+  ["XPV",(state.model.xpvSummary||[]).length]
+ ];
+ const coverage=groups.filter(x=>x[1]>0).length;
+ const rows=groups.reduce((s,x)=>s+x[1],0);
+ const issues=[];
+ groups.filter(x=>!x[1]).forEach(x=>issues.push(`Sin datos utilizables de ${x[0]}`));
+ const invalid=detailedVariations().filter(x=>!Number.isFinite(x.y2025)||!Number.isFinite(x.y2026)).length;
+ if(invalid)issues.push(`${invalid} registros agregados contienen valores no calculables`);
+ const score=Math.max(0,Math.round(100-(3-coverage)*25-Math.min(25,issues.length*5)));
+ return {groups,coverage,rows,issues,score};
+}
+function renderDataQuality(){
+ const q=dataQualityMetrics();
+ if(!q){$("dqScore").textContent="0%";$("dqRows").textContent="0";$("dqIssues").textContent="0";$("dqCoverage").textContent="0/3";$("dqChecks").innerHTML='<div class="empty">Procesa información.</div>';$("dqObservations").innerHTML='<div class="empty">Sin observaciones.</div>';return;}
+ $("dqScore").textContent=q.score+"%";$("dqRows").textContent=q.rows.toLocaleString();$("dqIssues").textContent=q.issues.length;$("dqCoverage").textContent=q.coverage+"/3";
+ $("dqChecks").innerHTML=q.groups.map(x=>`<div class="quality-check ${x[1]?"ok":"bad"}"><b>${x[1]?"✓":"!"}</b><div><strong>${x[0]}</strong><span>${x[1]} registros agregados reconocidos</span></div></div>`).join("");
+ $("dqObservations").innerHTML=q.issues.length?q.issues.map(x=>`<div class="quality-observation">⚠ ${x}</div>`).join(""):'<div class="quality-observation ok">✓ No se detectaron incidencias estructurales en el modelo procesado.</div>';
+}
+function paretoData(){
+ const rows=detailedVariations().map(x=>({...x,impact:Math.abs(x.diff)})).filter(x=>x.impact>0);
+ const total=rows.reduce((s,x)=>s+x.impact,0);let acc=0,count=0;
+ const enriched=rows.map(x=>{acc+=x.impact;count+=(acc-x.impact)<total*.8?1:0;return {...x,cumulative:total?acc/total:0};});
+ return {rows:enriched,total,count};
+}
+function renderPareto(){
+ const p=paretoData();
+ $("paretoTotal").textContent=money(p.total);$("paretoCount").textContent=p.count;$("paretoConcentration").textContent=p.rows.length?(Math.min(1,p.rows[Math.max(0,p.count-1)]?.cumulative||0)*100).toFixed(1)+"%":"0%";
+ $("paretoList").innerHTML=p.rows.length?p.rows.slice(0,15).map((x,i)=>`<div class="pareto-row"><b>${i+1}</b><div><strong>${x.manager}</strong><span>${x.type} · ${signedMoney(x.diff)}</span></div><div class="pareto-bar"><i style="width:${Math.min(100,(x.impact/(p.rows[0]?.impact||1))*100)}%"></i></div><em>${(x.cumulative*100).toFixed(1)}%</em></div>`).join(""):'<div class="empty">No hay variaciones para analizar.</div>';
+}
+function exceptionData(){
+ return detailedVariations().map(x=>{const a=Math.abs(x.pct);const severity=a>=.20?"Crítica":a>=.08?"Atención":"Oportunidad";const action=severity==="Crítica"?"Revisar causa raíz y validar rubros de mayor impacto.":severity==="Atención"?"Dar seguimiento y documentar la variación.":"Mantener seguimiento del comportamiento.";return {...x,severity,action};});
+}
+function renderExceptions(){
+ const rows=exceptionData(),crit=rows.filter(x=>x.severity==="Crítica").length,att=rows.filter(x=>x.severity==="Atención").length,opp=rows.filter(x=>x.severity==="Oportunidad").length;
+ $("exCritical").textContent=crit;$("exAttention").textContent=att;$("exOpportunity").textContent=opp;
+ $("exceptionsTable").innerHTML=rows.length?rows.slice(0,60).map(x=>`<tr><td><span class="ex-pill ${x.severity==="Crítica"?"critical":x.severity==="Atención"?"attention":"opportunity"}">${x.severity}</span></td><td>${x.type}</td><td>${x.manager}</td><td>${signedMoney(x.y2025)}</td><td>${signedMoney(x.y2026)}</td><td>${pctText(x.pct)}</td><td>${x.action}</td></tr>`).join(""):'<tr><td colspan="7">Sin datos procesados.</td></tr>';
+}
+function executiveScore(){
+ const q=dataQualityMetrics();if(!q)return null;
+ const t=modelTotals();const rows=managerHealth();
+ const critical=rows.filter(x=>x.status==="Crítico").length;
+ const attention=rows.filter(x=>x.status==="Atención").length;
+ const xpv=t?.xpCompliance||0;
+ const operational=Math.max(0,100-critical*10-attention*4);
+ const productivity=Math.max(0,Math.min(100,xpv*100));
+ const score=Math.round(q.score*.35+operational*.35+productivity*.30);
+ return {score,q,critical,attention,productivity};
+}
+function renderExecutiveBrief(){
+ const e=executiveScore();
+ if(!e){$("briefScore").textContent="—";return;}
+ const vars=detailedVariations(),top=vars[0],health=managerHealth(),risk=health[0],p=paretoData();
+ $("briefScore").textContent=e.score;$("briefScoreLabel").textContent=e.score>=85?"Sólido":e.score>=70?"Atención moderada":"Revisión prioritaria";
+ $("briefHeadline").textContent=e.critical?`${e.critical} gerencia(s) requieren atención prioritaria.`:"La operación no presenta gerencias en estado crítico.";
+ $("briefNarrative").textContent=`Calidad del dato ${e.q.score}%. ${e.q.rows.toLocaleString()} registros agregados procesados.`;
+ $("briefHow").textContent=`Score ${e.score}/100`;$("briefHowText").textContent=`Calidad ${e.q.score}% y cumplimiento XPV ${e.productivity.toFixed(1)}%.`;
+ $("briefWhat").textContent=top?pctText(top.pct):"Sin variación";$("briefWhatText").textContent=top?`${top.type} en ${top.manager} presenta la mayor variación absoluta.`:"No hay variaciones calculables.";
+ $("briefWhy").textContent=p.count?`${p.count} focos principales`:"Sin focos";$("briefWhyText").textContent=p.count?`${p.count} elementos concentran aproximadamente 80% de la variación analizada.`:"Sin concentración relevante.";
+ $("briefRisk").textContent=risk?.manager||"Sin riesgo crítico";$("briefRiskText").textContent=risk?`Estado ${risk.status}, presión calculada ${pctText(risk.pressure)}.`:"Sin datos gerenciales.";
+ $("briefAction").textContent=e.critical?"Intervenir":"Monitorear";$("briefActionText").textContent=e.critical?"Revisar primero las gerencias críticas y los impulsores del Pareto.":"Mantener seguimiento y revisar excepciones de atención.";
+ $("briefConclusion").innerHTML=`<strong>Conclusión REPORT.IA:</strong> Calidad del dato <b>${e.q.score}%</b>. Se identifican <b>${e.critical}</b> gerencias críticas y <b>${e.attention}</b> en atención. ${p.count?`El análisis Pareto concentra cerca del 80% del cambio en <b>${p.count}</b> elementos.`:""} ${risk?`La prioridad actual es <b>${risk.manager}</b>.`:""}`;
+}
+
+function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();renderManager360Options();refreshWelcomeCommand();renderDataQuality();renderPareto();renderExceptions();renderExecutiveBrief();}
 
 function tableSheet(title, headers, data, period) {
   const aoa=[["REPORT.IA RCV"],[title],["Periodo",period],[],headers,...data];
@@ -831,7 +907,7 @@ async function downloadAll(){
   zip.file("COSTO RCV 2026.xlsx",workbookBlob(makeCostWorkbook()));
   zip.file("Gastos RCV 2026.xlsx",workbookBlob(makeExpenseWorkbook()));
   zip.file(`Productividad XPV ${state.model.month} 26 RCV.xlsx`,workbookBlob(makeXpvWorkbook()));
-  zip.file("LEEME.txt","REPORT.IA RCV 23.1 · Archivos generados directamente desde los JD procesados.");
+  zip.file("LEEME.txt","REPORT.IA RCV 24.0 · Archivos generados directamente desde los JD procesados.");
   saveBlob(await zip.generateAsync({type:"blob"}),`FINAL_${state.model.month}_2026.zip`);
 }
 

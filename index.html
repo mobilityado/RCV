@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>REPORT.IA RCV · Validated Engine v23.1</title>
+  <title>REPORT.IA RCV · Validated Engine v24.0</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -64,7 +64,7 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v23.1</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v24.0</div>
 
     
 <nav id="nav" class="nav-v231">
@@ -78,10 +78,10 @@
   <button data-view="trends"><i class="nav-ico orange">↗</i><span>Tendencias</span></button>
   <button data-view="semaphore"><i class="nav-ico green">◉</i><span>Semáforo Gerencial</span></button>
   <button data-view="manager360"><i class="nav-ico indigo">◎</i><span>Expediente 360°</span></button>
-  <button data-view="actions"><i class="nav-ico amber">⚑</i><span>Plan de Acción</span></button>
+  <button data-view="actions"><i class="nav-ico amber">⚑</i><span>Plan de Acción</span></button><button data-view="executiveBrief"><i class="nav-ico blue">★</i><span>Executive Brief</span></button><button data-view="pareto"><i class="nav-ico orange">80</i><span>Pareto 80/20</span></button>
 
   <div class="nav-group-label">CONTROL</div>
-  <button data-view="audit"><i class="nav-ico sky">✓</i><span>Audit Trail</span></button>
+  <button data-view="audit"><i class="nav-ico sky">✓</i><span>Audit Trail</span></button><button data-view="dataQuality"><i class="nav-ico teal">◆</i><span>Calidad de Datos</span></button><button data-view="exceptions"><i class="nav-ico rose">!</i><span>Excepciones</span></button>
   <button data-view="reconciliation"><i class="nav-ico rose">≋</i><span>Conciliación RP vs FINAL</span></button>
   <button data-view="reports"><i class="nav-ico purple">▤</i><span>Reportes</span></button>
   <button data-view="settings"><i class="nav-ico slate">⚙</i><span>Configuración</span></button>
@@ -97,7 +97,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v23.1</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v24.0</b></div>
     </div>
   </aside>
 
@@ -318,6 +318,40 @@
       <article class="card"><div class="card-head"><div><small>RECOMENDACIONES</small><h3>Qué revisar primero</h3></div></div><div id="m360Recommendations" class="driver-list"></div></article>
     </div>
   </div>
+</section>
+
+<section class="view" data-view="executiveBrief">
+<header class="section-title"><span>EXECUTIVE DECISION INTELLIGENCE</span><h2>Executive Brief</h2><p>Una lectura ejecutiva automática del resultado, sus causas, riesgos y prioridades.</p></header>
+<div class="brief-hero">
+ <div><span>LECTURA EJECUTIVA DEL PERIODO</span><h2 id="briefHeadline">Procesa información para generar el brief.</h2><p id="briefNarrative">REPORT.IA resumirá los hallazgos principales.</p></div>
+ <div class="brief-score"><small>SCORE RCV</small><strong id="briefScore">—</strong><span id="briefScoreLabel">Sin evaluar</span></div>
+</div>
+<div class="brief-grid">
+ <article><b>01</b><small>¿CÓMO ESTAMOS?</small><strong id="briefHow">—</strong><p id="briefHowText">Sin datos.</p></article>
+ <article><b>02</b><small>¿QUÉ CAMBIÓ?</small><strong id="briefWhat">—</strong><p id="briefWhatText">Sin datos.</p></article>
+ <article><b>03</b><small>¿POR QUÉ?</small><strong id="briefWhy">—</strong><p id="briefWhyText">Sin datos.</p></article>
+ <article><b>04</b><small>¿DÓNDE ESTÁ EL RIESGO?</small><strong id="briefRisk">—</strong><p id="briefRiskText">Sin datos.</p></article>
+ <article><b>05</b><small>¿QUÉ HACER?</small><strong id="briefAction">—</strong><p id="briefActionText">Sin datos.</p></article>
+</div>
+<div class="card"><div class="card-head"><div><small>RESUMEN PARA DIRECCIÓN</small><h3>Conclusión automática</h3></div></div><div id="briefConclusion" class="brief-conclusion">Sin información procesada.</div></div>
+</section>
+
+<section class="view" data-view="dataQuality">
+<header class="section-title"><span>DATA QUALITY ENGINE</span><h2>Calidad y precisión del dato</h2><p>Revisa integridad, registros utilizables y posibles incidencias antes de interpretar resultados.</p></header>
+<div class="quality-kpis"><article><small>CALIDAD GLOBAL</small><strong id="dqScore">0%</strong></article><article><small>REGISTROS</small><strong id="dqRows">0</strong></article><article><small>INCIDENCIAS</small><strong id="dqIssues">0</strong></article><article><small>COBERTURA</small><strong id="dqCoverage">0/3</strong></article></div>
+<div class="trends-grid"><article class="card"><div class="card-head"><div><small>PRUEBAS AUTOMÁTICAS</small><h3>Controles de integridad</h3></div></div><div id="dqChecks" class="quality-checks"></div></article><article class="card"><div class="card-head"><div><small>OBSERVACIONES</small><h3>Qué requiere revisión</h3></div></div><div id="dqObservations"></div></article></div>
+</section>
+
+<section class="view" data-view="pareto">
+<header class="section-title"><span>PARETO 80/20</span><h2>Concentración de la variación</h2><p>Identifica los conceptos que explican la mayor parte del cambio real 2025 vs 2026.</p></header>
+<div class="pareto-kpis"><article><small>VARIACIÓN ANALIZADA</small><strong id="paretoTotal">$0</strong></article><article><small>CONCEPTOS PARA 80%</small><strong id="paretoCount">0</strong></article><article><small>CONCENTRACIÓN</small><strong id="paretoConcentration">0%</strong></article></div>
+<div class="card"><div class="card-head"><div><small>PRINCIPALES IMPULSORES</small><h3>Qué explica el cambio</h3></div></div><div id="paretoList" class="pareto-list"></div></div>
+</section>
+
+<section class="view" data-view="exceptions">
+<header class="section-title"><span>EXCEPTION REPORT</span><h2>Reporte de Excepciones</h2><p>Concentra únicamente los registros y gerencias que merecen atención.</p></header>
+<div class="exception-kpis"><article><small>CRÍTICAS</small><strong id="exCritical">0</strong></article><article><small>ATENCIÓN</small><strong id="exAttention">0</strong></article><article><small>OPORTUNIDADES</small><strong id="exOpportunity">0</strong></article></div>
+<div class="card"><div class="table-wrap"><table><thead><tr><th>Severidad</th><th>Tipo</th><th>Gerencia</th><th>2025</th><th>2026</th><th>Variación</th><th>Acción sugerida</th></tr></thead><tbody id="exceptionsTable"></tbody></table></div></div>
 </section>
 <section class="view" data-view="reports">
       <header class="section-title"><span>CENTRO DE REPORTES</span><h2>Reportes FINAL y Ejecutivos</h2><p>Los tres archivos operativos se generan con la misma lógica validada contra los FINAL proporcionados.</p></header>
