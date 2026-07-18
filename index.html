@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>REPORT.IA RCV · Validated Engine v22.0</title>
+  <title>REPORT.IA RCV · Validated Engine v23.0</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -64,7 +64,7 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v22.0</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v23.0</div>
 
     <nav id="nav">
       <button class="active" data-view="home">⌂ <span>Inicio Ejecutivo</span></button>
@@ -72,7 +72,7 @@
       <button data-view="analysis">⌁ <span>Análisis</span></button>
       <button data-view="comparisons">▥ <span>Comparativos</span></button>
       <button data-view="managers">▣ <span>Gerencias</span></button>
-      <button data-view="trends">↗ <span>Tendencias</span></button><button data-view="audit">✓ <span>Audit Trail</span></button><button data-view="semaphore">◉ <span>Semáforo Gerencial</span></button><button data-view="actions">⚑ <span>Plan de Acción</span></button><button data-view="reports">▤ <span>Reportes</span></button>
+      <button data-view="trends">↗ <span>Tendencias</span></button><button data-view="audit">✓ <span>Audit Trail</span></button><button data-view="semaphore">◉ <span>Semáforo Gerencial</span></button><button data-view="manager360">◎ <span>Expediente 360°</span></button><button data-view="actions">⚑ <span>Plan de Acción</span></button><button data-view="reports">▤ <span>Reportes</span></button>
       <button data-view="reconciliation">✓ <span>Conciliación RP vs FINAL</span></button><button data-view="settings">⚙ <span>Configuración</span></button>
     </nav>
 
@@ -85,7 +85,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v22.0</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v23.0</b></div>
     </div>
   </aside>
 
@@ -107,9 +107,9 @@
       </div>
 
       <div class="kpis">
-        <article><i class="blue">$</i><div><small>COSTO TOTAL 2026</small><strong id="kpiCost">$0</strong><span id="kpiCostSub">Costos operativos + mantenimiento</span></div></article>
-        <article><i class="violet">▤</i><div><small>GASTO TOTAL 2026</small><strong id="kpiExpense">$0</strong><span id="kpiExpenseSub">Gastos RCV</span></div></article>
-        <article><i class="cyan">↗</i><div><small>CUMPLIMIENTO XPV</small><strong id="kpiXpv">0%</strong><span id="kpiXpvSub">Real / Presupuesto</span></div></article>
+        <article><i class="blue">$</i><div><small>COSTO TOTAL 2026</small><strong id="kpiCost">$0</strong><span id="kpiCostSub">Costos operativos + mantenimiento</span><button class="lineage-btn" data-lineage="cost">¿De dónde sale?</button></div></article>
+        <article><i class="violet">▤</i><div><small>GASTO TOTAL 2026</small><strong id="kpiExpense">$0</strong><span id="kpiExpenseSub">Gastos RCV</span><button class="lineage-btn" data-lineage="expense">¿De dónde sale?</button></div></article>
+        <article><i class="cyan">↗</i><div><small>CUMPLIMIENTO XPV</small><strong id="kpiXpv">0%</strong><span id="kpiXpvSub">Real / Presupuesto</span><button class="lineage-btn" data-lineage="xpv">¿De dónde sale?</button></div></article>
         <article><i class="teal">●</i><div><small>GERENCIAS ACTIVAS</small><strong id="kpiManagers">0</strong><span>Catálogo con información procesada</span></div></article>
         <article><i class="amber">⚠</i><div><small>ALERTAS CRÍTICAS</small><strong id="kpiAlerts">0</strong><span>Variación adversa mayor a 10%</span></div></article>
       </div>
@@ -265,6 +265,32 @@
   <div class="card"><div class="card-head"><div><small>ACCIONES SUGERIDAS</small><h3>Hallazgo → impacto → recomendación</h3></div></div><div id="actionList" class="action-list"></div></div>
 </section>
 
+
+<section class="view" data-view="manager360">
+  <header class="section-title"><span>EXPEDIENTE 360°</span><h2>Detalle integral por gerencia</h2><p>Costos, gastos, productividad, variaciones y recomendaciones en una sola vista.</p></header>
+  <div class="manager360-selector">
+    <label>Gerencia<select id="manager360Select"><option value="">Selecciona una gerencia</option></select></label>
+    <button id="openTopManager360">Abrir gerencia de mayor impacto</button>
+  </div>
+  <div id="manager360Empty" class="empty">Selecciona una gerencia para abrir su expediente.</div>
+  <div id="manager360Content" hidden>
+    <div class="manager360-hero"><div><span>EXPEDIENTE EJECUTIVO</span><h2 id="m360Name">—</h2><p id="m360Summary">Sin datos</p></div><div id="m360Status" class="manager360-status">Sin evaluar</div></div>
+    <div class="manager360-kpis">
+      <article><small>COSTO 2026</small><strong id="m360Cost">$0</strong><span id="m360CostVar">—</span></article>
+      <article><small>GASTO 2026</small><strong id="m360Expense">$0</strong><span id="m360ExpenseVar">—</span></article>
+      <article><small>XPV REAL</small><strong id="m360XpvReal">$0</strong><span id="m360XpvBudget">Ptto $0</span></article>
+      <article><small>IMPACTO TOTAL</small><strong id="m360Impact">$0</strong><span>Costo + gasto</span></article>
+    </div>
+    <div class="manager360-grid">
+      <article class="card"><div class="card-head"><div><small>COMPARATIVO</small><h3>2025 vs 2026</h3></div></div><canvas id="m360Chart" width="760" height="320"></canvas></article>
+      <article class="card"><div class="card-head"><div><small>DIAGNÓSTICO</small><h3>Lectura automática</h3></div></div><div id="m360Diagnosis" class="manager360-diagnosis"></div></article>
+    </div>
+    <div class="manager360-grid">
+      <article class="card"><div class="card-head"><div><small>PRINCIPALES RUBROS</small><h3>Qué explica el cambio</h3></div></div><div id="m360Drivers" class="driver-list"></div></article>
+      <article class="card"><div class="card-head"><div><small>RECOMENDACIONES</small><h3>Qué revisar primero</h3></div></div><div id="m360Recommendations" class="driver-list"></div></article>
+    </div>
+  </div>
+</section>
 <section class="view" data-view="reports">
       <header class="section-title"><span>CENTRO DE REPORTES</span><h2>Reportes FINAL y Ejecutivos</h2><p>Los tres archivos operativos se generan con la misma lógica validada contra los FINAL proporcionados.</p></header>
       <div class="report-groups">
@@ -345,6 +371,11 @@
   </main>
 </div>
 
+
+<aside class="lineage-drawer" id="lineageDrawer">
+  <div class="lineage-head"><strong>Trazabilidad del indicador</strong><button id="closeLineage">×</button></div>
+  <div id="lineageContent" class="lineage-content"><div class="empty">Selecciona un KPI para ver su origen.</div></div>
+</aside>
 <aside class="alerts-drawer" id="alertsDrawer">
   <div class="alerts-head"><strong>Centro de Alertas Inteligentes</strong><button id="closeAlerts">×</button></div>
   <div id="alertsList" class="alerts-list"><div class="empty">Sin alertas disponibles.</div></div>

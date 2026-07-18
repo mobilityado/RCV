@@ -719,7 +719,58 @@ function renderActions(){
   $("actionList").innerHTML=items.length?items.map(x=>`<div class="action-item ${x.priority.toLowerCase()}"><div><span>${x.priority}</span><strong>${x.manager}</strong></div><p>${x.finding}</p><em>Impacto ${x.impact}</em><b>${x.action}</b></div>`).join(""):'<div class="empty">Procesa información para generar el plan de acción.</div>';
 }
 
-function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();}
+
+function allManagers(){
+  if(!state.model)return [];
+  return [...new Set([...(state.model.costSummary||[]).map(x=>x.manager),...(state.model.expenseSummary||[]).map(x=>x.manager),...(state.model.xpvSummary||[]).map(x=>x.manager)].filter(Boolean))].sort();
+}
+function managerRecord(name){
+  if(!state.model||!name)return null;
+  return {name,cost:(state.model.costSummary||[]).find(x=>x.manager===name)||null,expense:(state.model.expenseSummary||[]).find(x=>x.manager===name)||null,xpv:(state.model.xpvSummary||[]).find(x=>x.manager===name)||null};
+}
+function managerStatus(rec){
+  const cp=rec?.cost?.pct2526??0,ep=rec?.expense?.pct2526??0,xp=rec?.xpv?.budget?((rec.xpv.real-rec.xpv.budget)/Math.abs(rec.xpv.budget)):0;
+  const pressure=(Math.max(0,cp)+Math.max(0,ep)+Math.max(0,-xp))/3;
+  return pressure>.15?{label:"Crítico",cls:"red",pressure}:pressure>.05?{label:"Atención",cls:"yellow",pressure}:{label:"Favorable",cls:"green",pressure};
+}
+function renderManager360Options(){
+  const el=$("manager360Select"); if(!el)return;
+  el.innerHTML='<option value="">Selecciona una gerencia</option>'+allManagers().map(m=>`<option value="${m}">${m}</option>`).join("");
+}
+function renderManager360(name){
+  const rec=managerRecord(name);
+  if(!rec){$("manager360Content").hidden=true;$("manager360Empty").hidden=false;return;}
+  $("manager360Content").hidden=false;$("manager360Empty").hidden=true;
+  $("m360Name").textContent=name;
+  const st=managerStatus(rec);$("m360Status").textContent=st.label;$("m360Status").className="manager360-status "+st.cls;
+  const c26=rec.cost?.y2026||0,e26=rec.expense?.y2026||0,xreal=rec.xpv?.real||0,xbudget=rec.xpv?.budget||0;
+  $("m360Cost").textContent=money(c26);$("m360Expense").textContent=money(e26);$("m360XpvReal").textContent=money(xreal);$("m360XpvBudget").textContent="Ptto "+money(xbudget);$("m360Impact").textContent=money(Math.abs(c26)+Math.abs(e26));
+  $("m360CostVar").textContent=rec.cost?pctText(rec.cost.pct2526):"—";$("m360ExpenseVar").textContent=rec.expense?pctText(rec.expense.pct2526):"—";$("m360Summary").textContent=`Estado ${st.label}. Impacto combinado ${money(Math.abs(c26)+Math.abs(e26))}.`;
+  const xp=xbudget?xreal/xbudget:0;
+  $("m360Diagnosis").innerHTML=[
+    rec.cost?`Costo ${rec.cost.pct2526>0?"aumenta":"disminuye"} ${Math.abs((rec.cost.pct2526||0)*100).toFixed(2)}% vs 2025.`:"Sin información de costo.",
+    rec.expense?`Gasto ${rec.expense.pct2526>0?"aumenta":"disminuye"} ${Math.abs((rec.expense.pct2526||0)*100).toFixed(2)}% vs 2025.`:"Sin información de gasto.",
+    rec.xpv?`Cumplimiento XPV ${(xp*100).toFixed(2)}% del presupuesto.`:"Sin información XPV."
+  ].map(x=>`<div class="diag-item">${x}</div>`).join("");
+  const rows=[...(state.model.costOperating||[]).filter(x=>x.manager===name).map(x=>({...x,type:"Costo"})),...(state.model.costMaintenance||[]).filter(x=>x.manager===name).map(x=>({...x,type:"Costo"})),...(state.model.expenses||[]).filter(x=>x.manager===name).map(x=>({...x,type:"Gasto"}))]
+    .map(x=>({...x,impact:Math.abs((x.y2026||0)-(x.y2025||0))})).sort((a,b)=>b.impact-a.impact).slice(0,8);
+  $("m360Drivers").innerHTML=rows.length?rows.map((x,i)=>`<div class="driver-row"><b>${i+1}</b><div><strong>${x.account||x.agrupador||x.type}</strong><span>${x.type} · ${signedMoney(x.y2025||0)} → ${signedMoney(x.y2026||0)}</span></div><em>${money(x.impact)}</em></div>`).join(""):'<div class="empty">No hay detalle disponible.</div>';
+  const recs=[];if((rec.cost?.pct2526||0)>.1)recs.push("Revisar los conceptos que explican el incremento de costo.");if((rec.expense?.pct2526||0)>.1)recs.push("Validar gastos recurrentes y variaciones extraordinarias.");if(rec.xpv&&xp<1)recs.push("Analizar productividad XPV y su relación con costo/gasto.");if(!recs.length)recs.push("Mantener seguimiento y documentar prácticas favorables.");
+  $("m360Recommendations").innerHTML=recs.map((x,i)=>`<div class="recommend-row"><b>${i+1}</b><span>${x}</span></div>`).join("");
+  const c=$("m360Chart"),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+  const data=[{label:"Costo",v25:Math.abs(rec.cost?.y2025||0),v26:Math.abs(rec.cost?.y2026||0),c1:"#60a5fa",c2:"#2563eb"},{label:"Gasto",v25:Math.abs(rec.expense?.y2025||0),v26:Math.abs(rec.expense?.y2026||0),c1:"#c084fc",c2:"#7c3aed"}];
+  const max=Math.max(...data.flatMap(x=>[x.v25,x.v26]),1);ctx.strokeStyle="#e8eef7";for(let i=1;i<5;i++){let y=i*h/5;ctx.beginPath();ctx.moveTo(50,y);ctx.lineTo(w-20,y);ctx.stroke();}
+  data.forEach((d,i)=>{const x=140+i*280,bw=70,h25=d.v25/max*(h-100),h26=d.v26/max*(h-100);ctx.fillStyle=d.c1;ctx.fillRect(x,h-45-h25,bw,h25);ctx.fillStyle=d.c2;ctx.fillRect(x+bw+18,h-45-h26,bw,h26);ctx.fillStyle="#475569";ctx.font="14px system-ui";ctx.textAlign="center";ctx.fillText(d.label,x+bw+9,h-15);});
+}
+function lineageHtml(type){
+  if(!state.model)return '<div class="empty">Procesa información para ver la trazabilidad.</div>';
+  const t=modelTotals();
+  if(type==="cost")return `<div class="lineage-kpi"><span>INDICADOR</span><strong>${money(t.cost2026)}</strong><p>Costo total 2026</p></div><div class="lineage-step"><b>1</b><div><strong>Fuente</strong><span>${state.inputMode==="JD"?"JD COSTO RCV":"Archivo RP COSTO RCV"}</span></div></div><div class="lineage-step"><b>2</b><div><strong>Registros incluidos</strong><span>${((state.model.costOperating||[]).length+(state.model.costMaintenance||[]).length).toLocaleString()}</span></div></div><div class="lineage-step"><b>3</b><div><strong>Cálculo</strong><span>Costos Operativos + Costo Mantto</span></div></div><div class="lineage-step"><b>4</b><div><strong>Resultado</strong><span>${money(t.cost2026)}</span></div></div>`;
+  if(type==="expense")return `<div class="lineage-kpi"><span>INDICADOR</span><strong>${money(t.expense2026)}</strong><p>Gasto total 2026</p></div><div class="lineage-step"><b>1</b><div><strong>Fuente</strong><span>${state.inputMode==="JD"?"JD GASTOS RCV":"Archivo RP Gastos RCV"}</span></div></div><div class="lineage-step"><b>2</b><div><strong>Registros incluidos</strong><span>${(state.model.expenses||[]).length.toLocaleString()}</span></div></div><div class="lineage-step"><b>3</b><div><strong>Cálculo</strong><span>Suma del modelo de gastos 2026</span></div></div><div class="lineage-step"><b>4</b><div><strong>Resultado</strong><span>${money(t.expense2026)}</span></div></div>`;
+  return `<div class="lineage-kpi"><span>INDICADOR</span><strong>${(t.xpCompliance*100).toFixed(2)}%</strong><p>Cumplimiento XPV</p></div><div class="lineage-step"><b>1</b><div><strong>Fuente</strong><span>${state.inputMode==="JD"?"JD XPV RCV":"Archivo RP Productividad XPV"}</span></div></div><div class="lineage-step"><b>2</b><div><strong>Real</strong><span>${money(t.xpReal)}</span></div></div><div class="lineage-step"><b>3</b><div><strong>Presupuesto</strong><span>${money(t.xpBudget)}</span></div></div><div class="lineage-step"><b>4</b><div><strong>Fórmula</strong><span>Real / Presupuesto × 100</span></div></div>`;
+}
+
+function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();renderManager360Options();}
 
 function tableSheet(title, headers, data, period) {
   const aoa=[["REPORT.IA RCV"],[title],["Periodo",period],[],headers,...data];
@@ -767,7 +818,7 @@ async function downloadAll(){
   zip.file("COSTO RCV 2026.xlsx",workbookBlob(makeCostWorkbook()));
   zip.file("Gastos RCV 2026.xlsx",workbookBlob(makeExpenseWorkbook()));
   zip.file(`Productividad XPV ${state.model.month} 26 RCV.xlsx`,workbookBlob(makeXpvWorkbook()));
-  zip.file("LEEME.txt","REPORT.IA RCV 22.0 · Archivos generados directamente desde los JD procesados.");
+  zip.file("LEEME.txt","REPORT.IA RCV 23.0 · Archivos generados directamente desde los JD procesados.");
   saveBlob(await zip.generateAsync({type:"blob"}),`FINAL_${state.model.month}_2026.zip`);
 }
 
@@ -1028,6 +1079,10 @@ document.addEventListener("click",async e=>{
   if(e.target.closest("#nextSlide"))showSlide(currentSlide+1);
   if(e.target.closest("#prevSlide"))showSlide(currentSlide-1);
   if(e.target.closest("#alertsBtn"))$("alertsDrawer").classList.add("open");
+  const lineage=e.target.closest("[data-lineage]");
+  if(lineage){$("lineageContent").innerHTML=lineageHtml(lineage.dataset.lineage);$("lineageDrawer").classList.add("open");}
+  if(e.target.closest("#closeLineage"))$("lineageDrawer").classList.remove("open");
+  if(e.target.closest("#openTopManager360")){const rows=managerHealth();if(rows.length){$("manager360Select").value=rows[0].manager;renderManager360(rows[0].manager);}}
   if(e.target.closest("#closeAlerts"))$("alertsDrawer").classList.remove("open");
   const exec=e.target.closest("[data-exec]");
   if(exec){
@@ -1090,6 +1145,7 @@ $("reconFinalZipInput")?.addEventListener("change",async()=>{
   }catch(err){$("reconFinalName").textContent="Error: "+err.message;}
 });
 
+$("manager360Select")?.addEventListener("change",e=>renderManager360(e.target.value));
 renderChecklist();
 clearDashboard();
 buildExecutiveIntelligence();
