@@ -770,7 +770,20 @@ function lineageHtml(type){
   return `<div class="lineage-kpi"><span>INDICADOR</span><strong>${(t.xpCompliance*100).toFixed(2)}%</strong><p>Cumplimiento XPV</p></div><div class="lineage-step"><b>1</b><div><strong>Fuente</strong><span>${state.inputMode==="JD"?"JD XPV RCV":"Archivo RP Productividad XPV"}</span></div></div><div class="lineage-step"><b>2</b><div><strong>Real</strong><span>${money(t.xpReal)}</span></div></div><div class="lineage-step"><b>3</b><div><strong>Presupuesto</strong><span>${money(t.xpBudget)}</span></div></div><div class="lineage-step"><b>4</b><div><strong>Fórmula</strong><span>Real / Presupuesto × 100</span></div></div>`;
 }
 
-function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();renderManager360Options();}
+
+function refreshWelcomeCommand(){
+  const user=document.getElementById("sessionUser")?.textContent||"";
+  const title=$("welcomeCommandTitle");
+  const text=$("welcomeCommandText");
+  if(title)title.textContent=`Hola${user?`, ${user}`:""}. REPORT.IA está listo para analizar tu operación.`;
+  if(text){
+    text.textContent=state.model
+      ? `Información procesada para ${MONTH_LABELS[state.periodIndex]||"el periodo actual"}. Puedes revisar tendencias, alertas, gerencias 360° y reportes.`
+      : "Carga tus archivos, revisa alertas, explora gerencias y genera reportes desde un solo lugar.";
+  }
+}
+
+function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();renderManager360Options();refreshWelcomeCommand();}
 
 function tableSheet(title, headers, data, period) {
   const aoa=[["REPORT.IA RCV"],[title],["Periodo",period],[],headers,...data];
@@ -818,7 +831,7 @@ async function downloadAll(){
   zip.file("COSTO RCV 2026.xlsx",workbookBlob(makeCostWorkbook()));
   zip.file("Gastos RCV 2026.xlsx",workbookBlob(makeExpenseWorkbook()));
   zip.file(`Productividad XPV ${state.model.month} 26 RCV.xlsx`,workbookBlob(makeXpvWorkbook()));
-  zip.file("LEEME.txt","REPORT.IA RCV 23.0 · Archivos generados directamente desde los JD procesados.");
+  zip.file("LEEME.txt","REPORT.IA RCV 23.1 · Archivos generados directamente desde los JD procesados.");
   saveBlob(await zip.generateAsync({type:"blob"}),`FINAL_${state.model.month}_2026.zip`);
 }
 
@@ -1091,6 +1104,8 @@ document.addEventListener("click",async e=>{
     if(exec.dataset.exec==="speech")alert(prepareSpeech());
     if(exec.dataset.exec==="recommendations")alert($("execActions").innerText||"Sin recomendaciones.");
   }
+  if(e.target.closest("#welcomeAlerts"))$("alertsDrawer")?.classList.add("open");
+  if(e.target.closest("#welcomeCopilot"))$("copilot")?.classList.add("open");
   if(e.target.closest("#copilotToggle"))$("copilot").classList.add("open");
   if(e.target.closest("#copilotClose"))$("copilot").classList.remove("open");
   const prompt=e.target.closest(".prompts button");if(prompt){$("question").value=prompt.textContent;$("askBtn").click();}

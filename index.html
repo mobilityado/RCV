@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>REPORT.IA RCV · Validated Engine v23.0</title>
+  <title>REPORT.IA RCV · Validated Engine v23.1</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -64,17 +64,29 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v23.0</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v23.1</div>
 
-    <nav id="nav">
-      <button class="active" data-view="home">⌂ <span>Inicio Ejecutivo</span></button>
-      <button data-view="upload">⇩ <span>Cargar reportes</span></button>
-      <button data-view="analysis">⌁ <span>Análisis</span></button>
-      <button data-view="comparisons">▥ <span>Comparativos</span></button>
-      <button data-view="managers">▣ <span>Gerencias</span></button>
-      <button data-view="trends">↗ <span>Tendencias</span></button><button data-view="audit">✓ <span>Audit Trail</span></button><button data-view="semaphore">◉ <span>Semáforo Gerencial</span></button><button data-view="manager360">◎ <span>Expediente 360°</span></button><button data-view="actions">⚑ <span>Plan de Acción</span></button><button data-view="reports">▤ <span>Reportes</span></button>
-      <button data-view="reconciliation">✓ <span>Conciliación RP vs FINAL</span></button><button data-view="settings">⚙ <span>Configuración</span></button>
-    </nav>
+    
+<nav id="nav" class="nav-v231">
+  <div class="nav-group-label">OPERACIÓN</div>
+  <button class="active" data-view="home"><i class="nav-ico blue">⌂</i><span>Inicio Ejecutivo</span></button>
+  <button data-view="upload"><i class="nav-ico cyan">⇩</i><span>Cargar reportes</span></button>
+  <button data-view="analysis"><i class="nav-ico violet">⌁</i><span>Análisis</span></button>
+  <button data-view="comparisons"><i class="nav-ico teal">▥</i><span>Comparativos</span></button>
+
+  <div class="nav-group-label">INTELIGENCIA</div>
+  <button data-view="trends"><i class="nav-ico orange">↗</i><span>Tendencias</span></button>
+  <button data-view="semaphore"><i class="nav-ico green">◉</i><span>Semáforo Gerencial</span></button>
+  <button data-view="manager360"><i class="nav-ico indigo">◎</i><span>Expediente 360°</span></button>
+  <button data-view="actions"><i class="nav-ico amber">⚑</i><span>Plan de Acción</span></button>
+
+  <div class="nav-group-label">CONTROL</div>
+  <button data-view="audit"><i class="nav-ico sky">✓</i><span>Audit Trail</span></button>
+  <button data-view="reconciliation"><i class="nav-ico rose">≋</i><span>Conciliación RP vs FINAL</span></button>
+  <button data-view="reports"><i class="nav-ico purple">▤</i><span>Reportes</span></button>
+  <button data-view="settings"><i class="nav-ico slate">⚙</i><span>Configuración</span></button>
+</nav>
+
 
     <div class="quick-title">ACCESOS RÁPIDOS</div>
     <nav class="quick-nav">
@@ -85,7 +97,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v23.0</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v23.1</b></div>
     </div>
   </aside>
 
@@ -99,7 +111,23 @@
         </div>
       </header>
 
-      <div class="filters">
+      
+<div class="welcome-command">
+  <div class="welcome-copy">
+    <span>COMMAND CENTER</span>
+    <h2 id="welcomeCommandTitle">Hola. REPORT.IA está listo para analizar tu operación.</h2>
+    <p id="welcomeCommandText">Carga tus archivos, revisa alertas, explora gerencias y genera reportes desde un solo lugar.</p>
+  </div>
+  <div class="welcome-actions">
+    <button data-view="upload"><b>⇩</b><span>Procesar reporte</span></button>
+    <button data-view="analysis"><b>⌁</b><span>Resumen ejecutivo</span></button>
+    <button id="welcomeAlerts"><b>🔔</b><span>Revisar alertas</span></button>
+    <button data-view="manager360"><b>◎</b><span>Gerencias 360°</span></button>
+    <button id="welcomeCopilot"><b>🤖</b><span>Consultar Copiloto</span></button>
+  </div>
+</div>
+
+<div class="filters">
         <label>Gerencia Regional<select id="managerFilter"><option value="">Todas las gerencias</option></select></label>
         <label>Marca<select id="brandFilter"><option value="">Todas</option></select></label>
         <label>Tipo de reporte<select id="typeFilter"><option value="">Todos</option><option>Costos</option><option>Gastos</option><option>Productividad XPV</option></select></label>
