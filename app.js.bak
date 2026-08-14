@@ -410,52 +410,23 @@ function processModel() {
   setStatus("uploadStatus",`Procesamiento completado para ${state.model.month} 2026. Los indicadores y reportes fueron recalculados.`,"ok");
 }
 
-function currentFilters(){
-  return {
-    manager: cleanText($("managerFilter")?.value),
-    brand: cleanText($("brandFilter")?.value),
-    type: cleanText($("typeFilter")?.value),
-    search: cleanText($("searchFilter")?.value).toLowerCase()
-  };
-}
-function rowMatchesFilters(r,{manager,brand,search}){
-  if(manager && cleanText(r.manager)!==manager) return false;
-  if(brand && cleanText(r.brand)!==brand) return false;
-  if(search){
-    const hay=[r.manager,r.brand,r.account,r.center,r.agrupador].map(cleanText).join(" ").toLowerCase();
-    if(!hay.includes(search)) return false;
-  }
-  return true;
-}
-function filteredModel(){
-  if(!state.model) return null;
-  const f=currentFilters(),m=state.model;
-  const allowCost=!f.type||f.type==="Costos";
-  const allowExpense=!f.type||f.type==="Gastos";
-  const allowXpv=!f.type||f.type==="Productividad XPV";
-  const costRows=allowCost?[...m.costOperating,...m.costMaintenance].filter(r=>rowMatchesFilters(r,f)):[];
-  const expenseRows=allowExpense?m.expenses.filter(r=>rowMatchesFilters(r,f)):[];
-  const xpvRows=allowXpv?m.xpv.filter(r=>rowMatchesFilters(r,f)):[];
-  return {f,costRows,expenseRows,xpvRows,costSummary:aggregateByManager(costRows),expenseSummary:aggregateByManager(expenseRows)};
-}
 function modelTotals() {
-  const fm=filteredModel();
-  if(!fm) return null;
-  const {costRows,expenseRows,xpvRows,costSummary,expenseSummary}=fm;
-  const cost2026=costRows.reduce((s,r)=>s+r.y2026,0);
-  const expense2026=expenseRows.reduce((s,r)=>s+r.y2026,0);
-  const xpReal=xpvRows.reduce((s,r)=>s+r.real,0);
-  const xpBudget=xpvRows.reduce((s,r)=>s+r.budget,0);
-  const managers=new Set([...costSummary.map(x=>x.manager),...expenseSummary.map(x=>x.manager),...xpvRows.map(x=>x.manager)]);
-  const deviations=buildDeviations(fm);
-  return {cost2026,expense2026,xpReal,xpBudget,xpCompliance:xpBudget?xpReal/xpBudget:0,managers:managers.size,deviations,fm};
+  const m=state.model;
+  if(!m) return null;
+  const cost2026=[...m.costOperating,...m.costMaintenance].reduce((s,r)=>s+r.y2026,0);
+  const expense2026=m.expenses.reduce((s,r)=>s+r.y2026,0);
+  const xpReal=m.xpv.reduce((s,r)=>s+r.real,0);
+  const xpBudget=m.xpv.reduce((s,r)=>s+r.budget,0);
+  const managers=new Set([...m.costSummary.map(x=>x.manager),...m.expenseSummary.map(x=>x.manager)]);
+  const deviations=buildDeviations();
+  return {cost2026,expense2026,xpReal,xpBudget,xpCompliance:xpBudget?xpReal/xpBudget:0,managers:managers.size,deviations};
 }
-function buildDeviations(fm=filteredModel()) {
-  if(!fm) return [];
+function buildDeviations() {
+  if(!state.model) return [];
   const threshold=state.threshold/100;
   const out=[];
-  fm.costSummary.forEach(r=>{if(r.pct2526!=null&&r.pct2526>threshold)out.push({type:"Costo",manager:r.manager,y2025:r.y2025,y2026:r.y2026,pct:r.pct2526,impact:Math.abs(r.diff2526)});});
-  fm.expenseSummary.forEach(r=>{if(r.pct2526!=null&&r.pct2526>threshold)out.push({type:"Gasto",manager:r.manager,y2025:r.y2025,y2026:r.y2026,pct:r.pct2526,impact:Math.abs(r.diff2526)});});
+  state.model.costSummary.forEach(r=>{if(r.pct2526!=null&&r.pct2526>threshold)out.push({type:"Costo",manager:r.manager,y2025:r.y2025,y2026:r.y2026,pct:r.pct2526,impact:Math.abs(r.diff2526)});});
+  state.model.expenseSummary.forEach(r=>{if(r.pct2526!=null&&r.pct2526>threshold)out.push({type:"Gasto",manager:r.manager,y2025:r.y2025,y2026:r.y2026,pct:r.pct2526,impact:Math.abs(r.diff2526)});});
   return out.sort((a,b)=>b.impact-a.impact);
 }
 
@@ -473,13 +444,13 @@ function renderDashboard(){
   $("gaugeFoot").textContent=`Real ${money(t.xpReal)} · Presupuesto ${money(t.xpBudget)}`;
   $("periodLabel").textContent=`Acumulado a ${state.model.month} 2026`;
 
-  const ranks=t.fm.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026));
+  const ranks=state.model.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026));
   const max=Math.abs(ranks[0]?.y2026||1);
   $("costRanking").innerHTML=ranks.length?ranks.slice(0,5).map((r,i)=>`<div class="rank-row"><b>${i+1}</b><strong>${r.manager}</strong><div class="bar"><i style="width:${Math.abs(r.y2026)/max*100}%"></i></div><em>${money(r.y2026)}</em></div>`).join(""):'<div class="empty">Sin datos.</div>';
 
   $("deviationsList").innerHTML=t.deviations.length?t.deviations.slice(0,3).map((d,i)=>`<div class="list-row ${i?"warn":""}"><i></i><div><strong>${d.manager}</strong><span>${d.type} · 2025 vs 2026</span></div><em>+${(d.pct*100).toFixed(1)}%</em></div>`).join(""):'<div class="empty">No hay desviaciones mayores al umbral.</div>';
 
-  const topExpense=t.fm.expenseSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];
+  const topExpense=state.model.expenseSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];
   const findings=[
     [`Cumplimiento XPV`,`${(t.xpCompliance*100).toFixed(2)}% del presupuesto del periodo.`],
     [`Mayor costo`,`${ranks[0]?.manager||"—"} concentra ${money(ranks[0]?.y2026||0)}.`],
@@ -505,38 +476,13 @@ function drawTrend(){
     ctx.fillText("Procesa los archivos para visualizar tendencias reales",w/2,h/2);return;
   }
 
-  const fm=filteredModel();
-  const hasFilters=!!(fm.f.manager||fm.f.brand||fm.f.type||fm.f.search);
-
-  // Con filtros, reconstruimos la tendencia mensual desde las filas JD para que la gráfica sí responda.
+  // JD mode: monthly trend. RP mode: real 2025 vs 2026 by top managers.
   if(state.inputMode==="JD"){
     const upto=state.periodIndex+1;
-    const f=fm.f;
-    const allowCost=!f.type||f.type==="Costos";
-    const allowExpense=!f.type||f.type==="Gastos";
-    const catalog=state.model.catalog;
-    const monthlyFor=(source,allow)=>{
-      if(!allow)return Array(upto).fill(0);
-      const arr=Array(upto).fill(0);
-      const rows=source||[];
-      for(let i=9;i<rows.length;i++){
-        const r=rows[i]||[];
-        const account=outputText(r[1]),center=outputText(r[2]),brand=outputText(r[4]);
-        let manager=cleanText(r[3]);
-        if(!manager){
-          const ck=cleanText(r[2]);
-          manager=cleanText(catalog?.get?.(ck))||"SIN CLASIFICAR";
-        }
-        const probe={manager,account,center,brand,agrupador:outputText(r[0])};
-        if(!rowMatchesFilters(probe,f))continue;
-        for(let m=0;m<upto;m++)arr[m]+=Math.abs(parseNumber(r[6+m]));
-      }
-      return arr;
-    };
-    const cost=monthlyFor(state.sources[SHEETS.COST],allowCost);
-    const exp=monthlyFor(state.sources[SHEETS.EXPENSE],allowExpense);
+    const cost=state.model.costMonthly.slice(0,upto).map(x=>Math.abs(x.y2026));
+    const exp=state.model.expenseMonthly.slice(0,upto).map(x=>Math.abs(x.y2026));
     const all=[...cost,...exp];const max=Math.max(...all,1);
-    const series=[];if(allowCost)series.push([cost,"#2563eb"]);if(allowExpense)series.push([exp,"#7c3aed"]);
+    const series=[[cost,"#2563eb"],[exp,"#7c3aed"]];
     series.forEach(([arr,color])=>{
       ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();
       arr.forEach((v,i)=>{const x=55+i*(w-100)/Math.max(1,arr.length-1),y=h-35-v/max*(h-70);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
@@ -545,10 +491,8 @@ function drawTrend(){
     });
     ctx.fillStyle="#64748b";ctx.font="11px system-ui";ctx.textAlign="center";
     MONTH_LABELS.slice(0,upto).forEach((m,i)=>{const x=55+i*(w-100)/Math.max(1,upto-1);ctx.fillText(m,x,h-12);});
-    if(!series.length||(!all.some(v=>v)&&hasFilters)){ctx.fillStyle="#94a3b8";ctx.font="14px system-ui";ctx.textAlign="center";ctx.fillText("Sin datos para los filtros seleccionados",w/2,h/2);}
   }else{
-    const rows=fm.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026)).slice(0,6);
-    if(!rows.length){ctx.fillStyle="#94a3b8";ctx.font="14px system-ui";ctx.textAlign="center";ctx.fillText("Sin datos para los filtros seleccionados",w/2,h/2);return;}
+    const rows=state.model.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026)).slice(0,6);
     const max=Math.max(...rows.flatMap(r=>[Math.abs(r.y2025),Math.abs(r.y2026)]),1);
     const groupW=(w-110)/Math.max(1,rows.length);
     rows.forEach((r,i)=>{
@@ -566,13 +510,10 @@ function drawTrend(){
 }
 function renderFilters(){
   if(!state.model)return;
-  const managerValue=$("managerFilter").value,brandValue=$("brandFilter").value;
-  const managers=[...new Set([...state.model.costSummary.map(x=>x.manager),...state.model.expenseSummary.map(x=>x.manager),...state.model.xpv.map(x=>x.manager)].filter(Boolean))].sort();
-  $("managerFilter").innerHTML='<option value="">Todas las gerencias</option>'+managers.map(x=>`<option value="${x}">${x}</option>`).join("");
-  const brands=[...new Set([...state.model.costOperating,...state.model.costMaintenance,...state.model.expenses,...state.model.xpv].map(x=>x.brand).filter(Boolean))].sort();
-  $("brandFilter").innerHTML='<option value="">Todas</option>'+brands.map(x=>`<option value="${x}">${x}</option>`).join("");
-  if(managers.includes(managerValue))$("managerFilter").value=managerValue;
-  if(brands.includes(brandValue))$("brandFilter").value=brandValue;
+  const managers=[...new Set([...state.model.costSummary.map(x=>x.manager),...state.model.expenseSummary.map(x=>x.manager)])].sort();
+  $("managerFilter").innerHTML='<option value="">Todas las gerencias</option>'+managers.map(x=>`<option>${x}</option>`).join("");
+  const brands=[...new Set([...state.model.costOperating,...state.model.costMaintenance,...state.model.expenses].map(x=>x.brand).filter(Boolean))].sort();
+  $("brandFilter").innerHTML='<option value="">Todas</option>'+brands.map(x=>`<option>${x}</option>`).join("");
 }
 function renderProcessStats(){
   const m=state.model;if(!m)return;
@@ -1047,7 +988,7 @@ function buildExecutiveIntelligence(){
   const t=modelTotals();
   const dev=t.deviations;
   const topCost=state.model.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];
-  const topExpense=t.fm.expenseSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];
+  const topExpense=state.model.expenseSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];
   const positive=[...state.model.costSummary,...state.model.expenseSummary].filter(x=>x.pct2526!=null&&x.pct2526<0).sort((a,b)=>a.pct2526-b.pct2526)[0];
 
   const conclusions=[
@@ -1294,10 +1235,6 @@ $("reconFinalZipInput")?.addEventListener("change",async()=>{
     $("runRpReconciliation").disabled=!(reconciliationState.rpFiles.length&&reconciliationState.finalFiles.length);
   }catch(err){$("reconFinalName").textContent="Error: "+err.message;}
 });
-
-function applyDashboardFilters(){if(state.model)renderDashboard();}
-["managerFilter","brandFilter","typeFilter"].forEach(id=>$(id)?.addEventListener("change",applyDashboardFilters));
-$("searchFilter")?.addEventListener("input",applyDashboardFilters);
 
 $("manager360Select")?.addEventListener("change",e=>renderManager360(e.target.value));
 renderChecklist();
