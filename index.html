@@ -135,11 +135,17 @@
       </div>
 
       <div class="kpis">
-        <article><i class="blue">$</i><div><small>COSTO TOTAL 2026</small><strong id="kpiCost">$0</strong><span id="kpiCostSub">Costos operativos + mantenimiento</span><button class="lineage-btn" data-lineage="cost">¿De dónde sale?</button></div></article>
-        <article><i class="violet">▤</i><div><small>GASTO TOTAL 2026</small><strong id="kpiExpense">$0</strong><span id="kpiExpenseSub">Gastos RCV</span><button class="lineage-btn" data-lineage="expense">¿De dónde sale?</button></div></article>
-        <article><i class="cyan">↗</i><div><small>CUMPLIMIENTO XPV</small><strong id="kpiXpv">0%</strong><span id="kpiXpvSub">Real / Presupuesto</span><button class="lineage-btn" data-lineage="xpv">¿De dónde sale?</button></div></article>
+        <article class="kpi-clickable" data-kpi-detail="cost"><i class="blue">$</i><div><small>COSTO TOTAL 2026</small><strong id="kpiCost">$0</strong><span id="kpiCostSub">Costos operativos + mantenimiento</span><span class="kpi-delta" id="kpiCostDelta">Sin comparativo</span><button class="lineage-btn" data-lineage="cost">¿De dónde sale?</button></div></article>
+        <article class="kpi-clickable" data-kpi-detail="expense"><i class="violet">▤</i><div><small>GASTO TOTAL 2026</small><strong id="kpiExpense">$0</strong><span id="kpiExpenseSub">Gastos RCV</span><span class="kpi-delta" id="kpiExpenseDelta">Sin comparativo</span><button class="lineage-btn" data-lineage="expense">¿De dónde sale?</button></div></article>
+        <article class="kpi-clickable" data-kpi-detail="xpv"><i class="cyan">↗</i><div><small>CUMPLIMIENTO XPV</small><strong id="kpiXpv">0%</strong><span id="kpiXpvSub">Real / Presupuesto</span><span class="kpi-delta" id="kpiXpvDelta">Meta 100%</span><button class="lineage-btn" data-lineage="xpv">¿De dónde sale?</button></div></article>
         <article><i class="teal">●</i><div><small>GERENCIAS ACTIVAS</small><strong id="kpiManagers">0</strong><span>Catálogo con información procesada</span></div></article>
-        <article><i class="amber">⚠</i><div><small>ALERTAS CRÍTICAS</small><strong id="kpiAlerts">0</strong><span>Variación adversa mayor a 10%</span></div></article>
+        <article class="kpi-clickable" data-kpi-detail="alerts"><i class="amber">⚠</i><div><small>ALERTAS CRÍTICAS</small><strong id="kpiAlerts">0</strong><span>Variación adversa mayor a 10%</span></div></article>
+      </div>
+
+      <div class="forecast-strip">
+        <article><div class="forecast-icon blue">↗</div><div><small>PROYECCIÓN COSTO CIERRE 2026</small><strong id="forecastCost">$0</strong><span id="forecastCostDelta">Sin datos suficientes</span></div></article>
+        <article><div class="forecast-icon violet">↗</div><div><small>PROYECCIÓN GASTO CIERRE 2026</small><strong id="forecastExpense">$0</strong><span id="forecastExpenseDelta">Sin datos suficientes</span></div></article>
+        <article><div class="forecast-icon teal">◎</div><div><small>LECTURA EJECUTIVA</small><strong id="forecastStatus">Sin datos</strong><span id="forecastStatusSub">Procesa información para proyectar el cierre</span></div></article>
       </div>
 
       <div class="grid-top">
@@ -489,5 +495,18 @@
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script src="auth.js"></script>
+
+<div class="metric-modal" id="metricModal" aria-hidden="true">
+  <div class="metric-modal-backdrop" data-close-metric></div>
+  <div class="metric-modal-card" role="dialog" aria-modal="true" aria-labelledby="metricModalTitle">
+    <button class="metric-modal-close" type="button" data-close-metric>×</button>
+    <span class="metric-modal-eyebrow">DETALLE EJECUTIVO</span>
+    <h2 id="metricModalTitle">Detalle</h2>
+    <p id="metricModalSubtitle"></p>
+    <div class="metric-modal-grid" id="metricModalGrid"></div>
+    <div class="metric-modal-list" id="metricModalList"></div>
+  </div>
+</div>
+
 </body>
 </html>

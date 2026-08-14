@@ -442,13 +442,17 @@ function modelTotals() {
   const fm=filteredModel();
   if(!fm) return null;
   const {costRows,expenseRows,xpvRows,costSummary,expenseSummary}=fm;
+  const cost2025=costRows.reduce((s,r)=>s+r.y2025,0);
+  const costBudget=costRows.reduce((s,r)=>s+r.budget2026,0);
   const cost2026=costRows.reduce((s,r)=>s+r.y2026,0);
+  const expense2025=expenseRows.reduce((s,r)=>s+r.y2025,0);
+  const expenseBudget=expenseRows.reduce((s,r)=>s+r.budget2026,0);
   const expense2026=expenseRows.reduce((s,r)=>s+r.y2026,0);
   const xpReal=xpvRows.reduce((s,r)=>s+r.real,0);
   const xpBudget=xpvRows.reduce((s,r)=>s+r.budget,0);
   const managers=new Set([...costSummary.map(x=>x.manager),...expenseSummary.map(x=>x.manager),...xpvRows.map(x=>x.manager)]);
   const deviations=buildDeviations(fm);
-  return {cost2026,expense2026,xpReal,xpBudget,xpCompliance:xpBudget?xpReal/xpBudget:0,managers:managers.size,deviations,fm};
+  return {cost2025,costBudget,cost2026,expense2025,expenseBudget,expense2026,xpReal,xpBudget,xpCompliance:xpBudget?xpReal/xpBudget:0,managers:managers.size,deviations,fm};
 }
 function buildDeviations(fm=filteredModel()) {
   if(!fm) return [];
@@ -458,6 +462,70 @@ function buildDeviations(fm=filteredModel()) {
   fm.expenseSummary.forEach(r=>{if(r.pct2526!=null&&r.pct2526>threshold)out.push({type:"Gasto",manager:r.manager,y2025:r.y2025,y2026:r.y2026,pct:r.pct2526,impact:Math.abs(r.diff2526)});});
   return out.sort((a,b)=>b.impact-a.impact);
 }
+
+function deltaVs(current,base){ return base ? (current-base)/Math.abs(base) : null; }
+function setDelta(id,value,label,{lowerIsBetter=false}={}){
+  const el=$(id);if(!el)return;
+  if(value==null||!Number.isFinite(value)){el.textContent="Sin comparativo";el.className="kpi-delta";return;}
+  const arrow=value>0?"▲":value<0?"▼":"•";
+  el.textContent=`${arrow} ${Math.abs(value*100).toFixed(1)}% ${label}`;
+  const good=lowerIsBetter?value<=0:value>=0;
+  el.className="kpi-delta "+(Math.abs(value)<.001?"neutral":good?"good":"bad");
+}
+function updateActiveFilterStrip(){
+  const f=currentFilters();
+  const parts=[f.manager||"Todas las gerencias",f.brand||"Todas las marcas",f.type||"Todos los reportes"];
+  if(f.search)parts.push(`Búsqueda: “${f.search}”`);
+  if($("activeFilterText"))$("activeFilterText").textContent=parts.join(" · ");
+  const active=!!(f.manager||f.brand||f.type||f.search);
+  if($("clearDashboardFilters"))$("clearDashboardFilters").style.visibility=active?"visible":"hidden";
+}
+function renderForecast(t){
+  const months=Math.max(1,state.periodIndex+1),factor=12/months;
+  const costProjection=t.cost2026*factor, expenseProjection=t.expense2026*factor;
+  const costBudgetProjection=t.costBudget*factor, expenseBudgetProjection=t.expenseBudget*factor;
+  $("forecastCost").textContent=money(costProjection);$("forecastExpense").textContent=money(expenseProjection);
+  const cd=deltaVs(costProjection,costBudgetProjection),ed=deltaVs(expenseProjection,expenseBudgetProjection);
+  const setF=(id,d)=>{const el=$(id);if(!el)return;if(d==null){el.textContent="Sin presupuesto comparable";el.className="";return;}el.textContent=`${d>0?"▲":d<0?"▼":"•"} ${Math.abs(d*100).toFixed(1)}% vs presupuesto proyectado`;el.className=d<=0?"good":"bad";};
+  setF("forecastCostDelta",cd);setF("forecastExpenseDelta",ed);
+  const xp=t.xpCompliance*100;
+  let status="En línea con objetivo",sub=`XPV ${xp.toFixed(1)}% · Proyección basada en ${months} mes${months===1?"":"es"}`;
+  if(xp<95){status="Requiere atención";}else if(xp<99){status="Cierre bajo vigilancia";}else if(xp>=100){status="Objetivo alcanzado";}
+  $("forecastStatus").textContent=status;$("forecastStatusSub").textContent=sub;
+}
+function openMetricModal(kind,manager=""){
+  const t=modelTotals();if(!t)return;
+  const modal=$("metricModal"),title=$("metricModalTitle"),sub=$("metricModalSubtitle"),grid=$("metricModalGrid"),list=$("metricModalList");if(!modal)return;
+  const filters=$("activeFilterText")?.textContent||"Vista general";
+  const cell=(label,value)=>`<article><small>${label}</small><strong>${value}</strong></article>`;
+  let rows=[];
+  if(kind==="cost"){
+    title.textContent="Detalle de Costos";sub.textContent=filters;
+    grid.innerHTML=cell("2025",money(t.cost2025))+cell("Presupuesto 2026",money(t.costBudget))+cell("Real 2026",money(t.cost2026));
+    rows=t.fm.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026)).slice(0,8).map(r=>[r.manager,`Variación vs 2025: ${pctText(r.pct2526)}`,money(r.y2026)]);
+  }else if(kind==="expense"){
+    title.textContent="Detalle de Gastos";sub.textContent=filters;
+    grid.innerHTML=cell("2025",money(t.expense2025))+cell("Presupuesto 2026",money(t.expenseBudget))+cell("Real 2026",money(t.expense2026));
+    rows=t.fm.expenseSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026)).slice(0,8).map(r=>[r.manager,`Variación vs 2025: ${pctText(r.pct2526)}`,money(r.y2026)]);
+  }else if(kind==="xpv"){
+    title.textContent="Detalle de Productividad XPV";sub.textContent=filters;
+    grid.innerHTML=cell("Real",money(t.xpReal))+cell("Presupuesto",money(t.xpBudget))+cell("Cumplimiento",(t.xpCompliance*100).toFixed(2)+"%");
+    const by=new Map();t.fm.xpvRows.forEach(r=>{if(!by.has(r.manager))by.set(r.manager,{real:0,budget:0});const o=by.get(r.manager);o.real+=r.real;o.budget+=r.budget;});
+    rows=[...by].map(([m,o])=>[m,`Real ${money(o.real)} / Ptto ${money(o.budget)}`,o.budget?(o.real/o.budget*100).toFixed(1)+"%":"—"]).sort((a,b)=>parseFloat(b[2])-parseFloat(a[2])).slice(0,8);
+  }else if(kind==="alerts"){
+    title.textContent="Alertas críticas";sub.textContent=`Umbral actual: ${state.threshold}% · ${filters}`;
+    grid.innerHTML=cell("Gerencias con alerta",new Set(t.deviations.map(d=>d.manager)).size)+cell("Eventos",t.deviations.length)+cell("Umbral",state.threshold+"%");
+    rows=t.deviations.slice(0,10).map(d=>[d.manager,`${d.type} · 2025 vs 2026`,`+${(d.pct*100).toFixed(1)}%`]);
+  }else if(kind==="manager"){
+    const m=decodeURIComponent(manager||"");title.textContent=`${m} · Detalle rápido`;sub.textContent=filters;
+    const c=t.fm.costSummary.find(x=>x.manager===m),e=t.fm.expenseSummary.find(x=>x.manager===m);
+    grid.innerHTML=cell("Costo 2026",money(c?.y2026||0))+cell("Gasto 2026",money(e?.y2026||0))+cell("Total",money((c?.y2026||0)+(e?.y2026||0)));
+    rows=[["Costo",`2025 ${money(c?.y2025||0)} · Ptto ${money(c?.budget2026||0)}`,pctText(c?.pct2526)],["Gasto",`2025 ${money(e?.y2025||0)} · Ptto ${money(e?.budget2026||0)}`,pctText(e?.pct2526)]];
+  }
+  list.innerHTML=rows.length?rows.map(r=>`<div class="metric-detail-row"><div><strong>${r[0]}</strong><span>${r[1]}</span></div><em>${r[2]}</em></div>`).join(""):'<div class="empty">Sin detalle para los filtros seleccionados.</div>';
+  modal.classList.add("open");modal.setAttribute("aria-hidden","false");
+}
+function closeMetricModal(){const m=$("metricModal");if(m){m.classList.remove("open");m.setAttribute("aria-hidden","true");}}
 
 function renderDashboard(){
   const t=modelTotals();
@@ -472,10 +540,15 @@ function renderDashboard(){
   $("gauge").style.setProperty("--g",Math.max(0,Math.min(100,t.xpCompliance*100)));
   $("gaugeFoot").textContent=`Real ${money(t.xpReal)} · Presupuesto ${money(t.xpBudget)}`;
   $("periodLabel").textContent=`Acumulado a ${state.model.month} 2026`;
+  setDelta("kpiCostDelta",deltaVs(t.cost2026,t.cost2025),"vs 2025",{lowerIsBetter:true});
+  setDelta("kpiExpenseDelta",deltaVs(t.expense2026,t.expense2025),"vs 2025",{lowerIsBetter:true});
+  setDelta("kpiXpvDelta",t.xpBudget?((t.xpCompliance)-1):null,"vs meta 100%");
+  updateActiveFilterStrip();
+  renderForecast(t);
 
   const ranks=t.fm.costSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026));
   const max=Math.abs(ranks[0]?.y2026||1);
-  $("costRanking").innerHTML=ranks.length?ranks.slice(0,5).map((r,i)=>`<div class="rank-row"><b>${i+1}</b><strong>${r.manager}</strong><div class="bar"><i style="width:${Math.abs(r.y2026)/max*100}%"></i></div><em>${money(r.y2026)}</em></div>`).join(""):'<div class="empty">Sin datos.</div>';
+  $("costRanking").innerHTML=ranks.length?ranks.slice(0,5).map((r,i)=>`<div class="rank-row" data-manager-detail="${encodeURIComponent(r.manager)}"><b>${i+1}</b><strong>${r.manager}</strong><div class="bar"><i style="width:${Math.abs(r.y2026)/max*100}%"></i></div><em>${money(r.y2026)}</em></div>`).join(""):'<div class="empty">Sin datos.</div>';
 
   $("deviationsList").innerHTML=t.deviations.length?t.deviations.slice(0,3).map((d,i)=>`<div class="list-row ${i?"warn":""}"><i></i><div><strong>${d.manager}</strong><span>${d.type} · 2025 vs 2026</span></div><em>+${(d.pct*100).toFixed(1)}%</em></div>`).join(""):'<div class="empty">No hay desviaciones mayores al umbral.</div>';
 
@@ -492,6 +565,9 @@ function renderDashboard(){
 function clearDashboard(){
   ["kpiCost","kpiExpense"].forEach(id=>$(id).textContent="$0");
   $("kpiXpv").textContent="0%";$("kpiManagers").textContent="0";$("kpiAlerts").textContent="0";$("gaugeValue").textContent="0%";$("gauge").style.setProperty("--g",0);$("gaugeFoot").textContent="Real $0 · Presupuesto $0";
+  ["kpiCostDelta","kpiExpenseDelta","kpiXpvDelta"].forEach(id=>{if($(id)){$(id).textContent="Sin comparativo";$(id).className="kpi-delta";}});
+  if($("forecastCost"))$("forecastCost").textContent="$0";if($("forecastExpense"))$("forecastExpense").textContent="$0";if($("forecastStatus"))$("forecastStatus").textContent="Sin datos";
+  updateActiveFilterStrip();
   $("costRanking").innerHTML='<div class="empty">Sin datos procesados.</div>';$("deviationsList").innerHTML='<div class="empty">Sin datos procesados.</div>';$("findingsList").innerHTML='<div class="empty">Procesa los archivos para generar hallazgos.</div>';
   drawTrend();
 }
@@ -1295,9 +1371,17 @@ $("reconFinalZipInput")?.addEventListener("change",async()=>{
   }catch(err){$("reconFinalName").textContent="Error: "+err.message;}
 });
 
-function applyDashboardFilters(){if(state.model)renderDashboard();}
+function applyDashboardFilters(){updateActiveFilterStrip();if(state.model)renderDashboard();}
 ["managerFilter","brandFilter","typeFilter"].forEach(id=>$(id)?.addEventListener("change",applyDashboardFilters));
 $("searchFilter")?.addEventListener("input",applyDashboardFilters);
+$("clearDashboardFilters")?.addEventListener("click",()=>{$("managerFilter").value="";$("brandFilter").value="";$("typeFilter").value="";$("searchFilter").value="";applyDashboardFilters();});
+document.addEventListener("click",e=>{
+  const k=e.target.closest?.("[data-kpi-detail]");if(k&&!e.target.closest(".lineage-btn")){openMetricModal(k.dataset.kpiDetail);return;}
+  const r=e.target.closest?.("[data-manager-detail]");if(r){openMetricModal("manager",r.dataset.managerDetail);return;}
+  if(e.target.closest?.("[data-close-metric]"))closeMetricModal();
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMetricModal();});
+updateActiveFilterStrip();
 
 $("manager360Select")?.addEventListener("change",e=>renderManager360(e.target.value));
 renderChecklist();
