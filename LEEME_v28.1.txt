@@ -17,3 +17,5 @@ PRUEBA
 3. Abre la campana 🔔.
 4. Pulsa una alerta de una gerencia.
 5. Debe abrirse directamente Seguimiento de incidencia.
+
+CORRECCIÓN v28.1a: se corrigió un error de sintaxis en app.js que impedía que se ejecutara todo el JavaScript y por eso ningún botón respondía.

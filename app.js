@@ -1323,7 +1323,7 @@ function buildExecutiveIntelligence(){
 
   const alerts=[];
   dev.slice(0,5).forEach((d,i)=>alerts.push({type:i===0?"critical":"warning",title:`${d.type} · ${d.manager}`,text:`Variación ${(d.pct*100).toFixed(2)}% vs 2025. Haz clic para revisar y dar seguimiento.`,manager:d.manager}));
-  if(positive)alerts.push({type:"positive",title:`Mejora · ${positive.manager}`,text:`Reducción ${Math.abs(positive.pct2526*100).toFixed(2)}% vs 2025. Haz clic para revisar.`,manager:positive.manager}));
+  if(positive)alerts.push({type:"positive",title:`Mejora · ${positive.manager}`,text:`Reducción ${Math.abs(positive.pct2526*100).toFixed(2)}% vs 2025. Haz clic para revisar.`,manager:positive.manager});
   alerts.push({type:"info",title:"Productividad XPV",text:`Cumplimiento ${(t.xpCompliance*100).toFixed(2)}% del presupuesto.`});
   $("alertsList").innerHTML=alerts.map(a=>a.manager
     ? `<button type="button" class="alert-item alert-item-link" data-alert-manager="${escapeHtml(a.manager)}" title="Abrir incidencia de ${escapeHtml(a.manager)}"><i class="alert-dot ${a.type}"></i><div><strong>${a.title}</strong><span>${a.text}</span></div><b class="alert-open">Abrir →</b></button>`
