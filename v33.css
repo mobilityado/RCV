@@ -1,0 +1,136 @@
+
+/* REPORT.IA RCV v33 · Executive Command Center
+   Capa exclusivamente visual sobre v32. No altera IDs ni lógica. */
+:root{
+  --v33-ink:#111820;
+  --v33-petrol:#15313a;
+  --v33-petrol2:#1f4650;
+  --v33-graphite:#242a30;
+  --v33-champagne:#b8a477;
+  --v33-champagne-soft:#ddd2b6;
+  --v33-paper:#fbfaf7;
+  --v33-line:#e4e0d8;
+}
+body{
+  background:
+    radial-gradient(circle at 88% 4%,rgba(184,164,119,.10),transparent 23rem),
+    linear-gradient(180deg,#f7f6f3 0%,#efede8 100%);
+}
+.sidebar{
+  background:linear-gradient(180deg,#101820 0%,#17252c 54%,#20292e 100%);
+  border-right:1px solid rgba(221,210,182,.16);
+}
+.sidebar:before{
+  content:"";position:absolute;inset:0 0 auto 0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--v33-champagne),transparent);
+}
+.sidebar nav button.active{
+  background:linear-gradient(135deg,#203d45,#35494d);
+  box-shadow:inset 3px 0 0 var(--v33-champagne),0 10px 24px rgba(0,0,0,.18);
+}
+.topbar{
+  margin:0 0 14px;padding:18px 22px;
+  background:rgba(251,250,247,.82);
+  border:1px solid var(--v33-line);
+  border-radius:20px;
+  box-shadow:0 12px 34px rgba(20,27,31,.06);
+  backdrop-filter:blur(12px);
+}
+.topbar h1{letter-spacing:-.035em;color:#172128}
+.topbar .eyebrow{letter-spacing:.16em;color:#8a7955}
+.top-actions button{
+  background:linear-gradient(135deg,#203a42,#31515a);
+  box-shadow:0 7px 18px rgba(24,52,59,.12);
+}
+.v33-executive-signature{
+  display:flex;align-items:center;gap:18px;margin:0 0 14px;padding:11px 16px;
+  border:1px solid rgba(184,164,119,.30);border-radius:15px;
+  background:linear-gradient(90deg,#172229 0%,#20363d 48%,#263237 100%);
+  color:#fff;box-shadow:0 12px 30px rgba(17,24,32,.10);
+}
+.v33-signature-brand{display:flex;align-items:center;gap:10px;min-width:max-content}
+.v33-mark{
+  display:grid;place-items:center;width:34px;height:34px;border-radius:10px;
+  border:1px solid rgba(221,210,182,.5);color:#e5d9b9;font:800 17px/1 Arial;
+  background:rgba(255,255,255,.05)
+}
+.v33-signature-brand small{display:block;color:#c8b98f;font-size:9px;letter-spacing:.18em}
+.v33-signature-brand strong{display:block;margin-top:2px;font-size:11px;letter-spacing:.11em}
+.v33-signature-line{height:1px;flex:1;background:linear-gradient(90deg,rgba(184,164,119,.65),rgba(184,164,119,.05))}
+.v33-signature-meta{display:flex;align-items:center;gap:16px;font-size:9px;letter-spacing:.11em;color:#d8d5cd;white-space:nowrap}
+.v33-signature-meta i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#66b58a;box-shadow:0 0 0 4px rgba(102,181,138,.10)}
+.v27-data-tabs{
+  padding:6px;border:1px solid var(--v33-line);border-radius:18px;
+  background:rgba(255,255,255,.72);box-shadow:0 8px 26px rgba(25,31,34,.05)
+}
+.v27-data-tabs button{border-radius:14px!important}
+.v27-data-tabs button.active{
+  background:linear-gradient(135deg,#17333b,#244b54)!important;
+  box-shadow:0 10px 24px rgba(21,49,58,.16)!important
+}
+.v29-command-center{
+  position:relative;overflow:hidden;
+  background:
+    radial-gradient(circle at 88% 15%,rgba(184,164,119,.15),transparent 25rem),
+    linear-gradient(125deg,#111a21 0%,#173039 54%,#293a3d 100%);
+  border:1px solid rgba(205,190,151,.26);
+  box-shadow:0 22px 52px rgba(17,24,32,.17);
+}
+.v29-command-center:before{
+  content:"";position:absolute;left:0;top:0;width:100%;height:3px;
+  background:linear-gradient(90deg,#7e7153,#d3c397,#806f4d);
+}
+.v29-command-copy>span{color:#cdbd91!important;letter-spacing:.17em}
+.v29-command-copy h2{font-size:clamp(22px,2.1vw,34px);letter-spacing:-.035em}
+.v29-scoreboard article{
+  background:rgba(255,255,255,.055)!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  backdrop-filter:blur(8px)
+}
+.v29-scoreboard article:first-child{box-shadow:inset 0 2px 0 rgba(184,164,119,.70)}
+.v27-realtime-hero,.v28-cloud-toolbar{
+  background:linear-gradient(125deg,#17272e 0%,#21414a 65%,#3b4645 100%)!important;
+  border:1px solid rgba(184,164,119,.24);
+  box-shadow:0 16px 38px rgba(17,24,32,.12)!important;
+}
+.v27-realtime-title>span,.v28-cloud-toolbar>div>span{color:#cdbd91!important;letter-spacing:.15em}
+.v27-mini-kpis{gap:12px}
+.v27-mini-kpis article,.kpis article{
+  position:relative;overflow:hidden;border:1px solid var(--v33-line)!important;
+  background:linear-gradient(180deg,#fff 0%,#fbfaf7 100%)!important;
+  box-shadow:0 10px 26px rgba(25,31,34,.055)!important;
+}
+.v27-mini-kpis article:before,.kpis article:before{
+  content:"";position:absolute;left:0;top:0;width:100%;height:2px;
+  background:linear-gradient(90deg,#244a52,#b8a477,transparent);
+  opacity:.72;
+}
+.v27-mini-kpis strong,.kpis strong{letter-spacing:-.035em;color:#172128}
+.welcome-command{
+  background:linear-gradient(120deg,#18262d,#203b43 64%,#34413f)!important;
+  border:1px solid rgba(184,164,119,.20)!important;
+  box-shadow:0 16px 38px rgba(17,24,32,.11)!important;
+}
+.welcome-copy>span{color:#cdbd91!important;letter-spacing:.16em}
+.filters{
+  border-radius:16px!important;border:1px solid var(--v33-line)!important;
+  box-shadow:0 8px 24px rgba(25,31,34,.04)!important
+}
+.card,.table-card,.upload-card,.validation-card,.settings-card,.report-preview{
+  border-color:var(--v33-line)!important;
+  box-shadow:0 10px 28px rgba(25,31,34,.05)!important
+}
+.bar i{background:linear-gradient(90deg,#244b54,#b29d6e)!important}
+.forecast-icon.blue,.forecast-icon.violet,.forecast-icon.teal{
+  background:linear-gradient(135deg,#1f4650,#756b53)!important
+}
+@media(max-width:900px){
+  .v33-executive-signature{align-items:flex-start}
+  .v33-signature-line{display:none}
+  .v33-signature-meta{margin-left:auto;flex-direction:column;align-items:flex-end;gap:4px}
+}
+@media(max-width:620px){
+  .v33-executive-signature{display:block}
+  .v33-signature-meta{display:none}
+  .topbar{padding:14px}
+}
