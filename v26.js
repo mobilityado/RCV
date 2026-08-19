@@ -35,7 +35,7 @@
   }
   async function cloudMeta(){
     const s=session(); if(!s?.token)return null;
-    const d=await jsonp({accion:"cloud_meta",token:s.token});
+    const d=await jsonp({accion:"cloud_meta",token:s.token,periodIndex:cloudPeriod()});
     if(!d?.ok)throw new Error(d?.mensaje||"No fue posible consultar la publicación.");
     cloudCache=d.disponible?d.cloud:null;
     return d;
@@ -68,7 +68,7 @@
       if(!meta?.disponible){ setCounts({}); workflowCache=[]; renderInbox([]); $("v26LastPublication").textContent="Sin publicación"; $("v26PublicationBy").textContent="El administrador debe publicar información."; return; }
       $("v26LastPublication").textContent=fmt(meta.cloud?.uploadedAt||"");
       $("v26PublicationBy").textContent=`Publicado por ${meta.cloud?.uploadedBy||"Administrador"}`;
-      const d=await jsonp({accion:"workflow",token:s.token,snapshotId:meta.cloud?.snapshotId||""});
+      const d=await jsonp({accion:"workflow",token:s.token,snapshotId:meta.cloud?.snapshotId||"",periodIndex:cloudPeriod()});
       if(!d?.ok)throw new Error(d?.mensaje||"No fue posible consultar el seguimiento.");
       workflowCache=Array.isArray(d.incidencias)?d.incidencias:[];
       setCounts(d.resumen||{}); renderInbox(workflowCache);
@@ -91,7 +91,7 @@
     try{
       const meta=cloudCache?{disponible:true,cloud:cloudCache}:await cloudMeta();
       if(!meta?.disponible)return;
-      const d=await jsonp({accion:"workflow",token:s.token,snapshotId:meta.cloud?.snapshotId||"",gerencia:manager});
+      const d=await jsonp({accion:"workflow",token:s.token,snapshotId:meta.cloud?.snapshotId||"",gerencia:manager,periodIndex:cloudPeriod()});
       if(!d?.ok)throw new Error(d?.mensaje||"No fue posible consultar el estado.");
       const item=(d.incidencias||[])[0]||{gerencia:manager,estado:"PENDIENTE",prioridad:"MEDIA",creada:new Date().toISOString()};
       const ix=workflowCache.findIndex(x=>x.gerencia===manager); if(ix>=0)workflowCache[ix]=item; else workflowCache.push(item);

@@ -64,7 +64,7 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v27.0</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v28.0</div>
 
     
 <nav id="nav" class="nav-v231">
@@ -97,7 +97,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v27.0</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v28.0</b></div>
     </div>
   </aside>
 
@@ -115,7 +115,7 @@
 <section class="v27-command" id="v27Command">
   <div class="v27-data-tabs" role="tablist" aria-label="Origen de información">
     <button class="active" id="v27TabRealtime" data-v27-tab="realtime" type="button"><span class="v27-tab-icon">⚡</span><span><strong>Información en tiempo real</strong><small>Excel recién procesado en esta sesión</small></span><em id="v27RealtimeDot">SIN CARGA</em></button>
-    <button id="v27TabCloud" data-v27-tab="cloud" type="button"><span class="v27-tab-icon">☁</span><span><strong>Información en la nube</strong><small>Última publicación oficial para usuarios</small></span><em id="v27CloudDot">CONSULTANDO</em></button>
+    <button id="v27TabCloud" data-v27-tab="cloud" type="button"><span class="v27-tab-icon">☁</span><span><strong>Información en la nube</strong><small>Histórico mensual oficial para usuarios</small></span><em id="v27CloudDot">CONSULTANDO</em></button>
   </div>
 
   <div class="v27-panel active" data-v27-panel="realtime">
@@ -217,6 +217,25 @@
   </div>
 
   <div class="v27-panel" data-v27-panel="cloud">
+    <section class="v28-cloud-toolbar">
+      <div>
+        <span>HISTÓRICO MENSUAL EN LA NUBE</span>
+        <h3>Consulta la publicación oficial por mes</h3>
+        <p>Cada mes conserva su propia información. Al volver a publicar el mismo mes, únicamente se reemplaza ese mes.</p>
+      </div>
+      <div class="v28-cloud-controls">
+        <label>Periodo en nube
+          <select id="v28CloudMonth">
+            <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option><option value="3">Abril</option>
+            <option value="4">Mayo</option><option value="5">Junio</option><option value="6">Julio</option><option value="7">Agosto</option>
+            <option value="8">Septiembre</option><option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+          </select>
+        </label>
+        <button id="v28LoadCloudMonth" type="button">☁ Consultar mes</button>
+        <button id="v28BackupExcel" data-admin-only="true" type="button">⬇ Respaldo Excel completo</button>
+      </div>
+      <div id="v28MonthStatus" class="v28-month-status">Consultando disponibilidad mensual…</div>
+    </section>
 <section class="v26-home" id="v26Home">
   <div class="v26-hero">
     <div>
@@ -605,8 +624,10 @@
 <script src="auth.js"></script>
 <link rel="stylesheet" href="v26.css">
 <link rel="stylesheet" href="v27.css">
+<link rel="stylesheet" href="v28.css">
 <script src="v26.js"></script>
 <script src="v27.js"></script>
+<script src="v28.js"></script>
 
 <div class="metric-modal" id="metricModal" aria-hidden="true">
   <div class="metric-modal-backdrop" data-close-metric></div>

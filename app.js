@@ -21,7 +21,7 @@ const state = {
   inputMode: null,
   rpWorkbooks: [],
   cloud: {snapshotId:"", uploadedAt:"", uploadedBy:""},
-  localModel:null, cloudModel:null, localInputMode:null, activeDataSource:"cloud"
+  localModel:null, cloudModel:null, localInputMode:null, activeDataSource:"cloud", localPeriodIndex:null, cloudPeriodIndex:null
 };
 
 const $ = id => document.getElementById(id);
@@ -92,7 +92,7 @@ function cloudPayload(){
     semaforo:r.status,
     pressure:Number.isFinite(r.pressure)?r.pressure:null
   }));
-  return {periodIndex:state.periodIndex,inputMode:state.inputMode||"JD",model,workflowSeed};
+  return {periodIndex:(state.activeDataSource==="local"&&state.localPeriodIndex!==null?state.localPeriodIndex:state.periodIndex),inputMode:state.inputMode||"JD",model,workflowSeed};
 }
 async function publishCloud(){
   const session=currentSession();
@@ -101,11 +101,19 @@ async function publishCloud(){
   if(!state.model)return alert("Primero procesa los reportes que deseas publicar.");
   const btn=$("publishCloudBtn"),status=$("cloudPublishStatus");
   try{
+    const payload=cloudPayload();
+    const pubPeriod=Number(payload.periodIndex);
+    const existing=await apiJsonp({accion:"cloud_meta",token:session.token,periodIndex:pubPeriod});
+    if(existing?.ok&&existing?.disponible){
+      const nombreMes=["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"][pubPeriod]||"ESTE MES";
+      const when=existing.cloud?.uploadedAt?new Date(existing.cloud.uploadedAt).toLocaleString("es-MX"):"una publicación anterior";
+      if(!confirm(`Ya existe información de ${nombreMes} publicada (${when}).\n\nSi continúas, SOLO se reemplazará la pestaña de ${nombreMes}; los demás meses permanecerán intactos.\n\n¿Deseas continuar?`))return;
+    }
     if(btn){btn.disabled=true;btn.textContent="Publicando…";}
-    if(status){status.textContent="Enviando el modelo validado a Google Sheets…";status.className="status working";}
-    await apiPost({accion:"subir_nube",token:session.token,payload:JSON.stringify(cloudPayload())});
+    if(status){status.textContent="Guardando el periodo seleccionado en su pestaña mensual de Google Sheets…";status.className="status working";}
+    await apiPost({accion:"subir_nube",token:session.token,payload:JSON.stringify(payload)});
     await new Promise(r=>setTimeout(r,1400));
-    const meta=await apiJsonp({accion:"cloud_meta",token:session.token});
+    const meta=await apiJsonp({accion:"cloud_meta",token:session.token,periodIndex:pubPeriod});
     if(!meta?.ok||!meta?.disponible)throw new Error(meta?.mensaje||"No fue posible confirmar la publicación.");
     state.cloud=meta.cloud||{};
     if(status){status.textContent=`Publicado correctamente ${state.cloud.uploadedAt?"· "+new Date(state.cloud.uploadedAt).toLocaleString("es-MX"):""}. Los usuarios ya pueden consultar su área.`;status.className="status ok";}
@@ -124,11 +132,12 @@ function updateCloudBadge(message=""){
     el.className="cloud-status-badge ok";
   }else{el.textContent="☁ Sin publicación en nube";el.className="cloud-status-badge";}
 }
-async function loadCloudForSession(session){
+async function loadCloudForSession(session, requestedPeriodIndex=null){
   if(!session?.token)return;
   updateCloudBadge("☁ Consultando datos publicados…");
   try{
-    const data=await apiJsonp({accion:"cloud_data",token:session.token});
+    const cloudPeriod=requestedPeriodIndex===null?(state.cloudPeriodIndex===null?state.periodIndex:state.cloudPeriodIndex):Number(requestedPeriodIndex);
+    const data=await apiJsonp({accion:"cloud_data",token:session.token,periodIndex:cloudPeriod});
     if(!data?.ok)throw new Error(data?.mensaje||"No fue posible consultar la nube.");
     if(!data.disponible){
       state.cloud={snapshotId:"",uploadedAt:"",uploadedBy:""};
@@ -138,7 +147,8 @@ async function loadCloudForSession(session){
       return;
     }
     state.cloudModel=data.model||null;
-    state.periodIndex=Number.isFinite(Number(data.periodIndex))?Number(data.periodIndex):state.periodIndex;
+    state.cloudPeriodIndex=Number.isFinite(Number(data.periodIndex))?Number(data.periodIndex):cloudPeriod;
+    state.periodIndex=state.cloudPeriodIndex;
     state.cloud=data.cloud||{};
     if(!isAdmin() || state.activeDataSource!=="local" || !state.localModel){
       state.model=state.cloudModel;
@@ -409,7 +419,7 @@ function processRpModel(){
     catalog:new Map(),costOperating,costMaintenance,premises,smo,expenses,expenseSummary,xpv,xpvSummary:aggregateXpvByManager(xpv),costSummary,
     costMonthly:zeroMonths,expenseMonthly:zeroMonths,month:MONTH_LABELS[state.periodIndex],sourceMode:"RP"
   };
-  state.localModel=state.model; state.localInputMode="RP"; state.activeDataSource="local";
+  state.localModel=state.model; state.localInputMode="RP"; state.localPeriodIndex=state.periodIndex; state.activeDataSource="local";
   renderAll();
   setStatus("uploadStatus",`Archivos RP procesados correctamente. Dashboard actualizado desde Costos, Gastos y Productividad XPV.`,"ok");
   window.dispatchEvent(new CustomEvent("reportia:model-processed",{detail:{mode:"RP",period:state.model.month}}));
@@ -560,7 +570,7 @@ function processModel() {
     costMonthly:costAgg.monthly,expenseMonthly:expAgg.monthly,
     month:MONTH_LABELS[state.periodIndex]
   };
-  state.localModel=state.model; state.localInputMode="JD"; state.activeDataSource="local";
+  state.localModel=state.model; state.localInputMode="JD"; state.localPeriodIndex=state.periodIndex; state.activeDataSource="local";
   renderAll();
   setStatus("uploadStatus",`Procesamiento completado para ${state.model.month} 2026. Los indicadores y reportes fueron recalculados.`,"ok");
   window.dispatchEvent(new CustomEvent("reportia:model-processed",{detail:{mode:"JD",period:state.model.month}}));
@@ -1454,7 +1464,7 @@ document.addEventListener("click",async e=>{
       setStatus("uploadStatus","No fue posible procesar: "+err.message,"error");
     }
   }
-  if(e.target.closest("#clearBtn")){state.sources={};state.rpWorkbooks=[];state.inputMode=null;state.model=null;state.localModel=null;state.localInputMode=null;state.activeDataSource="cloud";$("jdFiles").value="";renderChecklist();clearDashboard();setStatus("uploadStatus","Aún no has seleccionado archivos.");qa("#processStats strong").forEach(x=>x.textContent="0");}
+  if(e.target.closest("#clearBtn")){state.sources={};state.rpWorkbooks=[];state.inputMode=null;state.model=null;state.localModel=null;state.localInputMode=null;state.localPeriodIndex=null;state.activeDataSource="cloud";$("jdFiles").value="";renderChecklist();clearDashboard();setStatus("uploadStatus","Aún no has seleccionado archivos.");qa("#processStats strong").forEach(x=>x.textContent="0");}
   if(e.target.closest("#browseFinalBtn"))$("finalZip").click();
   if(e.target.closest("#validateBtn"))validateAgainstFinal();
   if(e.target.closest("#refreshBtn")){
@@ -1558,7 +1568,7 @@ function useCloudModel(){
   if(!state.cloudModel)return false;
   state.model=state.cloudModel; state.inputMode="CLOUD"; state.activeDataSource="cloud"; renderAll(); return true;
 }
-window.REPORTIA_APP={loadCloudForSession,publishCloud,openIncident,currentSession,isAdmin,getCloud:()=>state.cloud,getManagerHealth:()=>managerHealth(),getLocalModel:()=>state.localModel,getCloudModel:()=>state.cloudModel,getActiveSource:()=>state.activeDataSource,useLocalModel,useCloudModel};
+window.REPORTIA_APP={loadCloudForSession,publishCloud,openIncident,currentSession,isAdmin,getCloud:()=>state.cloud,getManagerHealth:()=>managerHealth(),getLocalModel:()=>state.localModel,getCloudModel:()=>state.cloudModel,getActiveSource:()=>state.activeDataSource,getCloudPeriod:()=>state.cloudPeriodIndex,useLocalModel,useCloudModel};
 renderChecklist();
 clearDashboard();
 buildExecutiveIntelligence();
