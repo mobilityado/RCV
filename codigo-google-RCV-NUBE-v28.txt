@@ -294,7 +294,14 @@ function subirModeloNube(token, payloadText) {
   if (Array.isArray(payload.workflowSeed)) {
     payload.workflowSeed.forEach(function(x){
       const g = String(x && x.gerencia || '').trim();
-      if (g) asegurarIncidencia(snapshotId, g, x.prioridad || 'MEDIA', s.usuario, s.tipo);
+      if (g) {
+        // Conserva la lectura del semáforo al crear el flujo inicial:
+        // Crítico = pendiente prioritario; Atención = ya clasificado en atención.
+        const estadoInicial = String(x && x.semaforo || '').toUpperCase() === 'ATENCIÓN' || String(x && x.semaforo || '').toUpperCase() === 'ATENCION'
+          ? 'EN_ATENCION'
+          : 'PENDIENTE';
+        asegurarIncidencia(snapshotId, g, x.prioridad || 'MEDIA', s.usuario, s.tipo, estadoInicial);
+      }
     });
   }
   SpreadsheetApp.flush();
@@ -445,12 +452,13 @@ function filaIncidencia(sh, snapshotId, gerencia) {
   return 0;
 }
 
-function asegurarIncidencia(snapshotId, gerencia, prioridad, usuario, tipo) {
+function asegurarIncidencia(snapshotId, gerencia, prioridad, usuario, tipo, estadoInicial) {
   const sh = asegurarHojaIncidencias();
   let row = filaIncidencia(sh, snapshotId, gerencia);
   if (!row) {
     const now = new Date().toISOString();
-    sh.appendRow([snapshotId,gerencia,'PENDIENTE',String(prioridad||'MEDIA').toUpperCase(),now,now,usuario||'',tipo||'']);
+    const estado = estadoPermitido(estadoInicial) ? String(estadoInicial).toUpperCase() : 'PENDIENTE';
+    sh.appendRow([snapshotId,gerencia,estado,String(prioridad||'MEDIA').toUpperCase(),now,now,usuario||'',tipo||'']);
     row = sh.getLastRow();
   } else if (prioridad) {
     sh.getRange(row,4).setValue(String(prioridad).toUpperCase());

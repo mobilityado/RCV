@@ -9,6 +9,16 @@
 
   function session(){ return window.REPORTIA_SESSION || null; }
   function isAdmin(){ return String(session()?.tipo||"").toUpperCase()==="ADMINISTRADOR"; }
+  // Periodo mensual que debe consultar el centro de seguimiento en nube.
+  // v26 llamaba a cloudPeriod() pero la función no existía, lo que provocaba
+  // "No fue posible actualizar el centro de pendientes" y dejaba datos obsoletos en pantalla.
+  function cloudPeriod(){
+    const apiPeriod=window.REPORTIA_APP?.getCloudPeriod?.();
+    if(apiPeriod!==null && apiPeriod!==undefined && Number.isFinite(Number(apiPeriod))) return Number(apiPeriod);
+    const sel=document.getElementById("periodSelect");
+    if(sel && Number.isFinite(Number(sel.value))) return Number(sel.value);
+    return new Date().getMonth();
+  }
   function esc(v){ return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   function fmt(v){ const d=new Date(v); return Number.isNaN(d.getTime())?String(v||""):d.toLocaleString("es-MX"); }
   function roleName(tipo){

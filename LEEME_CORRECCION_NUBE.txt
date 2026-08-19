@@ -1,0 +1,19 @@
+CORRECCIÓN RCV - NUBE / JULIO
+
+Se corrigieron dos puntos:
+
+1) v26.js
+   El Centro de Control llamaba a cloudPeriod() pero esa función no existía.
+   Esto provocaba el mensaje: "No fue posible actualizar el centro de pendientes"
+   y podía dejar en pantalla datos anteriores aunque arriba sí apareciera una publicación disponible.
+
+2) codigo-google-RCV-NUBE-v28.txt
+   Al publicar, todas las gerencias no favorables nacían como PENDIENTE.
+   Ahora las que el semáforo calcula como ATENCIÓN nacen en EN_ATENCION;
+   las CRÍTICAS nacen como PENDIENTE.
+
+IMPORTANTE:
+- Sube los archivos web de esta carpeta a GitHub.
+- Sustituye el código del Apps Script por el contenido de codigo-google-RCV-NUBE-v28.txt y crea una NUEVA implementación/version del Web App.
+- Si la URL del Web App cambia, actualiza config.js.
+- Después vuelve a publicar JULIO para crear un snapshot nuevo con los estados corregidos.
