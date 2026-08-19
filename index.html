@@ -64,7 +64,7 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v26.1</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v27.0</div>
 
     
 <nav id="nav" class="nav-v231">
@@ -97,7 +97,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v26.1</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v27.0</b></div>
     </div>
   </aside>
 
@@ -112,45 +112,24 @@
       </header>
 
       
-<section class="v26-home" id="v26Home">
-  <div class="v26-hero">
-    <div>
-      <span class="v26-kicker">CENTRO DE CONTROL RCV</span>
-      <h2 id="v26Greeting">Tu operación, priorizada para hoy.</h2>
-      <p id="v26RoleSummary">Consultando pendientes y estado de atención…</p>
-    </div>
-    <div class="v26-cloud-card">
-      <small>ÚLTIMA PUBLICACIÓN</small>
-      <strong id="v26LastPublication">Sin publicación</strong>
-      <span id="v26PublicationBy">El administrador debe publicar información.</span>
-      <button id="v26OpenPublication" data-admin-only="true" type="button">☁ Centro de publicación</button>
-    </div>
+<section class="v27-command" id="v27Command">
+  <div class="v27-data-tabs" role="tablist" aria-label="Origen de información">
+    <button class="active" id="v27TabRealtime" data-v27-tab="realtime" type="button"><span class="v27-tab-icon">⚡</span><span><strong>Información en tiempo real</strong><small>Excel recién procesado en esta sesión</small></span><em id="v27RealtimeDot">SIN CARGA</em></button>
+    <button id="v27TabCloud" data-v27-tab="cloud" type="button"><span class="v27-tab-icon">☁</span><span><strong>Información en la nube</strong><small>Última publicación oficial para usuarios</small></span><em id="v27CloudDot">CONSULTANDO</em></button>
   </div>
-  <div class="v26-status-grid">
-    <article class="v26-status pending"><span>🔴</span><div><small>PENDIENTES</small><strong id="v26Pending">0</strong><em>Requieren atención</em></div></article>
-    <article class="v26-status working"><span>🟡</span><div><small>EN ATENCIÓN</small><strong id="v26Working">0</strong><em>Acciones en curso</em></div></article>
-    <article class="v26-status validate"><span>🔵</span><div><small>POR VALIDAR</small><strong id="v26Validate">0</strong><em>Esperan revisión</em></div></article>
-    <article class="v26-status closed"><span>🟢</span><div><small>CERRADAS</small><strong id="v26Closed">0</strong><em>Atendidas</em></div></article>
-  </div>
-  <div class="v26-workspace">
-    <article class="v26-pending-card">
-      <div class="v26-card-head"><div><small>MI BANDEJA</small><h3 id="v26InboxTitle">Pendientes de atención</h3></div><button id="v26RefreshWorkflow" type="button">↻ Actualizar</button></div>
-      <div id="v26Inbox" class="v26-inbox"><div class="empty">Consultando pendientes…</div></div>
-    </article>
-    <article class="v26-quick-card">
-      <small>ACCESOS PRINCIPALES</small><h3>¿Qué necesitas hacer?</h3>
-      <div class="v26-quick-actions">
-        <button data-view="semaphore" type="button">🚦 Ver incidencias</button>
-        <button data-view="reports" type="button">📄 Consultar reportes</button>
-        <button data-view="manager360" type="button">◎ Expediente 360°</button>
-        <button data-admin-only="true" data-view="upload" type="button">⇩ Cargar información</button>
-      </div>
-      <button class="v26-detail-toggle" id="v26ToggleDetail" type="button">Mostrar análisis ejecutivo completo ↓</button>
-    </article>
-  </div>
-</section>
 
-<div id="v26LegacyHome" class="v26-legacy-collapsed">
+  <div class="v27-panel active" data-v27-panel="realtime">
+    <div class="v27-realtime-hero">
+      <div class="v27-realtime-title"><span>LIVE ANALYTICS · DATOS LOCALES</span><h2 id="v27RealtimeTitle">Carga y procesa los Excel para iniciar</h2><p id="v27RealtimeText">Aquí verás inmediatamente el resultado completo del archivo procesado, antes de publicarlo.</p></div>
+      <div class="v27-live-actions"><div class="v27-live-chip"><i></i><span id="v27LiveStatus">Esperando procesamiento</span></div><button data-admin-only="true" data-view="upload" type="button">⇩ Cargar reportes</button><button id="v27PublishQuick" data-admin-only="true" type="button">☁ Publicar resultado</button></div>
+    </div>
+    <div class="v27-mini-kpis">
+      <article><small>GERENCIAS ANALIZADAS</small><strong id="v27LocalManagers">0</strong><span>del archivo procesado</span></article>
+      <article><small>CRÍTICAS</small><strong id="v27LocalCritical">0</strong><span>requieren revisión inmediata</span></article>
+      <article><small>EN ATENCIÓN</small><strong id="v27LocalAttention">0</strong><span>variación relevante</span></article>
+      <article><small>FAVORABLES</small><strong id="v27LocalFavorable">0</strong><span>sin presión relevante</span></article>
+    </div>
+<div id="v26LegacyHome" class="v26-legacy-collapsed open">
 <div class="welcome-command">
   <div class="welcome-copy">
     <span>COMMAND CENTER</span>
@@ -234,7 +213,51 @@
         </article>
       </section>
     </div><!-- /v26LegacyHome -->
-    </section>
+
+  </div>
+
+  <div class="v27-panel" data-v27-panel="cloud">
+<section class="v26-home" id="v26Home">
+  <div class="v26-hero">
+    <div>
+      <span class="v26-kicker">CENTRO DE CONTROL RCV</span>
+      <h2 id="v26Greeting">Tu operación, priorizada para hoy.</h2>
+      <p id="v26RoleSummary">Consultando pendientes y estado de atención…</p>
+    </div>
+    <div class="v26-cloud-card">
+      <small>ÚLTIMA PUBLICACIÓN</small>
+      <strong id="v26LastPublication">Sin publicación</strong>
+      <span id="v26PublicationBy">El administrador debe publicar información.</span>
+      <button id="v26OpenPublication" data-admin-only="true" type="button">☁ Centro de publicación</button>
+    </div>
+  </div>
+  <div class="v26-status-grid">
+    <article class="v26-status pending"><span>🔴</span><div><small>PENDIENTES</small><strong id="v26Pending">0</strong><em>Requieren atención</em></div></article>
+    <article class="v26-status working"><span>🟡</span><div><small>EN ATENCIÓN</small><strong id="v26Working">0</strong><em>Acciones en curso</em></div></article>
+    <article class="v26-status validate"><span>🔵</span><div><small>POR VALIDAR</small><strong id="v26Validate">0</strong><em>Esperan revisión</em></div></article>
+    <article class="v26-status closed"><span>🟢</span><div><small>CERRADAS</small><strong id="v26Closed">0</strong><em>Atendidas</em></div></article>
+  </div>
+  <div class="v26-workspace">
+    <article class="v26-pending-card">
+      <div class="v26-card-head"><div><small>MI BANDEJA</small><h3 id="v26InboxTitle">Pendientes de atención</h3></div><button id="v26RefreshWorkflow" type="button">↻ Actualizar</button></div>
+      <div id="v26Inbox" class="v26-inbox"><div class="empty">Consultando pendientes…</div></div>
+    </article>
+    <article class="v26-quick-card">
+      <small>ACCESOS PRINCIPALES</small><h3>¿Qué necesitas hacer?</h3>
+      <div class="v26-quick-actions">
+        <button data-view="semaphore" type="button">🚦 Ver incidencias</button>
+        <button data-view="reports" type="button">📄 Consultar reportes</button>
+        <button data-view="manager360" type="button">◎ Expediente 360°</button>
+        <button data-admin-only="true" data-view="upload" type="button">⇩ Cargar información</button>
+      </div>
+      <button class="v26-detail-toggle" id="v26ToggleDetail" type="button">Mostrar análisis ejecutivo completo ↓</button>
+    </article>
+  </div>
+</section>
+
+
+  </div>
+</section>    </section>
 
     <section class="view" data-view="upload">
       <header class="section-title"><span>PROCESAMIENTO VALIDADO</span><h2>Cargar y generar los reportes FINAL</h2><p>Admite un Excel consolidado con las cuatro pestañas o varios Excel que contengan las fuentes por separado.</p></header>
@@ -581,7 +604,9 @@
 <script src="app.js"></script>
 <script src="auth.js"></script>
 <link rel="stylesheet" href="v26.css">
+<link rel="stylesheet" href="v27.css">
 <script src="v26.js"></script>
+<script src="v27.js"></script>
 
 <div class="metric-modal" id="metricModal" aria-hidden="true">
   <div class="metric-modal-backdrop" data-close-metric></div>

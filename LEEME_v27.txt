@@ -1,0 +1,33 @@
+REPORT.IA RCV · v27.0 · DUAL DATA WORKSPACE
+
+CAMBIO PRINCIPAL
+La pantalla Inicio Ejecutivo ahora separa claramente dos fuentes:
+
+1) INFORMACIÓN EN TIEMPO REAL
+   - Solo administrador.
+   - Muestra inmediatamente el Excel recién procesado.
+   - Conserva KPIs, gráficas, ranking, desviaciones, hallazgos y brief completo.
+   - No depende de la nube para mostrar el resultado.
+   - Después de Procesar información, REPORT.IA cambia automáticamente a esta pestaña.
+
+2) INFORMACIÓN EN LA NUBE
+   - Muestra exclusivamente la publicación oficial vigente.
+   - Es la vista usada por las cuentas de área.
+   - Contiene pendientes, notas, acciones correctivas y flujo de validación.
+
+IMPORTANTE
+Procesar y Publicar son dos acciones distintas:
+- PROCESAR = calcula y muestra el Excel en tiempo real.
+- PUBLICAR = copia el resultado validado a Google Sheets para los demás usuarios.
+
+INSTALACIÓN
+1. Reemplaza en GitHub todos los archivos por los incluidos en esta carpeta.
+2. Asegúrate de subir también v27.js y v27.css.
+3. No es necesario cambiar el Apps Script si ya instalaste el Apps Script v26.
+4. Actualiza la página con Ctrl+F5.
+
+PRUEBA RECOMENDADA
+Administrador -> Cargar reportes -> seleccionar Excel/ZIP -> Procesar información.
+Debe abrirse automáticamente "Información en tiempo real" y mostrar KPIs y gráficas reales.
+Luego, cuando todo esté correcto, pulsa "Publicar resultado".
+Después revisa "Información en la nube".

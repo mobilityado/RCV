@@ -20,7 +20,8 @@ const state = {
   decisions: JSON.parse(localStorage.getItem("reportia_decisions_v19") || "[]"),
   inputMode: null,
   rpWorkbooks: [],
-  cloud: {snapshotId:"", uploadedAt:"", uploadedBy:""}
+  cloud: {snapshotId:"", uploadedAt:"", uploadedBy:""},
+  localModel:null, cloudModel:null, localInputMode:null, activeDataSource:"cloud"
 };
 
 const $ = id => document.getElementById(id);
@@ -136,11 +137,15 @@ async function loadCloudForSession(session){
       const msg=$("cloudViewerMessage");if(msg)msg.textContent="Aún no hay información publicada por el administrador.";
       return;
     }
-    state.model=data.model||null;
+    state.cloudModel=data.model||null;
     state.periodIndex=Number.isFinite(Number(data.periodIndex))?Number(data.periodIndex):state.periodIndex;
-    state.inputMode="CLOUD";
-    state.sources={};state.rpWorkbooks=[];
     state.cloud=data.cloud||{};
+    if(!isAdmin() || state.activeDataSource!=="local" || !state.localModel){
+      state.model=state.cloudModel;
+      state.inputMode="CLOUD";
+      state.activeDataSource="cloud";
+      state.sources={};state.rpWorkbooks=[];
+    }
     if($("periodSelect"))$("periodSelect").value=state.periodIndex;
     if($("settingsPeriod"))$("settingsPeriod").value=state.periodIndex;
     if(state.model)renderAll();else clearDashboard();
@@ -404,6 +409,7 @@ function processRpModel(){
     catalog:new Map(),costOperating,costMaintenance,premises,smo,expenses,expenseSummary,xpv,xpvSummary:aggregateXpvByManager(xpv),costSummary,
     costMonthly:zeroMonths,expenseMonthly:zeroMonths,month:MONTH_LABELS[state.periodIndex],sourceMode:"RP"
   };
+  state.localModel=state.model; state.localInputMode="RP"; state.activeDataSource="local";
   renderAll();
   setStatus("uploadStatus",`Archivos RP procesados correctamente. Dashboard actualizado desde Costos, Gastos y Productividad XPV.`,"ok");
   window.dispatchEvent(new CustomEvent("reportia:model-processed",{detail:{mode:"RP",period:state.model.month}}));
@@ -554,6 +560,7 @@ function processModel() {
     costMonthly:costAgg.monthly,expenseMonthly:expAgg.monthly,
     month:MONTH_LABELS[state.periodIndex]
   };
+  state.localModel=state.model; state.localInputMode="JD"; state.activeDataSource="local";
   renderAll();
   setStatus("uploadStatus",`Procesamiento completado para ${state.model.month} 2026. Los indicadores y reportes fueron recalculados.`,"ok");
   window.dispatchEvent(new CustomEvent("reportia:model-processed",{detail:{mode:"JD",period:state.model.month}}));
@@ -1447,7 +1454,7 @@ document.addEventListener("click",async e=>{
       setStatus("uploadStatus","No fue posible procesar: "+err.message,"error");
     }
   }
-  if(e.target.closest("#clearBtn")){state.sources={};state.rpWorkbooks=[];state.inputMode=null;state.model=null;$("jdFiles").value="";renderChecklist();clearDashboard();setStatus("uploadStatus","Aún no has seleccionado archivos.");qa("#processStats strong").forEach(x=>x.textContent="0");}
+  if(e.target.closest("#clearBtn")){state.sources={};state.rpWorkbooks=[];state.inputMode=null;state.model=null;state.localModel=null;state.localInputMode=null;state.activeDataSource="cloud";$("jdFiles").value="";renderChecklist();clearDashboard();setStatus("uploadStatus","Aún no has seleccionado archivos.");qa("#processStats strong").forEach(x=>x.textContent="0");}
   if(e.target.closest("#browseFinalBtn"))$("finalZip").click();
   if(e.target.closest("#validateBtn"))validateAgainstFinal();
   if(e.target.closest("#refreshBtn")){
@@ -1543,7 +1550,15 @@ updateActiveFilterStrip();
 
 $("manager360Select")?.addEventListener("change",e=>renderManager360(e.target.value));
 window.addEventListener("reportia:session",e=>loadCloudForSession(e.detail));
-window.REPORTIA_APP={loadCloudForSession,publishCloud,openIncident,currentSession,isAdmin,getCloud:()=>state.cloud,getManagerHealth:()=>managerHealth()};
+function useLocalModel(){
+  if(!state.localModel){state.model=null;state.inputMode=null;state.activeDataSource="local";clearDashboard();return false;}
+  state.model=state.localModel; state.inputMode=state.localInputMode||"JD"; state.activeDataSource="local"; renderAll(); return true;
+}
+function useCloudModel(){
+  if(!state.cloudModel)return false;
+  state.model=state.cloudModel; state.inputMode="CLOUD"; state.activeDataSource="cloud"; renderAll(); return true;
+}
+window.REPORTIA_APP={loadCloudForSession,publishCloud,openIncident,currentSession,isAdmin,getCloud:()=>state.cloud,getManagerHealth:()=>managerHealth(),getLocalModel:()=>state.localModel,getCloudModel:()=>state.cloudModel,getActiveSource:()=>state.activeDataSource,useLocalModel,useCloudModel};
 renderChecklist();
 clearDashboard();
 buildExecutiveIntelligence();
