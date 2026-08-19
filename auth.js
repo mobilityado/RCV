@@ -26,6 +26,7 @@
   }
 
   function applySession(session){
+    window.REPORTIA_SESSION=session;
     document.body.classList.add("authenticated");
     $("secureLogin").classList.add("hidden");
     $("sessionUser").textContent=session.usuario;
@@ -34,6 +35,17 @@
     $("welcomeUser").textContent="BIENVENIDO, "+session.usuario.toUpperCase();
     const settings=document.querySelector('[data-view="settings"]');
     if(settings) settings.style.display=session.tipo==="ADMINISTRADOR"?"":"none";
+    const isAdmin=session.tipo==="ADMINISTRADOR";
+    document.body.classList.toggle("role-admin",isAdmin);
+    document.body.classList.toggle("role-user",!isAdmin);
+    document.querySelectorAll('[data-admin-only="true"]').forEach(el=>el.style.display=isAdmin?"":"none");
+    document.querySelectorAll('[data-view="upload"]').forEach(el=>{if(!el.classList.contains("view"))el.style.display=isAdmin?"":"none";});
+    const roleLabel={
+      ADMINISTRADOR:"Administrador del sistema",ADMVA:"Área administrativa",COMERCIAL:"Área comercial",ESPECIALIZADO:"Área especializada",GENERAL:"Área general",
+      "JEF SERV":"Jefatura de servicio",MANTTO:"Mantenimiento","OP INTERM":"Operación intermedia","OP PRIMERA":"Operación primera","REC HUM":"Recursos humanos"
+    };
+    $("sessionRole").textContent=roleLabel[session.tipo]||session.tipo;
+    setTimeout(()=>window.dispatchEvent(new CustomEvent("reportia:session",{detail:session})),0);
   }
 
   function logout(){
@@ -65,7 +77,7 @@
     try{
       const data=await jsonp({accion:"login",usuario,contrasena});
       if(!data?.ok) throw new Error(data?.mensaje||"Usuario o contraseña incorrectos.");
-      const session={usuario:data.usuario,tipo:String(data.tipo||"USUARIO").toUpperCase(),loginAt:new Date().toISOString()};
+      const session={usuario:data.usuario,tipo:String(data.tipo||"USUARIO").toUpperCase(),token:String(data.token||""),loginAt:new Date().toISOString()};
       sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));
       applySession(session);
     }catch(err){msg.textContent=err.message;msg.className="secure-login-message error";}
@@ -78,5 +90,5 @@
   $("logoutBtn").addEventListener("click",logout);
 
   let session=null;try{session=JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null")}catch(_){}
-  if(session?.usuario) applySession(session); else loadUsers();
+  if(session?.usuario&&session?.token) applySession(session); else {sessionStorage.removeItem(SESSION_KEY);loadUsers();}
 })();

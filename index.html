@@ -70,7 +70,7 @@
 <nav id="nav" class="nav-v231">
   <div class="nav-group-label">OPERACIÓN</div>
   <button class="active" data-view="home"><i class="nav-ico blue">⌂</i><span>Inicio Ejecutivo</span></button>
-  <button data-view="upload"><i class="nav-ico cyan">⇩</i><span>Cargar reportes</span></button>
+  <button data-admin-only="true" data-view="upload"><i class="nav-ico cyan">⇩</i><span>Cargar reportes</span></button>
   <button data-view="analysis"><i class="nav-ico violet">⌁</i><span>Análisis</span></button>
   <button data-view="comparisons"><i class="nav-ico teal">▥</i><span>Comparativos</span></button>
 
@@ -90,7 +90,7 @@
 
     <div class="quick-title">ACCESOS RÁPIDOS</div>
     <nav class="quick-nav">
-      <button data-view="upload">⇩ <span>Procesar Excel</span></button>
+      <button data-admin-only="true" data-view="upload">⇩ <span>Procesar Excel</span></button>
       <button data-action="downloadAll">📦 <span>Paquete FINAL</span></button>
       <button data-view="reports">📄 <span>Reportes Ejecutivos</span></button>
     </nav>
@@ -107,7 +107,7 @@
         <div><span class="eyebrow" id="welcomeUser">BIENVENIDO</span><h1>Centro de Mando Ejecutivo</h1><p>Información calculada directamente desde los JD que generan los reportes FINAL.</p></div>
         <div class="top-actions">
           <label>Periodo seleccionado<select id="periodSelect"></select></label>
-          <button id="refreshBtn">↻ Actualizar datos</button><button id="presentationBtn">▣ Presentar</button><button id="alertsBtn">🔔 <span id="alertsCount">0</span></button>
+          <span id="cloudStatusBadge" class="cloud-status-badge">☁ Sin publicación en nube</span><button id="reloadCloudBtn">☁ Nube</button><button id="refreshBtn">↻ Actualizar datos</button><button id="presentationBtn">▣ Presentar</button><button id="alertsBtn">🔔 <span id="alertsCount">0</span></button>
         </div>
       </header>
 
@@ -119,7 +119,7 @@
     <p id="welcomeCommandText">Carga tus archivos, revisa alertas, explora gerencias y genera reportes desde un solo lugar.</p>
   </div>
   <div class="welcome-actions">
-    <button data-view="upload"><b>⇩</b><span>Procesar reporte</span></button>
+    <button data-admin-only="true" data-view="upload"><b>⇩</b><span>Procesar reporte</span></button>
     <button data-view="analysis"><b>⌁</b><span>Resumen ejecutivo</span></button>
     <button id="welcomeAlerts"><b>🔔</b><span>Revisar alertas</span></button>
     <button data-view="manager360"><b>◎</b><span>Gerencias 360°</span></button>
@@ -214,6 +214,13 @@
           <div class="upload-actions"><button id="browseFinalBtn">Seleccionar FINAL.zip</button><button id="validateBtn" disabled>Validar resultados</button></div>
           <div id="validationStatus" class="status">Sin archivo FINAL de referencia.</div>
         </article>
+        <article class="upload-card cloud-publish-card" data-admin-only="true">
+          <h3>3. Publicar información para los usuarios</h3>
+          <p>Después de validar los reportes, publica el modelo en la hoja de Google. Los demás tipos de cuenta solo verán la información correspondiente a su área.</p>
+          <div class="upload-actions"><button id="publishCloudBtn" disabled>☁ Publicar información en la nube</button></div>
+          <div id="cloudPublishStatus" class="status">Procesa la información antes de publicarla.</div>
+          <div id="cloudViewerMessage" class="cloud-viewer-message">La publicación vigente se mostrará aquí.</div>
+        </article>
       </div>
 
       <article class="validation-card">
@@ -287,9 +294,9 @@
 
 <section class="view" data-view="semaphore">
   <header class="section-title"><span>SEMÁFORO EJECUTIVO</span><h2>Salud por gerencia</h2><p>Prioriza gerencias según el comportamiento conjunto de costo, gasto y productividad.</p></header>
-  <div class="semaphore-legend"><span class="green">● Favorable</span><span class="yellow">● Atención</span><span class="red">● Crítico</span></div>
+  <div class="semaphore-legend"><span class="green">● Favorable</span><span class="yellow">● Atención</span><span class="red">● Crítico</span><span class="semaphore-hint">Haz clic en Seguimiento para anotar y responder la incidencia.</span></div>
   <div class="card"><div class="card-head"><div><small>MATRIZ GERENCIAL</small><h3>Indicadores consolidados</h3></div></div>
-    <div class="table-wrap"><table><thead><tr><th>Gerencia</th><th>Costo</th><th>Gasto</th><th>XPV</th><th>Variación</th><th>Estado</th></tr></thead><tbody id="semaphoreTable"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>Gerencia</th><th>Costo</th><th>Gasto</th><th>XPV</th><th>Variación</th><th>Estado</th><th>Seguimiento</th></tr></thead><tbody id="semaphoreTable"></tbody></table></div>
   </div>
 </section>
 
@@ -490,6 +497,25 @@
     <div class="prompts"><button>Dame un resumen</button><button>¿Cuál es el principal riesgo?</button><button>¿Qué gerencia tiene mayor gasto?</button><button>¿Qué debo mencionar en la junta?</button><button>¿Dónde se concentra el 80%?</button></div>
     <div class="chat-input"><input id="question" placeholder="Escribe tu pregunta..."><button id="askBtn">Enviar</button></div>
   </div>
+</div>
+
+<div class="incident-modal" id="incidentModal" aria-hidden="true">
+  <div class="incident-backdrop" id="closeIncidentModal"></div>
+  <section class="incident-card" role="dialog" aria-modal="true">
+    <button class="incident-close" id="closeIncidentModal" type="button">×</button>
+    <span class="incident-eyebrow">SEGUIMIENTO DE INCIDENCIA</span>
+    <div class="incident-title-row"><div><h2 id="incidentManager">Gerencia</h2><p>Semáforo ejecutivo · conversación y acciones correctivas</p></div><span id="incidentState" class="health yellow">Atención</span></div>
+    <div id="incidentSummary" class="incident-summary"></div>
+    <div class="incident-thread">
+      <h3>Historial</h3>
+      <div id="incidentTimeline" class="incident-timeline"><div class="empty">Sin anotaciones todavía.</div></div>
+    </div>
+    <div class="incident-compose">
+      <label id="incidentPromptLabel">Anotación</label>
+      <textarea id="incidentText" rows="4" maxlength="1500" placeholder="Escribe el seguimiento…"></textarea>
+      <button id="saveIncidentNote" type="button">Guardar seguimiento</button>
+    </div>
+  </section>
 </div>
 
 <script src="config.js"></script>

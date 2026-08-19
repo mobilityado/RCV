@@ -19,7 +19,8 @@ const state = {
   threshold: 10,
   decisions: JSON.parse(localStorage.getItem("reportia_decisions_v19") || "[]"),
   inputMode: null,
-  rpWorkbooks: []
+  rpWorkbooks: [],
+  cloud: {snapshotId:"", uploadedAt:"", uploadedBy:""}
 };
 
 const $ = id => document.getElementById(id);
@@ -46,6 +47,7 @@ function pctText(v) { return v == null || !Number.isFinite(v) ? "—" : (v*100).
 function key(parts) { return parts.map(x => String(x ?? "")).join("\u001f"); }
 
 function showView(name) {
+  if(name==="upload" && currentSession() && !isAdmin()) return;
   qa("[data-view].view").forEach(v => v.classList.toggle("active", v.dataset.view === name));
   qa("#nav button[data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === name));
   window.scrollTo({top:0,behavior:"smooth"});
@@ -53,6 +55,135 @@ function showView(name) {
 function setStatus(id, text, type="") {
   const el=$(id); if(!el) return;
   el.textContent=text; el.className="status"+(type ? " "+type : "");
+}
+
+function currentSession(){ return window.REPORTIA_SESSION || null; }
+function isAdmin(){ return String(currentSession()?.tipo||"").toUpperCase()==="ADMINISTRADOR"; }
+function apiJsonp(params){
+  return new Promise((resolve,reject)=>{
+    const API_URL=String(window.REPORTIA_CONFIG?.API_URL||"").trim();
+    if(!API_URL)return reject(new Error("No está configurada la URL de Apps Script."));
+    const callback="__reportia_cloud_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+    const script=document.createElement("script");
+    const query=new URLSearchParams({...params,callback});
+    const timer=setTimeout(()=>{cleanup();reject(new Error("Tiempo de espera agotado al consultar la nube."));},25000);
+    function cleanup(){clearTimeout(timer);try{delete window[callback]}catch(_){ }script.remove();}
+    window[callback]=data=>{cleanup();resolve(data)};
+    script.onerror=()=>{cleanup();reject(new Error("No fue posible consultar Apps Script."));};
+    script.src=API_URL+(API_URL.includes("?")?"&":"?")+query.toString();
+    document.head.appendChild(script);
+  });
+}
+async function apiPost(params){
+  const API_URL=String(window.REPORTIA_CONFIG?.API_URL||"").trim();
+  if(!API_URL)throw new Error("No está configurada la URL de Apps Script.");
+  // Apps Script puede responder como redirección cross-origin. El POST se envía
+  // en modo no-cors y después verificamos el resultado mediante JSONP.
+  await fetch(API_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:new URLSearchParams(params)});
+}
+function cloudPayload(){
+  if(!state.model)return null;
+  const model=JSON.parse(JSON.stringify(state.model,(k,v)=>v instanceof Map?Object.fromEntries(v):v));
+  delete model.catalog;
+  return {periodIndex:state.periodIndex,inputMode:state.inputMode||"JD",model};
+}
+async function publishCloud(){
+  const session=currentSession();
+  if(!session?.token)return alert("Tu sesión no tiene token de nube. Cierra sesión e ingresa nuevamente.");
+  if(!isAdmin())return alert("Solo el administrador puede publicar información en la nube.");
+  if(!state.model)return alert("Primero procesa los reportes que deseas publicar.");
+  const btn=$("publishCloudBtn"),status=$("cloudPublishStatus");
+  try{
+    if(btn){btn.disabled=true;btn.textContent="Publicando…";}
+    if(status){status.textContent="Enviando el modelo validado a Google Sheets…";status.className="status working";}
+    await apiPost({accion:"subir_nube",token:session.token,payload:JSON.stringify(cloudPayload())});
+    await new Promise(r=>setTimeout(r,1400));
+    const meta=await apiJsonp({accion:"cloud_meta",token:session.token});
+    if(!meta?.ok||!meta?.disponible)throw new Error(meta?.mensaje||"No fue posible confirmar la publicación.");
+    state.cloud=meta.cloud||{};
+    if(status){status.textContent=`Publicado correctamente ${state.cloud.uploadedAt?"· "+new Date(state.cloud.uploadedAt).toLocaleString("es-MX"):""}. Los usuarios ya pueden consultar su área.`;status.className="status ok";}
+    updateCloudBadge();
+  }catch(err){
+    if(status){status.textContent="No fue posible publicar: "+err.message;status.className="status error";}
+  }finally{if(btn){btn.disabled=false;btn.textContent="☁ Publicar información en la nube";}}
+}
+function updateCloudBadge(message=""){
+  const el=$("cloudStatusBadge");if(!el)return;
+  if(message){el.textContent=message;return;}
+  if(state.cloud?.snapshotId){
+    const when=state.cloud.uploadedAt?new Date(state.cloud.uploadedAt).toLocaleString("es-MX"):"publicación vigente";
+    el.textContent=`☁ Datos en nube · ${when}`;
+    el.className="cloud-status-badge ok";
+  }else{el.textContent="☁ Sin publicación en nube";el.className="cloud-status-badge";}
+}
+async function loadCloudForSession(session){
+  if(!session?.token)return;
+  updateCloudBadge("☁ Consultando datos publicados…");
+  try{
+    const data=await apiJsonp({accion:"cloud_data",token:session.token});
+    if(!data?.ok)throw new Error(data?.mensaje||"No fue posible consultar la nube.");
+    if(!data.disponible){
+      state.cloud={snapshotId:"",uploadedAt:"",uploadedBy:""};
+      clearDashboard();
+      updateCloudBadge("☁ Aún no hay información publicada");
+      const msg=$("cloudViewerMessage");if(msg)msg.textContent="Aún no hay información publicada por el administrador.";
+      return;
+    }
+    state.model=data.model||null;
+    state.periodIndex=Number.isFinite(Number(data.periodIndex))?Number(data.periodIndex):state.periodIndex;
+    state.inputMode="CLOUD";
+    state.sources={};state.rpWorkbooks=[];
+    state.cloud=data.cloud||{};
+    if($("periodSelect"))$("periodSelect").value=state.periodIndex;
+    if($("settingsPeriod"))$("settingsPeriod").value=state.periodIndex;
+    if(state.model)renderAll();else clearDashboard();
+    updateCloudBadge();
+    const msg=$("cloudViewerMessage");if(msg)msg.textContent=`Información publicada por ${state.cloud.uploadedBy||"Administrador"}. Vista filtrada para ${session.tipo}.`;
+  }catch(err){
+    updateCloudBadge("☁ Error al consultar la nube");
+    const msg=$("cloudViewerMessage");if(msg)msg.textContent=err.message;
+  }
+}
+function incidentRow(manager){return managerHealth().find(r=>r.manager===manager)||null;}
+async function openIncident(manager){
+  const r=incidentRow(manager);if(!r)return;
+  $("incidentManager").textContent=r.manager;
+  $("incidentState").textContent=r.status;
+  $("incidentState").className="health "+(r.status==="Crítico"?"red":r.status==="Atención"?"yellow":"green");
+  $("incidentSummary").innerHTML=`<div><span>Costo</span><strong>${r.cost?pctText(r.cp):"—"}</strong></div><div><span>Gasto</span><strong>${r.expense?pctText(r.ep):"—"}</strong></div><div><span>XPV</span><strong>${r.xpv?pctText(r.xp):"—"}</strong></div><div><span>Presión</span><strong>${pctText(r.pressure)}</strong></div>`;
+  $("incidentText").value="";
+  $("incidentPromptLabel").textContent=isAdmin()?"Anotación para el área":"Acción correctiva / respuesta";
+  $("incidentText").placeholder=isAdmin()?"Ej. Favor de revisar la incidencia y documentar la causa…":"Describe la acción correctiva realizada o el seguimiento…";
+  $("incidentModal").dataset.manager=manager;
+  $("incidentModal").classList.add("open");
+  await loadIncidentNotes(manager);
+}
+async function loadIncidentNotes(manager){
+  const session=currentSession(),box=$("incidentTimeline");
+  if(!session?.token||!state.cloud?.snapshotId){box.innerHTML='<div class="empty">Las notas estarán disponibles cuando la información sea publicada en la nube.</div>';return;}
+  box.innerHTML='<div class="empty">Cargando seguimiento…</div>';
+  try{
+    const data=await apiJsonp({accion:"notas",token:session.token,gerencia:manager,snapshotId:state.cloud.snapshotId});
+    if(!data?.ok)throw new Error(data?.mensaje||"No fue posible consultar notas.");
+    const notes=Array.isArray(data.notas)?data.notas:[];
+    box.innerHTML=notes.length?notes.map(n=>`<article class="incident-note ${n.tipoNota==="NOTA_ADMIN"?"admin":"reply"}"><div><strong>${escapeHtml(n.autor)}</strong><span>${escapeHtml(n.tipoCuenta)} · ${escapeHtml(formatCloudDate(n.fecha))}</span></div><p>${escapeHtml(n.texto)}</p><em>${n.tipoNota==="NOTA_ADMIN"?"Anotación":"Acción correctiva"}</em></article>`).join(""):'<div class="empty">Sin anotaciones todavía.</div>';
+  }catch(err){box.innerHTML=`<div class="empty">${escapeHtml(err.message)}</div>`;}
+}
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function formatCloudDate(v){const d=new Date(v);return Number.isNaN(d.getTime())?String(v||""):d.toLocaleString("es-MX");}
+async function saveIncidentNote(){
+  const session=currentSession(),modal=$("incidentModal"),manager=modal?.dataset.manager||"",text=$("incidentText")?.value.trim();
+  if(!text)return alert("Escribe la anotación o acción correctiva.");
+  if(!session?.token)return alert("Cierra sesión e ingresa nuevamente para guardar seguimiento.");
+  if(!state.cloud?.snapshotId)return alert("Primero el administrador debe publicar esta información en la nube.");
+  const btn=$("saveIncidentNote");
+  try{
+    btn.disabled=true;btn.textContent="Guardando…";
+    await apiPost({accion:"agregar_nota",token:session.token,snapshotId:state.cloud.snapshotId,gerencia:manager,indicador:"SEMÁFORO",texto:text,tipoNota:isAdmin()?"NOTA_ADMIN":"ACCION_CORRECTIVA"});
+    await new Promise(r=>setTimeout(r,900));
+    $("incidentText").value="";
+    await loadIncidentNotes(manager);
+  }catch(err){alert("No fue posible guardar: "+err.message);}finally{btn.disabled=false;btn.textContent="Guardar seguimiento";}
 }
 
 function initPeriods() {
@@ -263,7 +394,7 @@ function processRpModel(){
   const costSummary=aggregateByManager([...costOperating,...costMaintenance]);
   const zeroMonths=Array.from({length:12},()=>({y2025:0,budget2026:0,y2026:0}));
   state.model={
-    catalog:new Map(),costOperating,costMaintenance,premises,smo,expenses,expenseSummary,xpv,costSummary,
+    catalog:new Map(),costOperating,costMaintenance,premises,smo,expenses,expenseSummary,xpv,xpvSummary:aggregateXpvByManager(xpv),costSummary,
     costMonthly:zeroMonths,expenseMonthly:zeroMonths,month:MONTH_LABELS[state.periodIndex],sourceMode:"RP"
   };
   renderAll();
@@ -386,6 +517,15 @@ function aggregateByManager(rows) {
   });
   return [...map.values()].map(o=>{o.diff2526=o.y2026-o.y2025;o.pct2526=pct(o.diff2526,o.y2025);o.diffBudget=o.y2026-o.budget2026;o.pctBudget=pct(o.diffBudget,o.budget2026);return o;});
 }
+function aggregateXpvByManager(rows){
+  const map=new Map();
+  (rows||[]).forEach(r=>{
+    const manager=r.manager||"SIN CLASIFICAR";
+    if(!map.has(manager))map.set(manager,{manager,real:0,budget:0});
+    const o=map.get(manager);o.real+=Number(r.real||0);o.budget+=Number(r.budget||0);
+  });
+  return [...map.values()].map(o=>{o.diff=o.real-o.budget;o.pct=pct(o.diff,o.budget);return o;});
+}
 
 function processModel() {
   const catalog=buildCatalog();
@@ -402,7 +542,7 @@ function processModel() {
   const costSummary=aggregateByManager([...costOperating,...costMaintenance]);
 
   state.model={
-    catalog,costOperating,costMaintenance,premises,smo,expenses,expenseSummary,xpv,costSummary,
+    catalog,costOperating,costMaintenance,premises,smo,expenses,expenseSummary,xpv,xpvSummary:aggregateXpvByManager(xpv),costSummary,
     costMonthly:costAgg.monthly,expenseMonthly:expAgg.monthly,
     month:MONTH_LABELS[state.periodIndex]
   };
@@ -836,8 +976,8 @@ function managerHealth(){
 }
 function renderSemaphore(){
   const rows=managerHealth();
-  if(!rows.length){$("semaphoreTable").innerHTML='<tr><td colspan="6">Sin datos procesados.</td></tr>';return;}
-  $("semaphoreTable").innerHTML=rows.map(r=>`<tr><td><strong>${r.manager}</strong></td><td>${r.cost?pctText(r.cp):"—"}</td><td>${r.expense?pctText(r.ep):"—"}</td><td>${r.xpv?pctText(r.xp):"—"}</td><td>${pctText(r.pressure)}</td><td><span class="health ${r.status==="Crítico"?"red":r.status==="Atención"?"yellow":"green"}">${r.status}</span></td></tr>`).join("");
+  if(!rows.length){$("semaphoreTable").innerHTML='<tr><td colspan="7">Sin datos disponibles para tu área.</td></tr>';return;}
+  $("semaphoreTable").innerHTML=rows.map(r=>`<tr class="incident-row" data-incident-manager="${escapeHtml(r.manager)}"><td><strong>${escapeHtml(r.manager)}</strong></td><td>${r.cost?pctText(r.cp):"—"}</td><td>${r.expense?pctText(r.ep):"—"}</td><td>${r.xpv?pctText(r.xp):"—"}</td><td>${pctText(r.pressure)}</td><td><span class="health ${r.status==="Crítico"?"red":r.status==="Atención"?"yellow":"green"}">${r.status}</span></td><td><button class="incident-open" data-incident-manager="${escapeHtml(r.manager)}">✎ Seguimiento</button></td></tr>`).join("");
 }
 function actionItems(){
   const rows=managerHealth(); const out=[];
@@ -994,7 +1134,7 @@ function renderExecutiveBrief(){
  $("briefConclusion").innerHTML=`<strong>Conclusión REPORT.IA:</strong> Calidad del dato <b>${e.q.score}%</b>. Se identifican <b>${e.critical}</b> gerencias críticas y <b>${e.attention}</b> en atención. ${p.count?`El análisis Pareto concentra cerca del 80% del cambio en <b>${p.count}</b> elementos.`:""} ${risk?`La prioridad actual es <b>${risk.manager}</b>.`:""}`;
 }
 
-function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();renderManager360Options();refreshWelcomeCommand();renderDataQuality();renderPareto();renderExceptions();renderExecutiveBrief();}
+function renderAll(){renderDashboard();renderFilters();renderProcessStats();renderAnalysis();renderComparisons();renderManagers();renderTrends();buildExecutiveIntelligence();renderAudit();renderSemaphore();renderActions();renderManager360Options();refreshWelcomeCommand();renderDataQuality();renderPareto();renderExceptions();renderExecutiveBrief();if($("publishCloudBtn"))$("publishCloudBtn").disabled=!state.model||!isAdmin();}
 
 function tableSheet(title, headers, data, period) {
   const aoa=[["REPORT.IA RCV"],[title],["Periodo",period],[],headers,...data];
@@ -1267,6 +1407,11 @@ function executeReconciliation(){
 
 document.addEventListener("click",async e=>{
   const nav=e.target.closest("[data-view]");if(nav)showView(nav.dataset.view);
+  const incident=e.target.closest("[data-incident-manager]");if(incident){e.preventDefault();await openIncident(incident.dataset.incidentManager);return;}
+  if(e.target.closest("#closeIncidentModal")){$("incidentModal").classList.remove("open");return;}
+  if(e.target.closest("#saveIncidentNote")){await saveIncidentNote();return;}
+  if(e.target.closest("#publishCloudBtn")){await publishCloud();return;}
+  if(e.target.closest("#reloadCloudBtn")){const ss=currentSession();if(ss)await loadCloudForSession(ss);return;}
   const act=e.target.closest("[data-action]");
   if(act){
     const a=act.dataset.action;
@@ -1296,7 +1441,10 @@ document.addEventListener("click",async e=>{
   if(e.target.closest("#clearBtn")){state.sources={};state.rpWorkbooks=[];state.inputMode=null;state.model=null;$("jdFiles").value="";renderChecklist();clearDashboard();setStatus("uploadStatus","Aún no has seleccionado archivos.");qa("#processStats strong").forEach(x=>x.textContent="0");}
   if(e.target.closest("#browseFinalBtn"))$("finalZip").click();
   if(e.target.closest("#validateBtn"))validateAgainstFinal();
-  if(e.target.closest("#refreshBtn")){state.periodIndex=Number($("periodSelect").value);if(state.model)processModel();}
+  if(e.target.closest("#refreshBtn")){
+    if(state.inputMode==="CLOUD"){const ss=currentSession();if(ss)await loadCloudForSession(ss);}
+    else{state.periodIndex=Number($("periodSelect").value);if(state.model){if(state.inputMode==="RP")processRpModel();else processModel();}}
+  }
   if(e.target.closest("#applySettings")){state.threshold=Number($("criticalThreshold").value)||10;state.periodIndex=Number($("settingsPeriod").value);$("periodSelect").value=state.periodIndex;if(state.model)processModel();}
   if(e.target.closest("#presentationBtn")){$("presentationOverlay").classList.add("open");showSlide(0);}
   if(e.target.closest("#closePresentation"))$("presentationOverlay").classList.remove("open");
@@ -1323,6 +1471,7 @@ document.addEventListener("click",async e=>{
   if(e.target.closest("#askBtn")){const q=$("question").value.trim();if(!q)return;$("chat").insertAdjacentHTML("beforeend",`<div class="user-msg">${q}</div><div class="bot">${answer(q)}</div>`);$("question").value="";$("chat").scrollTop=$("chat").scrollHeight;}
 });
 $("jdFiles").addEventListener("change",async()=>{
+  if(currentSession()&&!isAdmin()){$("jdFiles").value="";return alert("Solo el administrador puede cargar reportes.");}
   const files=[...$("jdFiles").files];if(!files.length)return;
   setStatus("uploadStatus","Analizando archivos y detectando modo de entrada…","working");
   $("processBtn").disabled=true;
@@ -1384,6 +1533,8 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeMetricModal();}
 updateActiveFilterStrip();
 
 $("manager360Select")?.addEventListener("change",e=>renderManager360(e.target.value));
+window.addEventListener("reportia:session",e=>loadCloudForSession(e.detail));
+window.REPORTIA_APP={loadCloudForSession,publishCloud};
 renderChecklist();
 clearDashboard();
 buildExecutiveIntelligence();

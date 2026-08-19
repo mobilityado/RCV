@@ -83,3 +83,36 @@ body:not(.authenticated) .app-shell,body:not(.authenticated) .copilot{visibility
 .rank-row{cursor:pointer}.rank-row:hover{background:#f8fbff}
 .metric-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px}.metric-modal.open{display:flex}.metric-modal-backdrop{position:absolute;inset:0;background:rgba(4,17,39,.58);backdrop-filter:blur(3px)}.metric-modal-card{position:relative;width:min(680px,94vw);max-height:84vh;overflow:auto;padding:24px;border-radius:20px;background:#fff;box-shadow:0 30px 80px rgba(0,0,0,.28)}.metric-modal-close{position:absolute;right:14px;top:12px;width:32px;height:32px;border:0;border-radius:50%;background:#f1f5f9;color:#475569;font-size:20px;cursor:pointer}.metric-modal-eyebrow{font-size:8px;font-weight:900;letter-spacing:.13em;color:#2563eb}.metric-modal-card h2{margin:6px 0 4px;color:#102f5e;font-size:24px}.metric-modal-card>p{margin:0 0 15px;color:#64748b;font-size:9px}.metric-modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.metric-modal-grid article{padding:12px;border:1px solid #e4eaf2;border-radius:12px;background:#f8fafc}.metric-modal-grid small{display:block;font-size:7px;color:#64748b}.metric-modal-grid strong{display:block;margin-top:5px;font-size:15px;color:#17345f}.metric-modal-list{display:grid;gap:7px;margin-top:12px}.metric-detail-row{display:grid;grid-template-columns:1fr auto;gap:10px;padding:10px;border-radius:10px;background:#f8fafc}.metric-detail-row strong{font-size:9px;color:#334155}.metric-detail-row span{font-size:8px;color:#64748b}.metric-detail-row em{font-size:9px;font-style:normal;font-weight:900;color:#17345f}
 @media(max-width:1000px){.forecast-strip{grid-template-columns:1fr}.metric-modal-grid{grid-template-columns:1fr 1fr}}@media(max-width:700px){.active-filter-strip{align-items:flex-start}.forecast-strip{grid-template-columns:1fr}.metric-modal-grid{grid-template-columns:1fr}}
+
+/* ===== REPORT.IA 25 · Nube, roles y seguimiento ===== */
+/* Inicio más limpio: los reportes detallados permanecen disponibles en el menú. */
+.view[data-view="home"] .forecast-strip,
+.view[data-view="home"] .grid-bottom,
+.view[data-view="home"] .exec-intelligence{display:none!important}
+.view[data-view="home"] .grid-top{margin-top:12px}
+.view[data-view="home"] .welcome-command{margin-bottom:10px;padding:17px 19px}
+.view[data-view="home"] .welcome-copy h2{font-size:21px}
+.view[data-view="home"] .kpis article{min-height:112px}
+
+.cloud-status-badge{display:inline-flex;align-items:center;max-width:220px;padding:7px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:7px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cloud-status-badge.ok{background:#ecfdf5;color:#047857}
+.cloud-publish-card{border:1px solid #bfdbfe!important;background:linear-gradient(180deg,#f8fbff,#fff)!important}
+.cloud-viewer-message{margin-top:9px;padding:9px 10px;border-radius:10px;background:#eff6ff;color:#475569;font-size:8px;line-height:1.45}
+
+.semaphore-legend{align-items:center;flex-wrap:wrap}.semaphore-hint{margin-left:auto!important;color:#64748b!important;background:#f8fafc!important}
+.incident-row{cursor:pointer}.incident-row:hover{background:#f8fbff}
+.incident-open{border:0;border-radius:9px;padding:7px 9px;background:#eef4ff;color:#245fcb;font-size:8px;font-weight:900;cursor:pointer;white-space:nowrap}.incident-open:hover{background:#dbeafe}
+
+.incident-modal{position:fixed;inset:0;z-index:10020;display:none;align-items:center;justify-content:center;padding:18px}.incident-modal.open{display:flex}
+.incident-backdrop{position:absolute;inset:0;background:rgba(4,17,39,.62);backdrop-filter:blur(4px)}
+.incident-card{position:relative;width:min(760px,96vw);max-height:90vh;overflow:auto;padding:22px;border-radius:20px;background:#fff;box-shadow:0 32px 90px rgba(0,0,0,.30)}
+.incident-close{position:absolute;right:13px;top:12px;width:33px;height:33px;border:0;border-radius:50%;background:#f1f5f9;color:#475569;font-size:20px;cursor:pointer}
+.incident-eyebrow{font-size:8px;font-weight:900;letter-spacing:.14em;color:#2563eb}.incident-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-top:5px;padding-right:34px}.incident-title-row h2{margin:0;color:#102f5e;font-size:23px}.incident-title-row p{margin:4px 0 0;color:#64748b;font-size:9px}
+.incident-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:15px 0}.incident-summary>div{padding:11px;border:1px solid #e4eaf2;border-radius:11px;background:#f8fafc}.incident-summary span,.incident-summary strong{display:block}.incident-summary span{font-size:7px;color:#64748b;font-weight:850}.incident-summary strong{margin-top:4px;font-size:14px;color:#17345f}
+.incident-thread h3{margin:0 0 8px;font-size:11px;color:#334155}.incident-timeline{display:grid;gap:8px;max-height:310px;overflow:auto;padding-right:3px}.incident-note{padding:11px 12px;border:1px solid #e5eaf1;border-radius:12px;background:#fff}.incident-note.admin{border-left:4px solid #2563eb;background:#f8fbff}.incident-note.reply{border-left:4px solid #10b981;background:#f8fffb}.incident-note>div{display:flex;justify-content:space-between;gap:12px}.incident-note strong{font-size:9px;color:#1e293b}.incident-note span{font-size:7px;color:#94a3b8}.incident-note p{margin:7px 0 5px;color:#475569;font-size:9px;line-height:1.55;white-space:pre-wrap}.incident-note em{font-size:7px;font-style:normal;font-weight:900;color:#64748b}
+.incident-compose{margin-top:14px;padding-top:13px;border-top:1px solid #e5eaf1}.incident-compose label{display:block;margin-bottom:6px;font-size:8px;font-weight:900;color:#334155}.incident-compose textarea{width:100%;resize:vertical;padding:11px;border:1px solid #dbe3ef;border-radius:11px;font:inherit;font-size:10px;line-height:1.5;outline:none}.incident-compose textarea:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.10)}.incident-compose button{margin-top:8px;border:0;border-radius:10px;padding:9px 13px;background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;font-size:8px;font-weight:900;cursor:pointer}.incident-compose button:disabled{opacity:.6;cursor:wait}
+
+body.role-user [data-admin-only="true"]{display:none!important}
+body.role-user .quick-nav button[data-action="downloadAll"]{display:none}
+
+@media(max-width:900px){.incident-summary{grid-template-columns:1fr 1fr}.cloud-status-badge{max-width:150px}.view[data-view="home"] .grid-top{grid-template-columns:1fr}}
