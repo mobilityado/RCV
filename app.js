@@ -1322,10 +1322,13 @@ function buildExecutiveIntelligence(){
   <br><br><b>Recomendación:</b> priorizar las tres mayores desviaciones, validar su causa y asignar responsables de seguimiento.`;
 
   const alerts=[];
-  dev.slice(0,5).forEach((d,i)=>alerts.push({type:i===0?"critical":"warning",title:`${d.type} · ${d.manager}`,text:`Variación ${(d.pct*100).toFixed(2)}% vs 2025.`}));
-  if(positive)alerts.push({type:"positive",title:`Mejora · ${positive.manager}`,text:`Reducción ${Math.abs(positive.pct2526*100).toFixed(2)}% vs 2025.`});
+  dev.slice(0,5).forEach((d,i)=>alerts.push({type:i===0?"critical":"warning",title:`${d.type} · ${d.manager}`,text:`Variación ${(d.pct*100).toFixed(2)}% vs 2025. Haz clic para revisar y dar seguimiento.`,manager:d.manager}));
+  if(positive)alerts.push({type:"positive",title:`Mejora · ${positive.manager}`,text:`Reducción ${Math.abs(positive.pct2526*100).toFixed(2)}% vs 2025. Haz clic para revisar.`,manager:positive.manager}));
   alerts.push({type:"info",title:"Productividad XPV",text:`Cumplimiento ${(t.xpCompliance*100).toFixed(2)}% del presupuesto.`});
-  $("alertsList").innerHTML=alerts.map(a=>`<div class="alert-item"><i class="alert-dot ${a.type}"></i><div><strong>${a.title}</strong><span>${a.text}</span></div></div>`).join("");
+  $("alertsList").innerHTML=alerts.map(a=>a.manager
+    ? `<button type="button" class="alert-item alert-item-link" data-alert-manager="${escapeHtml(a.manager)}" title="Abrir incidencia de ${escapeHtml(a.manager)}"><i class="alert-dot ${a.type}"></i><div><strong>${a.title}</strong><span>${a.text}</span></div><b class="alert-open">Abrir →</b></button>`
+    : `<div class="alert-item"><i class="alert-dot ${a.type}"></i><div><strong>${a.title}</strong><span>${a.text}</span></div></div>`
+  ).join("");
   $("alertsCount").textContent=alerts.length;
 
   $("slideHeadline").textContent=`${state.model.month} 2026 · Estado Ejecutivo`;
@@ -1476,6 +1479,14 @@ document.addEventListener("click",async e=>{
   if(e.target.closest("#closePresentation"))$("presentationOverlay").classList.remove("open");
   if(e.target.closest("#nextSlide"))showSlide(currentSlide+1);
   if(e.target.closest("#prevSlide"))showSlide(currentSlide-1);
+  const alertLink=e.target.closest("[data-alert-manager]");
+  if(alertLink){
+    e.preventDefault();
+    const manager=alertLink.dataset.alertManager||"";
+    $("alertsDrawer")?.classList.remove("open");
+    if(manager) await openIncident(manager);
+    return;
+  }
   if(e.target.closest("#alertsBtn"))$("alertsDrawer").classList.add("open");
   const lineage=e.target.closest("[data-lineage]");
   if(lineage){$("lineageContent").innerHTML=lineageHtml(lineage.dataset.lineage);$("lineageDrawer").classList.add("open");}

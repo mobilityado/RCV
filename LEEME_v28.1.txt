@@ -1,0 +1,19 @@
+REPORT.IA RCV v28.1 — NOTIFICACIONES NAVEGABLES
+
+MEJORA PRINCIPAL
+- Las notificaciones/alertas asociadas a una gerencia ahora son clicables.
+- Al hacer clic, se cierra el Centro de Alertas y se abre directamente el expediente de esa incidencia.
+- Desde el expediente se puede consultar el historial, escribir observaciones/acciones correctivas y usar el flujo de atención.
+- Las alertas informativas generales (por ejemplo XPV global) permanecen informativas porque no pertenecen a una incidencia concreta.
+
+INSTALACIÓN
+1. Sustituye los archivos de GitHub por los contenidos de esta carpeta.
+2. Haz Ctrl+F5 para limpiar caché.
+3. No es necesario modificar Apps Script si ya instalaste v28.
+
+PRUEBA
+1. Inicia sesión.
+2. Consulta Información en la nube de un mes publicado.
+3. Abre la campana 🔔.
+4. Pulsa una alerta de una gerencia.
+5. Debe abrirse directamente Seguimiento de incidencia.
