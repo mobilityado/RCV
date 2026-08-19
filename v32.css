@@ -1,0 +1,31 @@
+:root{
+  --navy:#16191f;
+  --navy2:#252b33;
+  --blue:#535b66;
+  --indigo:#746b58;
+  --cyan:#66737a;
+  --bg:#f3f1ed;
+  --card:#fffdfa;
+  --line:#dedbd4;
+  --text:#23272d;
+  --muted:#6f747b;
+}
+html,body{background:linear-gradient(180deg,#f5f3ef 0%,#ece9e3 100%);color:var(--text)}
+.sidebar{background:linear-gradient(180deg,#171a1f 0%,#252b32 58%,#30363d 100%);box-shadow:10px 0 35px rgba(23,26,31,.08)}
+.brand span,.quick-title{color:#c8c1b3}.edition{border-color:rgba(208,198,177,.35);color:#e7e0d3}.sidebar nav button{color:#f2eee7}.sidebar nav button.active{background:linear-gradient(135deg,#4a5058,#6b6250);box-shadow:0 8px 20px rgba(36,39,44,.20)}
+.eyebrow,.section-title span,.metric-modal-eyebrow,.incident-eyebrow{color:#786b52}.topbar h1,.card-head h3,.metric-modal-card h2,.incident-title-row h2{color:#23272d}
+.top-actions button,.upload-actions button,.report-buttons button,.settings-card button{background:linear-gradient(135deg,#41474f,#6b6250)}
+.filters,.kpis article,.card,.upload-card,.validation-card,.table-card,.report-groups>article,.report-preview,.settings-card{background:#fffdfa;border-color:#dedbd4;box-shadow:0 8px 24px rgba(44,46,48,.055)}
+.card-head small{color:#665c49}.bar{background:#e9e5dd}.bar i{background:linear-gradient(90deg,#4c545d,#8a7b5d)}
+.gauge{background:conic-gradient(#666f78 calc(var(--g)*1%),#e8e5df 0)}
+.active-filter-strip{border-color:#ddd7cc;background:linear-gradient(90deg,#f7f4ee,#fffdfa)}.active-filter-strip strong{color:#4a4e53}.active-filter-strip button,.incident-open{background:#eeeae2;color:#665b45}.active-filter-strip button:hover,.incident-open:hover{background:#e1dbcf}
+.forecast-icon.blue,.forecast-icon.violet,.forecast-icon.teal{background:linear-gradient(135deg,#59616a,#81745b)}
+.v29-command-center{background:linear-gradient(135deg,#171a1f 0%,#292f36 58%,#4c463b 100%);box-shadow:0 22px 50px rgba(23,26,31,.20)}
+.v29-command-copy p{color:#e3ddd1}.v29-scoreboard small{color:#cfc6b5}.v29-scoreboard span{color:#ddd6ca}
+.v29-section-head button{border-color:#dedbd4;background:#fffdfa}.v29-activity-card,.v29-focus-card{background:#fffdfa;border-color:#dedbd4;box-shadow:0 8px 25px rgba(44,46,48,.06)}.v29-event{background:#f5f2ec}.v29-event i{background:#e8e2d7}.v29-focus-card{background:linear-gradient(145deg,#fffdfa,#f1ede6)}.v29-focus-card button{background:linear-gradient(135deg,#454b52,#71664f)}
+.v28-cloud-toolbar{background:linear-gradient(135deg,#1a1d22 0%,#2e343b 58%,#574f40 100%);box-shadow:0 18px 40px rgba(37,40,43,.20)}.v28-cloud-toolbar span{color:#d6cdbd}.v28-cloud-toolbar p,.v28-cloud-controls label,.v28-month-status{color:#e4ddd2}.v28-cloud-controls button:hover{color:#4d4639}
+.cloud-publish-card{border-color:#d9d1c4!important;background:linear-gradient(180deg,#faf8f4,#fffdfa)!important}.cloud-viewer-message{background:#f0ece5;color:#5e6268}.cloud-status-badge.ok{background:#edf5ef;color:#39704d}
+.metric-modal-backdrop{background:rgba(20,22,25,.62)}.metric-modal-card{background:#fffdfa}.metric-modal-grid article,.metric-detail-row,.incident-summary>div{background:#f5f2ec;border-color:#dedbd4}.metric-modal-grid strong,.metric-detail-row em,.incident-summary strong{color:#4c5157}
+.incident-note.admin{border-left-color:#6d6658;background:#f8f5ef}.incident-compose textarea:focus{border-color:#9a8b6d;box-shadow:0 0 0 3px rgba(154,139,109,.12)}.incident-compose button{background:linear-gradient(135deg,#444a51,#71664f)}
+.pareto-bar i{background:linear-gradient(90deg,#59616a,#8a7c60,#a66949)}
+.v29-board-mode:after{background:#20242a}
