@@ -148,16 +148,20 @@ async function loadCloudForSession(session, requestedPeriodIndex=null){
     }
     state.cloudModel=data.model||null;
     state.cloudPeriodIndex=Number.isFinite(Number(data.periodIndex))?Number(data.periodIndex):cloudPeriod;
-    state.periodIndex=state.cloudPeriodIndex;
     state.cloud=data.cloud||{};
-    if(!isAdmin() || state.activeDataSource!=="local" || !state.localModel){
+    const keepLocal = isAdmin() && state.activeDataSource==="local" && !!state.localModel;
+    if(!keepLocal){
+      state.periodIndex=state.cloudPeriodIndex;
       state.model=state.cloudModel;
       state.inputMode="CLOUD";
       state.activeDataSource="cloud";
       state.sources={};state.rpWorkbooks=[];
     }
-    if($("periodSelect"))$("periodSelect").value=state.periodIndex;
-    if($("settingsPeriod"))$("settingsPeriod").value=state.periodIndex;
+    // Si el administrador está revisando datos recién procesados, una consulta a la nube
+    // NO debe cambiar el periodo local ni los selectores del análisis en tiempo real.
+    const visiblePeriod = keepLocal && state.localPeriodIndex!==null ? state.localPeriodIndex : state.periodIndex;
+    if($("periodSelect"))$("periodSelect").value=visiblePeriod;
+    if($("settingsPeriod"))$("settingsPeriod").value=visiblePeriod;
     if(state.model)renderAll();else clearDashboard();
     updateCloudBadge();
     const msg=$("cloudViewerMessage");if(msg)msg.textContent=`Información publicada por ${state.cloud.uploadedBy||"Administrador"}. Vista filtrada para ${session.tipo}.`;
@@ -552,6 +556,14 @@ function aggregateXpvByManager(rows){
 }
 
 function processModel() {
+  // El periodo del reporte debe venir de los propios datos (XPV), no de una
+  // publicación de nube que pudiera estar seleccionada en otro mes.
+  const detectedPeriod=detectPeriodFromXpv();
+  if(Number.isInteger(detectedPeriod) && detectedPeriod>=0 && detectedPeriod<=11){
+    state.periodIndex=detectedPeriod;
+    if($("periodSelect"))$("periodSelect").value=detectedPeriod;
+    if($("settingsPeriod"))$("settingsPeriod").value=detectedPeriod;
+  }
   const catalog=buildCatalog();
   const costAgg=aggregateJd(state.sources[SHEETS.COST],catalog,state.periodIndex);
   const expAgg=aggregateJd(state.sources[SHEETS.EXPENSE],catalog,state.periodIndex);

@@ -15,7 +15,12 @@
     if($v("v29TopRisk"))$v("v29TopRisk").textContent=top?.manager||"—";
     if($v("v29TopRiskHint"))$v("v29TopRiskHint").textContent=top?`${top.status} · ${(top.pressure*100).toFixed(1)}% presión`:"Sin gerencia prioritaria";
     if($v("v29Quality"))$v("v29Quality").textContent=audit?`${audit.confidence}%`:"—";
-    let p=0;try{p=Number(state?.periodIndex||0)}catch{}
+    let p=0;
+    try{
+      p=(state?.activeDataSource==="local" && state?.localPeriodIndex!==null)
+        ? Number(state.localPeriodIndex)
+        : Number(state?.cloudPeriodIndex ?? state?.periodIndex ?? 0);
+    }catch{}
     if($v("v29Period"))$v("v29Period").textContent=(monthNames[p]||"Periodo").toUpperCase();
     if($v("v29Source"))$v("v29Source").textContent=sourceLabel();
     if($v("v29Headline"))$v("v29Headline").textContent=headline;

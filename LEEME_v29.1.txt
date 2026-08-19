@@ -1,0 +1,13 @@
+REPORT.IA RCV v29.1 — CORRECCIÓN DE PERIODO
+
+Corrección aplicada:
+- El periodo activo del Command Center usa el periodo local cuando se revisan datos recién procesados.
+- Consultar/cargar metadatos de la nube ya no cambia silenciosamente el mes del análisis local del administrador.
+- En archivos JD, el periodo se detecta desde la fecha del archivo XPV y se sincroniza con los selectores.
+- Al publicar, se conserva el mismo localPeriodIndex, por lo que JUNIO se publica en REPORTIA_JUNIO.
+
+Instalación:
+1. Sustituye los archivos de GitHub por los de esta carpeta.
+2. No necesitas modificar Apps Script si ya usas v28.
+3. Haz Ctrl+F5.
+4. Carga el ejemplo de Junio y procesa. Debe mostrar PERIODO ACTIVO: JUNIO.
