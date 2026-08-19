@@ -518,25 +518,45 @@ function periodColumnIndex(rows) {
 }
 
 function detectReportPeriod() {
-  // Fuente única y confiable: columna PERIODO de JD COSTO/GASTOS.
-  // NO escaneamos todas las fechas de XPV porque puede contener fechas auxiliares de otros meses.
-  const found=[];
+  // El formato JD suele traer los 12 meses en la columna PERIODO aunque el reporte
+  // sólo tenga información real hasta cierto mes. Por eso NO basta con tomar el
+  // último texto de PERIODO: debemos localizar el último mes que tenga IMPORTE REAL 2026.
+  // En el formato actual de JD COSTO/GASTOS: PERIODO = col 6 y REAL 2026 = col 9.
+  const realByMonth=Array(12).fill(0);
+  const seenPeriod=Array(12).fill(false);
+
   [SHEETS.COST,SHEETS.EXPENSE].forEach(sheet=>{
     const rows=state.sources[sheet]||[];
     if(!rows.length) return;
     const col=periodColumnIndex(rows);
     for(let i=0;i<rows.length;i++){
       const idx=monthIndexFromValue(rows[i]?.[col]);
-      if(idx>=0) found.push(idx);
+      if(idx<0) continue;
+      seenPeriod[idx]=true;
+      const real2026=parseNumber(rows[i]?.[9]);
+      if(Number.isFinite(real2026)) realByMonth[idx]+=Math.abs(real2026);
     }
   });
-  if(found.length){
-    state.detectedPeriodSource="PERIODO JD COSTO/GASTOS";
-    return Math.max(...found);
+
+  // Toma el último mes con movimiento real. Esto ignora meses futuros que sólo
+  // contienen presupuesto/plantilla, que era lo que provocaba JULIO -> NOVIEMBRE/DICIEMBRE.
+  for(let i=11;i>=0;i--){
+    if(realByMonth[i] > 0.000001){
+      state.detectedPeriodSource="último mes con datos reales 2026 en JD COSTO/GASTOS";
+      return i;
+    }
   }
 
-  // Si no existe un PERIODO reconocible, no adivinamos a partir de fechas dispersas.
-  // Usamos la selección manual visible del administrador.
+  // Si por alguna razón los importes reales vienen todos en cero, usamos el último
+  // PERIODO visible como respaldo, pero lo marcamos claramente como estimado.
+  for(let i=11;i>=0;i--){
+    if(seenPeriod[i]){
+      state.detectedPeriodSource="PERIODO JD (sin importes reales detectables)";
+      return i;
+    }
+  }
+
+  // Último respaldo: selección manual del administrador.
   state.detectedPeriodSource="selector manual (PERIODO no detectado)";
   const selected=Number($("periodSelect")?.value);
   return Number.isInteger(selected)&&selected>=0&&selected<=11?selected:5;
