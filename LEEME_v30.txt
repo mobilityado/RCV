@@ -1,9 +1,0 @@
-REPORT.IA RCV v30 - Vista local/nube unificada
-
-Cambio principal:
-- Al cambiar entre Información en tiempo real e Información en la nube ya NO cambia el diseño del tablero.
-- Los mismos KPIs, gráficas, filtros y menús permanecen en el mismo lugar.
-- La pestaña Nube solo cambia la fuente de datos y muestra arriba el selector mensual oficial.
-- Se conserva la lógica de publicación, histórico y seguimiento en nube.
-
-Esto reduce la confusión visual y mantiene una experiencia consistente para administradores y usuarios.
