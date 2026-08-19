@@ -159,6 +159,38 @@
 
   const obs=new MutationObserver(()=>{const m=$("incidentModal");if(m?.classList.contains("open"))renderIncidentWorkflow();});
   if($("incidentModal"))obs.observe($("incidentModal"),{attributes:true,attributeFilter:["class","data-manager"]});
+  function renderProcessedModel(){
+    const health=window.REPORTIA_APP?.getManagerHealth?.()||[];
+    if(!health.length){
+      $("v26RoleSummary").textContent="La información fue procesada, pero no se encontraron gerencias utilizables en el modelo.";
+      return;
+    }
+    const critical=health.filter(x=>x.status==="Crítico");
+    const attention=health.filter(x=>x.status==="Atención");
+    const favorable=health.filter(x=>x.status==="Favorable");
+    const pending=[...critical,...attention];
+    // Antes de publicar, mostramos lo recién detectado sin confundirlo con el flujo ya guardado en nube.
+    $("v26Pending").textContent=pending.length;
+    $("v26Working").textContent="0";
+    $("v26Validate").textContent="0";
+    $("v26Closed").textContent="0";
+    $("v26Greeting").textContent=`Información procesada correctamente · ${health.length} gerencia(s) analizadas.`;
+    $("v26RoleSummary").textContent=pending.length
+      ? `${critical.length} crítica(s) y ${attention.length} en atención fueron detectadas. Publica en la nube para convertirlas en incidencias de seguimiento.`
+      : `${favorable.length} gerencia(s) se encuentran en condición favorable. Puedes revisar el análisis ejecutivo o publicar la información.`;
+    const box=$("v26Inbox");
+    $("v26InboxTitle").textContent="Resultado recién procesado";
+    if(!pending.length){
+      box.innerHTML='<div class="empty">✓ No se detectaron incidencias que requieran seguimiento con los umbrales actuales.</div>';
+    }else{
+      box.innerHTML=pending.slice(0,8).map(x=>`<article class="v26-inbox-item ${x.status==="Crítico"?"pending":"working"}" data-manager-detail="${encodeURIComponent(x.manager)}"><span class="dot"></span><div><strong>${esc(x.manager)}</strong><p>${esc(x.status)} · presión ${Number.isFinite(x.pressure)?(x.pressure*100).toFixed(1)+"%":"—"}</p></div><em>Pendiente de publicar</em></article>`).join("");
+    }
+    const badge=$("cloudStatusBadge");
+    if(badge){badge.textContent="● Datos procesados localmente · pendientes de publicar";badge.className="cloud-status-badge working";}
+  }
+
+  window.addEventListener("reportia:model-processed",()=>setTimeout(renderProcessedModel,50));
+  window.addEventListener("reportia:cloud-published",async()=>{await loadWorkflow();if(isAdmin())await loadPublicationHistory();});
   window.addEventListener("reportia:session",()=>setTimeout(loadWorkflow,900));
   window.addEventListener("focus",()=>{if(session()?.token)loadWorkflow();});
   if(session()?.token)setTimeout(loadWorkflow,900);

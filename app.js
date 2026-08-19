@@ -109,6 +109,7 @@ async function publishCloud(){
     state.cloud=meta.cloud||{};
     if(status){status.textContent=`Publicado correctamente ${state.cloud.uploadedAt?"· "+new Date(state.cloud.uploadedAt).toLocaleString("es-MX"):""}. Los usuarios ya pueden consultar su área.`;status.className="status ok";}
     updateCloudBadge();
+    window.dispatchEvent(new CustomEvent("reportia:cloud-published",{detail:{cloud:state.cloud}}));
   }catch(err){
     if(status){status.textContent="No fue posible publicar: "+err.message;status.className="status error";}
   }finally{if(btn){btn.disabled=false;btn.textContent="☁ Publicar información en la nube";}}
@@ -405,6 +406,7 @@ function processRpModel(){
   };
   renderAll();
   setStatus("uploadStatus",`Archivos RP procesados correctamente. Dashboard actualizado desde Costos, Gastos y Productividad XPV.`,"ok");
+  window.dispatchEvent(new CustomEvent("reportia:model-processed",{detail:{mode:"RP",period:state.model.month}}));
 }
 
 async function loadSources(files) {
@@ -554,6 +556,7 @@ function processModel() {
   };
   renderAll();
   setStatus("uploadStatus",`Procesamiento completado para ${state.model.month} 2026. Los indicadores y reportes fueron recalculados.`,"ok");
+  window.dispatchEvent(new CustomEvent("reportia:model-processed",{detail:{mode:"JD",period:state.model.month}}));
 }
 
 function currentFilters(){

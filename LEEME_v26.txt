@@ -1,4 +1,4 @@
-REPORT.IA RCV · v26.0
+REPORT.IA RCV · v26.1.0
 ====================
 
 PROPUESTA APLICADA
@@ -12,7 +12,7 @@ PROPUESTA APLICADA
 
 INSTALACIÓN
 A. GOOGLE APPS SCRIPT
-- Sustituye TODO el código actual por el archivo: codigo-google-RCV-NUBE-v26.txt (se entrega aparte).
+- Sustituye TODO el código actual por el archivo: codigo-google-RCV-NUBE-v26.1.txt (se entrega aparte).
 - Guarda.
 - Implementar > Administrar implementaciones > Editar > Nueva versión > Implementar.
 - Si conservas la misma implementación /exec, config.js no necesita cambios.
@@ -20,7 +20,7 @@ A. GOOGLE APPS SCRIPT
 
 B. GITHUB
 - Sustituye los archivos del repositorio con los incluidos en este ZIP.
-- Importante: v26 agrega v26.css y v26.js; ambos deben subirse.
+- Importante: v26.1 agrega v26.1.css y v26.1.js; ambos deben subirse.
 - Haz Ctrl+F5 al probar en PC; en móvil, cierra y vuelve a abrir la PWA/acceso directo si conserva caché.
 
 C. GOOGLE SHEETS DE NUBE
