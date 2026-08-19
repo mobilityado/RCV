@@ -85,7 +85,13 @@ function cloudPayload(){
   if(!state.model)return null;
   const model=JSON.parse(JSON.stringify(state.model,(k,v)=>v instanceof Map?Object.fromEntries(v):v));
   delete model.catalog;
-  return {periodIndex:state.periodIndex,inputMode:state.inputMode||"JD",model};
+  const workflowSeed = managerHealth().filter(r=>r.status!=="Favorable").map(r=>({
+    gerencia:r.manager,
+    prioridad:r.status==="Crítico"?"ALTA":r.status==="Atención"?"MEDIA":"BAJA",
+    semaforo:r.status,
+    pressure:Number.isFinite(r.pressure)?r.pressure:null
+  }));
+  return {periodIndex:state.periodIndex,inputMode:state.inputMode||"JD",model,workflowSeed};
 }
 async function publishCloud(){
   const session=currentSession();
@@ -1534,7 +1540,7 @@ updateActiveFilterStrip();
 
 $("manager360Select")?.addEventListener("change",e=>renderManager360(e.target.value));
 window.addEventListener("reportia:session",e=>loadCloudForSession(e.detail));
-window.REPORTIA_APP={loadCloudForSession,publishCloud};
+window.REPORTIA_APP={loadCloudForSession,publishCloud,openIncident,currentSession,isAdmin,getCloud:()=>state.cloud,getManagerHealth:()=>managerHealth()};
 renderChecklist();
 clearDashboard();
 buildExecutiveIntelligence();

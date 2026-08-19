@@ -64,7 +64,7 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v24.0</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v26.0</div>
 
     
 <nav id="nav" class="nav-v231">
@@ -97,7 +97,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v24.0</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v26.0</b></div>
     </div>
   </aside>
 
@@ -112,6 +112,45 @@
       </header>
 
       
+<section class="v26-home" id="v26Home">
+  <div class="v26-hero">
+    <div>
+      <span class="v26-kicker">CENTRO DE CONTROL RCV</span>
+      <h2 id="v26Greeting">Tu operación, priorizada para hoy.</h2>
+      <p id="v26RoleSummary">Consultando pendientes y estado de atención…</p>
+    </div>
+    <div class="v26-cloud-card">
+      <small>ÚLTIMA PUBLICACIÓN</small>
+      <strong id="v26LastPublication">Sin publicación</strong>
+      <span id="v26PublicationBy">El administrador debe publicar información.</span>
+      <button id="v26OpenPublication" data-admin-only="true" type="button">☁ Centro de publicación</button>
+    </div>
+  </div>
+  <div class="v26-status-grid">
+    <article class="v26-status pending"><span>🔴</span><div><small>PENDIENTES</small><strong id="v26Pending">0</strong><em>Requieren atención</em></div></article>
+    <article class="v26-status working"><span>🟡</span><div><small>EN ATENCIÓN</small><strong id="v26Working">0</strong><em>Acciones en curso</em></div></article>
+    <article class="v26-status validate"><span>🔵</span><div><small>POR VALIDAR</small><strong id="v26Validate">0</strong><em>Esperan revisión</em></div></article>
+    <article class="v26-status closed"><span>🟢</span><div><small>CERRADAS</small><strong id="v26Closed">0</strong><em>Atendidas</em></div></article>
+  </div>
+  <div class="v26-workspace">
+    <article class="v26-pending-card">
+      <div class="v26-card-head"><div><small>MI BANDEJA</small><h3 id="v26InboxTitle">Pendientes de atención</h3></div><button id="v26RefreshWorkflow" type="button">↻ Actualizar</button></div>
+      <div id="v26Inbox" class="v26-inbox"><div class="empty">Consultando pendientes…</div></div>
+    </article>
+    <article class="v26-quick-card">
+      <small>ACCESOS PRINCIPALES</small><h3>¿Qué necesitas hacer?</h3>
+      <div class="v26-quick-actions">
+        <button data-view="semaphore" type="button">🚦 Ver incidencias</button>
+        <button data-view="reports" type="button">📄 Consultar reportes</button>
+        <button data-view="manager360" type="button">◎ Expediente 360°</button>
+        <button data-admin-only="true" data-view="upload" type="button">⇩ Cargar información</button>
+      </div>
+      <button class="v26-detail-toggle" id="v26ToggleDetail" type="button">Mostrar análisis ejecutivo completo ↓</button>
+    </article>
+  </div>
+</section>
+
+<div id="v26LegacyHome" class="v26-legacy-collapsed">
 <div class="welcome-command">
   <div class="welcome-copy">
     <span>COMMAND CENTER</span>
@@ -194,6 +233,7 @@
           </div>
         </article>
       </section>
+    </div><!-- /v26LegacyHome -->
     </section>
 
     <section class="view" data-view="upload">
@@ -510,6 +550,11 @@
       <h3>Historial</h3>
       <div id="incidentTimeline" class="incident-timeline"><div class="empty">Sin anotaciones todavía.</div></div>
     </div>
+    <div class="v26-workflow" id="v26Workflow">
+      <div class="v26-workflow-head"><div><small>ESTADO DE ATENCIÓN</small><strong id="v26IncidentWorkflowState">Pendiente</strong></div><span id="v26IncidentAge">—</span></div>
+      <div class="v26-flow"><span data-flow="PENDIENTE">Pendiente</span><i>→</i><span data-flow="EN_ATENCION">En atención</span><i>→</i><span data-flow="POR_VALIDAR">Por validar</span><i>→</i><span data-flow="CERRADA">Cerrada</span></div>
+      <div id="v26WorkflowActions" class="v26-workflow-actions"></div>
+    </div>
     <div class="incident-compose">
       <label id="incidentPromptLabel">Anotación</label>
       <textarea id="incidentText" rows="4" maxlength="1500" placeholder="Escribe el seguimiento…"></textarea>
@@ -518,9 +563,25 @@
   </section>
 </div>
 
+
+<div class="v26-modal" id="v26PublicationModal" aria-hidden="true">
+  <div class="v26-modal-backdrop" data-close-v26-publication></div>
+  <section class="v26-modal-card">
+    <button class="v26-modal-close" data-close-v26-publication type="button">×</button>
+    <span class="v26-kicker">CENTRO DE PUBLICACIÓN</span>
+    <h2>Información disponible en la nube</h2>
+    <p>Consulta quién publicó, cuándo se actualizó y el historial de publicaciones realizadas.</p>
+    <div class="v26-pub-current" id="v26PubCurrent"><div class="empty">Consultando publicación vigente…</div></div>
+    <div class="v26-card-head"><div><small>HISTORIAL</small><h3>Últimas publicaciones</h3></div><button id="v26RefreshHistory" type="button">↻ Actualizar</button></div>
+    <div id="v26PublicationHistory" class="v26-history"><div class="empty">Sin historial disponible.</div></div>
+  </section>
+</div>
+
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script src="auth.js"></script>
+<link rel="stylesheet" href="v26.css">
+<script src="v26.js"></script>
 
 <div class="metric-modal" id="metricModal" aria-hidden="true">
   <div class="metric-modal-backdrop" data-close-metric></div>
