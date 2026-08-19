@@ -8,3 +8,10 @@
 .v27-panel[data-v27-panel="realtime"] .v26-legacy-collapsed{display:block!important;max-height:none!important;overflow:visible!important;margin-top:0!important;opacity:1!important}.v27-panel[data-v27-panel="realtime"] .welcome-command{margin-top:0}.v27-panel[data-v27-panel="cloud"] .v26-home{margin-top:0}.v27-panel[data-v27-panel="cloud"] .v26-hero{background:linear-gradient(135deg,#f3f8ff,#eaf2fb)}
 @media(max-width:900px){.v27-data-tabs{grid-template-columns:1fr}.v27-realtime-hero{align-items:flex-start;flex-direction:column}.v27-live-actions{justify-content:flex-start;max-width:none}.v27-live-chip{justify-content:flex-start}.v27-mini-kpis{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.v27-data-tabs button{grid-template-columns:40px 1fr}.v27-data-tabs em{display:none}.v27-mini-kpis{grid-template-columns:1fr}.v27-realtime-hero{padding:22px}.v27-realtime-title h2{font-size:24px}}
+
+
+/* v30 · Workspace unificado: nube y local conservan exactamente la misma distribución */
+.v27-cloud-shared{display:none;margin-bottom:16px}
+.v27-command[data-source="cloud"] .v27-realtime-hero{background:radial-gradient(circle at 83% 15%,rgba(59,130,246,.20),transparent 26%),linear-gradient(125deg,#12305c 0%,#174a84 52%,#1765a5 100%)}
+.v27-command[data-source="cloud"] .v27-mini-kpis article:first-child:before{background:#1687d9}
+.v27-command[data-source="cloud"] .v27-live-chip i{background:#49a7ff;box-shadow:0 0 0 5px rgba(73,167,255,.13)}

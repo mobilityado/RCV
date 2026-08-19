@@ -119,6 +119,34 @@
   </div>
 
   <div class="v27-panel active" data-v27-panel="realtime">
+    <div class="v27-cloud-shared" id="v27CloudShared">
+    <section class="v28-cloud-toolbar">
+      <div>
+        <span>HISTÓRICO MENSUAL EN LA NUBE</span>
+        <h3>Consulta la publicación oficial por mes</h3>
+        <p>Cada mes conserva su propia información. Al volver a publicar el mismo mes, únicamente se reemplaza ese mes.</p>
+      </div>
+      <div class="v28-cloud-controls">
+        <label>Periodo en nube
+          <select id="v28CloudMonth">
+            <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option><option value="3">Abril</option>
+            <option value="4">Mayo</option><option value="5">Junio</option><option value="6">Julio</option><option value="7">Agosto</option>
+            <option value="8">Septiembre</option><option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+          </select>
+        </label>
+        <button id="v28LoadCloudMonth" type="button">☁ Consultar mes</button>
+        <button id="v28BackupExcel" data-admin-only="true" type="button">⬇ Respaldo Excel completo</button>
+      </div>
+      <div id="v28MonthStatus" class="v28-month-status">Consultando disponibilidad mensual…</div>
+    </section>
+<section class="v29-cloud-intelligence">
+  <div class="v29-section-head"><div><span>ACTIVIDAD Y CONTEXTO</span><h3>Qué está pasando en REPORT.IA</h3></div><button id="v29RefreshActivity" type="button">↻ Actualizar</button></div>
+  <div class="v29-cloud-grid">
+    <article class="v29-activity-card"><div id="v29ActivityFeed" class="v29-activity-feed"><div class="empty">La actividad aparecerá cuando existan publicaciones o incidencias.</div></div></article>
+    <article class="v29-focus-card"><small>FOCO DEL PERIODO</small><h3 id="v29CloudFocus">Sin publicación seleccionada</h3><p id="v29CloudFocusText">Selecciona un mes para revisar su principal señal ejecutiva.</p><button data-view="semaphore" type="button">Abrir semáforo →</button></article>
+  </div>
+</section>
+    </div>
     <section class="v29-command-center" id="v29CommandCenter">
       <div class="v29-command-copy">
         <span>EXECUTIVE COMMAND CENTER · LIVE</span>
@@ -234,32 +262,6 @@
   </div>
 
   <div class="v27-panel" data-v27-panel="cloud">
-    <section class="v28-cloud-toolbar">
-      <div>
-        <span>HISTÓRICO MENSUAL EN LA NUBE</span>
-        <h3>Consulta la publicación oficial por mes</h3>
-        <p>Cada mes conserva su propia información. Al volver a publicar el mismo mes, únicamente se reemplaza ese mes.</p>
-      </div>
-      <div class="v28-cloud-controls">
-        <label>Periodo en nube
-          <select id="v28CloudMonth">
-            <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option><option value="3">Abril</option>
-            <option value="4">Mayo</option><option value="5">Junio</option><option value="6">Julio</option><option value="7">Agosto</option>
-            <option value="8">Septiembre</option><option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
-          </select>
-        </label>
-        <button id="v28LoadCloudMonth" type="button">☁ Consultar mes</button>
-        <button id="v28BackupExcel" data-admin-only="true" type="button">⬇ Respaldo Excel completo</button>
-      </div>
-      <div id="v28MonthStatus" class="v28-month-status">Consultando disponibilidad mensual…</div>
-    </section>
-<section class="v29-cloud-intelligence">
-  <div class="v29-section-head"><div><span>ACTIVIDAD Y CONTEXTO</span><h3>Qué está pasando en REPORT.IA</h3></div><button id="v29RefreshActivity" type="button">↻ Actualizar</button></div>
-  <div class="v29-cloud-grid">
-    <article class="v29-activity-card"><div id="v29ActivityFeed" class="v29-activity-feed"><div class="empty">La actividad aparecerá cuando existan publicaciones o incidencias.</div></div></article>
-    <article class="v29-focus-card"><small>FOCO DEL PERIODO</small><h3 id="v29CloudFocus">Sin publicación seleccionada</h3><p id="v29CloudFocusText">Selecciona un mes para revisar su principal señal ejecutiva.</p><button data-view="semaphore" type="button">Abrir semáforo →</button></article>
-  </div>
-</section>
 <section class="v26-home" id="v26Home">
   <div class="v26-hero">
     <div>
