@@ -17,9 +17,11 @@
     if($v("v29Quality"))$v("v29Quality").textContent=audit?`${audit.confidence}%`:"—";
     let p=0;
     try{
-      p=(state?.activeDataSource==="local" && state?.localPeriodIndex!==null)
-        ? Number(state.localPeriodIndex)
-        : Number(state?.cloudPeriodIndex ?? state?.periodIndex ?? 0);
+      const realtimeActive=!!document.querySelector('[data-v27-tab="realtime"].active');
+      const lp=window.REPORTIA_APP?.getLocalPeriod?.();
+      p=(realtimeActive && lp!==null && lp!==undefined)
+        ? Number(lp)
+        : Number(window.REPORTIA_APP?.getCloudPeriod?.() ?? state?.periodIndex ?? 0);
     }catch{}
     if($v("v29Period"))$v("v29Period").textContent=(monthNames[p]||"Periodo").toUpperCase();
     if($v("v29Source"))$v("v29Source").textContent=sourceLabel();
@@ -50,6 +52,5 @@
     const base=renderAll;
     window.renderAll=function(){const r=base.apply(this,arguments);setTimeout(refreshCommand,0);return r};
   }
-  setInterval(()=>{if(document.visibilityState==="visible")refreshCommand()},12000);
   setTimeout(refreshCommand,350);
 })();

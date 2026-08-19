@@ -1,0 +1,18 @@
+REPORT.IA RCV v29.2 — FIX ESTABILIDAD Y PERIODO
+
+Correcciones:
+1. El administrador ya no cambia automáticamente a la nube mientras carga archivos.
+2. Se eliminó la actualización visual periódica del Command Center.
+3. El periodo se detecta primero desde la columna PERIODO de JD COSTO/GASTOS (misma fuente usada por los cálculos).
+4. XPV queda como respaldo de detección, sin depender de una celda fija.
+5. La tarjeta PERIODO ACTIVO usa el periodo del modelo local cuando estás en Tiempo real.
+6. Al seleccionar archivos, REPORT.IA permanece en Cargar reportes hasta que pulses Procesar.
+7. Se agregaron parámetros anti-caché a los JS/CSS para que GitHub Pages no conserve una versión vieja.
+
+INSTALACIÓN
+- Sustituye TODOS los archivos de GitHub por los de esta carpeta.
+- No necesitas cambiar Apps Script si ya utilizas el v28.
+- Después abre la página con Ctrl+F5.
+
+PRUEBA
+Cargar reportes > seleccionar archivos de Junio > debe permanecer en esa pantalla y mostrar "Periodo detectado: Jun 2026" > Procesar > Inicio Ejecutivo > Tiempo real debe indicar JUNIO.

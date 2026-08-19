@@ -80,5 +80,5 @@
 
   // La vista local ya contiene el tablero validado completo: no se colapsa en v27.
   const oldToggle=$('v26ToggleDetail'); if(oldToggle)oldToggle.style.display='none';
-  setTimeout(()=>{updateRealtime();updateCloudBadge();if(session())setTab(isAdmin()?'realtime':'cloud',{switchModel:true});},1200);
+  setTimeout(()=>{updateRealtime();updateCloudBadge();if(session())setTab(isAdmin()?'realtime':'cloud',{switchModel:!isAdmin()});},1200);
 })();

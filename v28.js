@@ -2,6 +2,7 @@
   'use strict';
   const $=id=>document.getElementById(id);
   const session=()=>window.REPORTIA_SESSION||null;
+  const isAdmin=()=>String(session()?.tipo||'').toUpperCase()==='ADMINISTRADOR';
   const API_URL=()=>String(window.REPORTIA_CONFIG?.API_URL||'').trim();
   const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -40,7 +41,9 @@
         opt.dataset.available=x.disponible?'1':'0';
       });
       const available=rows.filter(x=>x.disponible);
-      if(autoload&&available.length){
+      // Usuarios operativos reciben automáticamente la publicación más reciente.
+      // El administrador NO cambia de fuente mientras carga/procesa archivos locales.
+      if(autoload&&available.length&&!isAdmin()){
         const newest=available.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha))[0];
         if(newest){select.value=String(newest.periodIndex);await loadSelectedMonth();return;}
       }

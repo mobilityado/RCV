@@ -21,7 +21,7 @@ const state = {
   inputMode: null,
   rpWorkbooks: [],
   cloud: {snapshotId:"", uploadedAt:"", uploadedBy:""},
-  localModel:null, cloudModel:null, localInputMode:null, activeDataSource:"cloud", localPeriodIndex:null, cloudPeriodIndex:null
+  localModel:null, cloudModel:null, localInputMode:null, activeDataSource:"cloud", localPeriodIndex:null, cloudPeriodIndex:null, uploadInProgress:false, detectedPeriodSource:""
 };
 
 const $ = id => document.getElementById(id);
@@ -141,7 +141,9 @@ async function loadCloudForSession(session, requestedPeriodIndex=null){
     if(!data?.ok)throw new Error(data?.mensaje||"No fue posible consultar la nube.");
     if(!data.disponible){
       state.cloud={snapshotId:"",uploadedAt:"",uploadedBy:""};
-      clearDashboard();
+      // Una consulta automática a la nube jamás debe borrar una carga local ni
+      // interrumpir al administrador mientras está en Cargar reportes.
+      if(!(isAdmin() && (state.uploadInProgress || state.localModel || state.activeDataSource==="local"))) clearDashboard();
       updateCloudBadge("☁ Aún no hay información publicada");
       const msg=$("cloudViewerMessage");if(msg)msg.textContent="Aún no hay información publicada por el administrador.";
       return;
@@ -149,7 +151,7 @@ async function loadCloudForSession(session, requestedPeriodIndex=null){
     state.cloudModel=data.model||null;
     state.cloudPeriodIndex=Number.isFinite(Number(data.periodIndex))?Number(data.periodIndex):cloudPeriod;
     state.cloud=data.cloud||{};
-    const keepLocal = isAdmin() && state.activeDataSource==="local" && !!state.localModel;
+    const keepLocal = isAdmin() && (state.uploadInProgress || (state.activeDataSource==="local" && !!state.localModel));
     if(!keepLocal){
       state.periodIndex=state.cloudPeriodIndex;
       state.model=state.cloudModel;
@@ -423,7 +425,7 @@ function processRpModel(){
     catalog:new Map(),costOperating,costMaintenance,premises,smo,expenses,expenseSummary,xpv,xpvSummary:aggregateXpvByManager(xpv),costSummary,
     costMonthly:zeroMonths,expenseMonthly:zeroMonths,month:MONTH_LABELS[state.periodIndex],sourceMode:"RP"
   };
-  state.localModel=state.model; state.localInputMode="RP"; state.localPeriodIndex=state.periodIndex; state.activeDataSource="local";
+  state.localModel=state.model; state.localInputMode="RP"; state.localPeriodIndex=state.periodIndex; state.activeDataSource="local"; state.uploadInProgress=false;
   renderAll();
   setStatus("uploadStatus",`Archivos RP procesados correctamente. Dashboard actualizado desde Costos, Gastos y Productividad XPV.`,"ok");
   window.dispatchEvent(new CustomEvent("reportia:model-processed",{detail:{mode:"RP",period:state.model.month}}));
@@ -468,17 +470,46 @@ function renderChecklist() {
   $("inputMode").innerHTML='Modo de entrada: <b>'+(state.inputMode==="JD"?"Concentrado reportes JD":"Sin detectar")+'</b>';
 }
 
-function detectPeriodFromXpv() {
-  const rows = state.sources[SHEETS.XPV];
-  if (!rows || !rows[4]) return 5;
-  const v = rows[4][2];
-  if (v instanceof Date) return v.getMonth();
-  if (typeof v === "number") {
-    const d = XLSX.SSF.parse_date_code(v);
-    if (d && d.m) return d.m-1;
+function detectReportPeriod() {
+  // Fuente principal: la columna PERIODO de JD COSTO/GASTOS. Es la misma que usa
+  // el cálculo, por lo que evita depender de una celda fija del XPV.
+  const found=[];
+  [SHEETS.COST,SHEETS.EXPENSE].forEach(sheet=>{
+    const rows=state.sources[sheet]||[];
+    for(let i=8;i<rows.length;i++){
+      const raw=cleanText(rows[i]?.[6]);
+      const idx=MONTHS.indexOf(raw);
+      if(idx>=0) found.push(idx);
+    }
+  });
+  if(found.length){
+    state.detectedPeriodSource="JD COSTO/GASTOS";
+    return Math.max(...found);
   }
-  return 5;
+
+  // Respaldo: buscar fechas reales dentro de XPV, sin asumir una posición fija.
+  const rows=state.sources[SHEETS.XPV]||[];
+  const dateMonths=[];
+  for(const row of rows){
+    for(const v of (row||[])){
+      if(v instanceof Date && !Number.isNaN(v.getTime())) dateMonths.push(v.getMonth());
+      else if(typeof v==='number' && v>30000 && v<70000){
+        try{const d=XLSX.SSF.parse_date_code(v);if(d?.m)dateMonths.push(d.m-1);}catch(_){}
+      } else if(typeof v==='string'){
+        const m=v.match(/(?:^|\D)(0?[1-9]|1[0-2])[\/-](?:20)?\d{2}(?:$|\D)/);
+        if(m) dateMonths.push(Number(m[1])-1);
+      }
+    }
+  }
+  if(dateMonths.length){state.detectedPeriodSource="JD XPV";return Math.max(...dateMonths);}
+
+  // Último respaldo: respeta el periodo que el usuario tenga seleccionado; nunca
+  // fuerza Enero ni usa el mes actual de la computadora.
+  state.detectedPeriodSource="selector manual";
+  const selected=Number($("periodSelect")?.value);
+  return Number.isInteger(selected)&&selected>=0&&selected<=11?selected:5;
 }
+function detectPeriodFromXpv(){ return detectReportPeriod(); }
 
 function buildCatalog() {
   const rows = state.sources[SHEETS.CATALOG] || [];
@@ -558,7 +589,7 @@ function aggregateXpvByManager(rows){
 function processModel() {
   // El periodo del reporte debe venir de los propios datos (XPV), no de una
   // publicación de nube que pudiera estar seleccionada en otro mes.
-  const detectedPeriod=detectPeriodFromXpv();
+  const detectedPeriod=detectReportPeriod();
   if(Number.isInteger(detectedPeriod) && detectedPeriod>=0 && detectedPeriod<=11){
     state.periodIndex=detectedPeriod;
     if($("periodSelect"))$("periodSelect").value=detectedPeriod;
@@ -582,7 +613,7 @@ function processModel() {
     costMonthly:costAgg.monthly,expenseMonthly:expAgg.monthly,
     month:MONTH_LABELS[state.periodIndex]
   };
-  state.localModel=state.model; state.localInputMode="JD"; state.localPeriodIndex=state.periodIndex; state.activeDataSource="local";
+  state.localModel=state.model; state.localInputMode="JD"; state.localPeriodIndex=state.periodIndex; state.activeDataSource="local"; state.uploadInProgress=false;
   renderAll();
   setStatus("uploadStatus",`Procesamiento completado para ${state.model.month} 2026. Los indicadores y reportes fueron recalculados.`,"ok");
   window.dispatchEvent(new CustomEvent("reportia:model-processed",{detail:{mode:"JD",period:state.model.month}}));
@@ -1468,7 +1499,6 @@ document.addEventListener("click",async e=>{
   if(e.target.closest("#runRpReconciliation"))executeReconciliation();
   if(e.target.closest("#browseBtn"))$("jdFiles").click();
   if(e.target.closest("#processBtn")){
-    state.periodIndex=Number($("periodSelect").value);
     try{
       if(state.inputMode==="JD")processModel();
       else if(state.inputMode==="RP")processRpModel();
@@ -1479,7 +1509,7 @@ document.addEventListener("click",async e=>{
       setStatus("uploadStatus","No fue posible procesar: "+err.message,"error");
     }
   }
-  if(e.target.closest("#clearBtn")){state.sources={};state.rpWorkbooks=[];state.inputMode=null;state.model=null;state.localModel=null;state.localInputMode=null;state.localPeriodIndex=null;state.activeDataSource="cloud";$("jdFiles").value="";renderChecklist();clearDashboard();setStatus("uploadStatus","Aún no has seleccionado archivos.");qa("#processStats strong").forEach(x=>x.textContent="0");}
+  if(e.target.closest("#clearBtn")){state.sources={};state.rpWorkbooks=[];state.inputMode=null;state.model=null;state.localModel=null;state.localInputMode=null;state.localPeriodIndex=null;state.activeDataSource="cloud";state.uploadInProgress=false;$("jdFiles").value="";renderChecklist();clearDashboard();setStatus("uploadStatus","Aún no has seleccionado archivos.");qa("#processStats strong").forEach(x=>x.textContent="0");}
   if(e.target.closest("#browseFinalBtn"))$("finalZip").click();
   if(e.target.closest("#validateBtn"))validateAgainstFinal();
   if(e.target.closest("#refreshBtn")){
@@ -1522,15 +1552,18 @@ document.addEventListener("click",async e=>{
 $("jdFiles").addEventListener("change",async()=>{
   if(currentSession()&&!isAdmin()){$("jdFiles").value="";return alert("Solo el administrador puede cargar reportes.");}
   const files=[...$("jdFiles").files];if(!files.length)return;
+  state.uploadInProgress=true;
+  // Mantener al usuario en Cargar reportes durante toda la lectura del Excel.
+  showView("upload");
   setStatus("uploadStatus","Analizando archivos y detectando modo de entrada…","working");
   $("processBtn").disabled=true;
   try{
     const result=await detectAndLoadInputs(files);
     renderChecklist();
     if(result.mode==="JD"){
-      state.periodIndex=detectPeriodFromXpv();
+      state.periodIndex=detectReportPeriod();
       $("periodSelect").value=state.periodIndex;$("settingsPeriod").value=state.periodIndex;
-      setStatus("uploadStatus",`${result.files.length} archivo(s) leído(s). Detectado concentrado reportes JD. Listo para procesar.`,"ok");
+      setStatus("uploadStatus",`${result.files.length} archivo(s) leído(s). Periodo detectado: ${MONTH_LABELS[state.periodIndex]} 2026 (${state.detectedPeriodSource}). Listo para procesar.`,"ok");
     }else if(result.mode==="RP"){
       setStatus("uploadStatus",`${result.files.length} archivo(s) detectado(s). Modo RP: Costos, Gastos y Productividad listos para procesar.`,"ok");
     }else{
@@ -1539,6 +1572,7 @@ $("jdFiles").addEventListener("change",async()=>{
   }catch(e){
     console.error(e);
     state.inputMode=null;
+    state.uploadInProgress=false;
     renderChecklist();
     setStatus("uploadStatus","Error al leer los archivos: "+e.message,"error");
   }
@@ -1591,7 +1625,7 @@ function useCloudModel(){
   if(!state.cloudModel)return false;
   state.model=state.cloudModel; state.inputMode="CLOUD"; state.activeDataSource="cloud"; renderAll(); return true;
 }
-window.REPORTIA_APP={loadCloudForSession,publishCloud,openIncident,currentSession,isAdmin,getCloud:()=>state.cloud,getManagerHealth:()=>managerHealth(),getLocalModel:()=>state.localModel,getCloudModel:()=>state.cloudModel,getActiveSource:()=>state.activeDataSource,getCloudPeriod:()=>state.cloudPeriodIndex,useLocalModel,useCloudModel};
+window.REPORTIA_APP={loadCloudForSession,publishCloud,openIncident,currentSession,isAdmin,getCloud:()=>state.cloud,getManagerHealth:()=>managerHealth(),getLocalModel:()=>state.localModel,getCloudModel:()=>state.cloudModel,getActiveSource:()=>state.activeDataSource,getCloudPeriod:()=>state.cloudPeriodIndex,getLocalPeriod:()=>state.localPeriodIndex,isUploadInProgress:()=>state.uploadInProgress,useLocalModel,useCloudModel};
 renderChecklist();
 clearDashboard();
 buildExecutiveIntelligence();
