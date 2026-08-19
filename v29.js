@@ -15,15 +15,29 @@
     if($v("v29TopRisk"))$v("v29TopRisk").textContent=top?.manager||"—";
     if($v("v29TopRiskHint"))$v("v29TopRiskHint").textContent=top?`${top.status} · ${(top.pressure*100).toFixed(1)}% presión`:"Sin gerencia prioritaria";
     if($v("v29Quality"))$v("v29Quality").textContent=audit?`${audit.confidence}%`:"—";
-    let p=0;
+    let periodText="PERIODO";
     try{
       const realtimeActive=!!document.querySelector('[data-v27-tab="realtime"].active');
-      const lp=window.REPORTIA_APP?.getLocalPeriod?.();
-      p=(realtimeActive && lp!==null && lp!==undefined)
-        ? Number(lp)
-        : Number(window.REPORTIA_APP?.getCloudPeriod?.() ?? state?.periodIndex ?? 0);
+      if(realtimeActive){
+        // Fuente principal: el nombre de mes ya calculado dentro del modelo local.
+        // Así la tarjeta no depende del selector de nube ni de un valor inicial.
+        const localModel=window.REPORTIA_APP?.getLocalModel?.();
+        const modelMonth=String(localModel?.month||"").trim();
+        if(modelMonth){
+          periodText=modelMonth.toUpperCase();
+        }else{
+          const lp=window.REPORTIA_APP?.getLocalPeriod?.();
+          if(lp!==null && lp!==undefined && Number.isFinite(Number(lp)))
+            periodText=(monthNames[Number(lp)]||"Periodo").toUpperCase();
+        }
+      }else{
+        const cp=window.REPORTIA_APP?.getCloudPeriod?.();
+        const fallback=(typeof state!=="undefined"?state?.periodIndex:null);
+        const p=(cp!==null&&cp!==undefined)?Number(cp):Number(fallback);
+        if(Number.isFinite(p)) periodText=(monthNames[p]||"Periodo").toUpperCase();
+      }
     }catch{}
-    if($v("v29Period"))$v("v29Period").textContent=(monthNames[p]||"Periodo").toUpperCase();
+    if($v("v29Period"))$v("v29Period").textContent=periodText;
     if($v("v29Source"))$v("v29Source").textContent=sourceLabel();
     if($v("v29Headline"))$v("v29Headline").textContent=headline;
     if($v("v29Narrative"))$v("v29Narrative").textContent=narrative;
@@ -46,7 +60,7 @@
   function toggleBoard(){document.body.classList.toggle("v29-board-mode");const b=$v("v29BoardMode");if(b)b.textContent=document.body.classList.contains("v29-board-mode")?"✕ Salir modo junta":"▣ Modo junta"}
   document.addEventListener("click",e=>{if(e.target.closest("#v29BoardMode"))toggleBoard();if(e.target.closest("#v29RefreshActivity"))refreshCommand();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.classList.contains("v29-board-mode"))toggleBoard();});
-  ["reportia:cloud-published","reportia:cloud-loaded","reportia:source-changed"].forEach(n=>window.addEventListener(n,()=>setTimeout(refreshCommand,100)));
+  ["reportia:model-processed","reportia:cloud-published","reportia:cloud-loaded","reportia:source-changed"].forEach(n=>window.addEventListener(n,()=>setTimeout(refreshCommand,100)));
   const oldRender=window.renderAll||null;
   if(typeof renderAll==="function"){
     const base=renderAll;
