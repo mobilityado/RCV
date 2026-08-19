@@ -86,6 +86,14 @@
 
   window.addEventListener('reportia:model-processed',()=>{setTab('realtime',{switchModel:false});});
   window.addEventListener('reportia:cloud-published',()=>{if(currentTab==='cloud')setTab('cloud',{switchModel:false});else updateWorkspace('realtime');});
+  // v31: al cargar/cambiar un mes publicado, refrescar también los KPIs superiores
+  // del tablero unificado. Antes la zona inferior cambiaba al modelo nube,
+  // pero las tarjetas superiores conservaban los 0 del estado previo.
+  window.addEventListener('reportia:cloud-month-changed',()=>{
+    if(currentTab==='cloud'){
+      setTimeout(()=>updateWorkspace('cloud'),80);
+    }
+  });
   window.addEventListener('reportia:session',()=>{
     setTimeout(()=>{
       const preferred=localStorage.getItem('reportia_v27_tab');

@@ -1,0 +1,46 @@
+REPORT.IA RCV · v28 HISTÓRICO MENSUAL + RESPALDO EXCEL
+=========================================================
+
+QUÉ CAMBIA
+1) La nube ya no usa una sola publicación que reemplaza todo.
+2) Se crean 12 pestañas fijas en el Google Sheets:
+   REPORTIA_ENERO, REPORTIA_FEBRERO, ... REPORTIA_DICIEMBRE.
+3) Al publicar un mes, SOLO se reemplaza la pestaña de ese mes.
+   Ejemplo: Enero 2027 reemplaza Enero 2026, pero Febrero-Diciembre quedan intactos.
+4) La app incorpora selector de mes en "Información en la nube".
+5) Los usuarios consultan el mes elegido con el mismo filtro por tipo de cuenta.
+6) Antes de sobrescribir un mes, el administrador recibe una advertencia y debe confirmar.
+7) Se conserva REPORTIA_PUBLICACIONES como bitácora histórica de publicaciones.
+8) Las notas/incidencias siguen ligadas al snapshot correspondiente.
+9) Nuevo botón "Respaldo Excel completo" (solo Administrador), que exporta el Google Sheets completo a .xlsx con todas sus pestañas.
+
+INSTALACIÓN
+A. GOOGLE APPS SCRIPT
+- Sustituye TODO el código actual por: codigo-google-RCV-NUBE-v28.txt
+- Guardar.
+- Implementar > Administrar implementaciones > Editar > Nueva versión > Implementar.
+- Si la URL /exec se conserva, config.js no necesita cambios.
+
+B. GITHUB
+- Sustituye el proyecto con los archivos de esta carpeta RCV-v28.
+- Asegúrate de subir también v28.js y v28.css.
+- Haz Ctrl+F5 al probar.
+
+PRIMERA PUBLICACIÓN
+- Carga y procesa Enero.
+- Pulsa "Publicar información en la nube".
+- Apps Script crea REPORTIA_ENERO.
+- Repite para Febrero, Marzo, etc.
+
+REEMPLAZO ANUAL
+- Cuando publiques Enero del siguiente año, aparecerá una confirmación.
+- Si aceptas, únicamente REPORTIA_ENERO se reemplaza.
+- Los otros 11 meses no se modifican.
+
+RESPALDO
+- Información en la nube > "Respaldo Excel completo".
+- Se exporta el Google Sheets completo en formato Excel.
+
+IMPORTANTE
+- El respaldo depende de que la cuenta/navegador tenga permiso de acceso al Google Sheets.
+- No elimines REPORTIA_NOTAS, REPORTIA_INCIDENCIAS ni REPORTIA_PUBLICACIONES si deseas conservar trazabilidad.

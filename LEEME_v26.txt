@@ -1,0 +1,41 @@
+REPORT.IA RCV · v26.1.0
+====================
+
+PROPUESTA APLICADA
+1) Inicio ejecutivo más limpio y personalizado por tipo de cuenta.
+2) Bandeja de incidencias con estados: PENDIENTE > EN ATENCIÓN > POR VALIDAR > CERRADA.
+3) El usuario del área puede iniciar atención, documentar su acción correctiva y enviarla a validación.
+4) El ADMINISTRADOR valida el cierre o solicita corrección.
+5) Centro de publicación con última publicación e historial de publicaciones.
+6) Solo ADMINISTRADOR carga/procesa/publica archivos. Los demás usuarios consumen la publicación de nube filtrada por su TIPO.
+7) Las incidencias se crean al publicar para gerencias en semáforo CRÍTICO o ATENCIÓN; las favorables no generan pendiente.
+
+INSTALACIÓN
+A. GOOGLE APPS SCRIPT
+- Sustituye TODO el código actual por el archivo: codigo-google-RCV-NUBE-v26.1.txt (se entrega aparte).
+- Guarda.
+- Implementar > Administrar implementaciones > Editar > Nueva versión > Implementar.
+- Si conservas la misma implementación /exec, config.js no necesita cambios.
+- Si Google genera otra URL /exec, reemplázala en config.js.
+
+B. GITHUB
+- Sustituye los archivos del repositorio con los incluidos en este ZIP.
+- Importante: v26.1 agrega v26.1.css y v26.1.js; ambos deben subirse.
+- Haz Ctrl+F5 al probar en PC; en móvil, cierra y vuelve a abrir la PWA/acceso directo si conserva caché.
+
+C. GOOGLE SHEETS DE NUBE
+El Apps Script crea automáticamente estas pestañas si no existen:
+- REPORTIA_NUBE: publicación vigente.
+- REPORTIA_NOTAS: anotaciones y acciones correctivas.
+- REPORTIA_INCIDENCIAS: estado del flujo de cada incidencia.
+- REPORTIA_PUBLICACIONES: historial de publicaciones (metadata).
+
+FLUJO PROPUESTO
+ADMINISTRADOR:
+Cargar > Procesar > Revisar > Publicar en nube > Anotar incidencia > Validar respuesta > Cerrar o solicitar corrección.
+
+USUARIO DE ÁREA:
+Entrar > Ver solo su área > Abrir incidencia > Iniciar atención > Escribir acción correctiva > Enviar para validación > Esperar cierre del administrador.
+
+NOTA
+La publicación vigente sigue reemplazando los datos visibles de REPORTIA_NUBE para que todos consulten una sola versión oficial. El historial de REPORTIA_PUBLICACIONES conserva quién publicó y cuándo, sin duplicar todos los datos históricos dentro del portal.
