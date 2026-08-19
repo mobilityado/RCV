@@ -7,7 +7,7 @@ const SHEETS = {
   EXPENSE: "JD GASTOS RCV",
   XPV: "JD XPV RCV"
 };
-const MONTHS = ["EneM","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","DicM"];
+const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const MONTH_LABELS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const PREMISES = new Set(["5101.0403.Servicios de comedor","5101.0404.GASTOS Y PREVISIÓN SOCIAL","5101.0901.Consumo de diesel"]);
 
@@ -470,42 +470,74 @@ function renderChecklist() {
   $("inputMode").innerHTML='Modo de entrada: <b>'+(state.inputMode==="JD"?"Concentrado reportes JD":"Sin detectar")+'</b>';
 }
 
+function monthIndexFromValue(value) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.getMonth();
+  if (typeof value === "number" && value > 30000 && value < 70000) {
+    try { const d=XLSX.SSF.parse_date_code(value); if(d?.m) return d.m-1; } catch(_) {}
+  }
+  let t=cleanText(value).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
+  if(!t) return -1;
+  // Admite abreviaturas, nombres completos y valores como "Jul 2026" / "JULIO-2026".
+  const aliases=[
+    ["ENE","ENERO","JAN","JANUARY"],
+    ["FEB","FEBRERO","FEBRUARY"],
+    ["MAR","MARZO","MARCH"],
+    ["ABR","ABRIL","APR","APRIL"],
+    ["MAY","MAYO"],
+    ["JUN","JUNIO","JUNE"],
+    ["JUL","JULIO","JULY"],
+    ["AGO","AGOSTO","AUG","AUGUST"],
+    ["SEP","SEPT","SEPTIEMBRE","SET","SETIEMBRE","SEPTEMBER"],
+    ["OCT","OCTUBRE","OCTOBER"],
+    ["NOV","NOVIEMBRE","NOVEMBER"],
+    ["DIC","DICIEMBRE","DEC","DECEMBER"]
+  ];
+  const token=t.replace(/[^A-Z0-9]+/g," ").trim().split(/\s+/)[0]||"";
+  for(let i=0;i<aliases.length;i++){
+    if(aliases[i].some(a=>token===a || t===a || t.startsWith(a+" ") || t.startsWith(a+"-") || t.startsWith(a+"/"))) return i;
+  }
+  // Formatos numéricos de periodo: 07/2026, 07-2026, 2026-07.
+  let m=t.match(/^(0?[1-9]|1[0-2])[\/-](?:20)?\d{2,4}$/);
+  if(m) return Number(m[1])-1;
+  m=t.match(/^(?:20)?\d{2,4}[\/-](0?[1-9]|1[0-2])$/);
+  if(m) return Number(m[1])-1;
+  return -1;
+}
+
+function periodColumnIndex(rows) {
+  // Busca el encabezado PERIODO en las primeras filas. Así no dependemos de una columna fija.
+  const limit=Math.min(rows.length,20);
+  for(let r=0;r<limit;r++){
+    const row=rows[r]||[];
+    for(let c=0;c<row.length;c++){
+      const h=cleanText(row[c]).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
+      if(h==="PERIODO" || h==="PERIOD") return c;
+    }
+  }
+  return 6; // compatibilidad con el formato JD actual
+}
+
 function detectReportPeriod() {
-  // Fuente principal: la columna PERIODO de JD COSTO/GASTOS. Es la misma que usa
-  // el cálculo, por lo que evita depender de una celda fija del XPV.
+  // Fuente única y confiable: columna PERIODO de JD COSTO/GASTOS.
+  // NO escaneamos todas las fechas de XPV porque puede contener fechas auxiliares de otros meses.
   const found=[];
   [SHEETS.COST,SHEETS.EXPENSE].forEach(sheet=>{
     const rows=state.sources[sheet]||[];
-    for(let i=8;i<rows.length;i++){
-      const raw=cleanText(rows[i]?.[6]);
-      const idx=MONTHS.indexOf(raw);
+    if(!rows.length) return;
+    const col=periodColumnIndex(rows);
+    for(let i=0;i<rows.length;i++){
+      const idx=monthIndexFromValue(rows[i]?.[col]);
       if(idx>=0) found.push(idx);
     }
   });
   if(found.length){
-    state.detectedPeriodSource="JD COSTO/GASTOS";
+    state.detectedPeriodSource="PERIODO JD COSTO/GASTOS";
     return Math.max(...found);
   }
 
-  // Respaldo: buscar fechas reales dentro de XPV, sin asumir una posición fija.
-  const rows=state.sources[SHEETS.XPV]||[];
-  const dateMonths=[];
-  for(const row of rows){
-    for(const v of (row||[])){
-      if(v instanceof Date && !Number.isNaN(v.getTime())) dateMonths.push(v.getMonth());
-      else if(typeof v==='number' && v>30000 && v<70000){
-        try{const d=XLSX.SSF.parse_date_code(v);if(d?.m)dateMonths.push(d.m-1);}catch(_){}
-      } else if(typeof v==='string'){
-        const m=v.match(/(?:^|\D)(0?[1-9]|1[0-2])[\/-](?:20)?\d{2}(?:$|\D)/);
-        if(m) dateMonths.push(Number(m[1])-1);
-      }
-    }
-  }
-  if(dateMonths.length){state.detectedPeriodSource="JD XPV";return Math.max(...dateMonths);}
-
-  // Último respaldo: respeta el periodo que el usuario tenga seleccionado; nunca
-  // fuerza Enero ni usa el mes actual de la computadora.
-  state.detectedPeriodSource="selector manual";
+  // Si no existe un PERIODO reconocible, no adivinamos a partir de fechas dispersas.
+  // Usamos la selección manual visible del administrador.
+  state.detectedPeriodSource="selector manual (PERIODO no detectado)";
   const selected=Number($("periodSelect")?.value);
   return Number.isInteger(selected)&&selected>=0&&selected<=11?selected:5;
 }
