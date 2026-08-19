@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>REPORT.IA RCV · Validated Engine v24.0</title>
+  <title>REPORT.IA RCV · Executive Command Center v29.0</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -64,7 +64,7 @@
       </svg>
       <div><strong>REPORT.IA</strong><span>RCV · Validated Engine</span></div>
     </div>
-    <div class="edition">EXECUTIVE COMMAND CENTER · v28.0</div>
+    <div class="edition">EXECUTIVE COMMAND CENTER · v29.0</div>
 
     
 <nav id="nav" class="nav-v231">
@@ -97,7 +97,7 @@
 
     <div class="sidebar-bottom">
       <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
-      <div class="online"><i></i><span>Sistema en línea</span><b>v28.0</b></div>
+      <div class="online"><i></i><span>Sistema en línea</span><b>v29.0</b></div>
     </div>
   </aside>
 
@@ -119,6 +119,23 @@
   </div>
 
   <div class="v27-panel active" data-v27-panel="realtime">
+    <section class="v29-command-center" id="v29CommandCenter">
+      <div class="v29-command-copy">
+        <span>EXECUTIVE COMMAND CENTER · LIVE</span>
+        <h2 id="v29Headline">La operación está lista para convertirse en decisiones.</h2>
+        <p id="v29Narrative">Procesa tus archivos para obtener prioridades, riesgos y señales ejecutivas en un solo vistazo.</p>
+      </div>
+      <div class="v29-command-actions">
+        <button id="v29BoardMode" type="button">▣ Modo junta</button>
+        <button data-view="semaphore" type="button">🚦 Incidencias</button>
+      </div>
+      <div class="v29-scoreboard">
+        <article><small>ESTADO GENERAL</small><strong id="v29OverallStatus">SIN DATOS</strong><span id="v29OverallHint">Esperando procesamiento</span></article>
+        <article><small>PRIORIDAD #1</small><strong id="v29TopRisk">—</strong><span id="v29TopRiskHint">Sin gerencia prioritaria</span></article>
+        <article><small>CALIDAD DE DATOS</small><strong id="v29Quality">—</strong><span>confianza del procesamiento</span></article>
+        <article><small>PERIODO ACTIVO</small><strong id="v29Period">—</strong><span id="v29Source">Tiempo real</span></article>
+      </div>
+    </section>
     <div class="v27-realtime-hero">
       <div class="v27-realtime-title"><span>LIVE ANALYTICS · DATOS LOCALES</span><h2 id="v27RealtimeTitle">Carga y procesa los Excel para iniciar</h2><p id="v27RealtimeText">Aquí verás inmediatamente el resultado completo del archivo procesado, antes de publicarlo.</p></div>
       <div class="v27-live-actions"><div class="v27-live-chip"><i></i><span id="v27LiveStatus">Esperando procesamiento</span></div><button data-admin-only="true" data-view="upload" type="button">⇩ Cargar reportes</button><button id="v27PublishQuick" data-admin-only="true" type="button">☁ Publicar resultado</button></div>
@@ -236,6 +253,13 @@
       </div>
       <div id="v28MonthStatus" class="v28-month-status">Consultando disponibilidad mensual…</div>
     </section>
+<section class="v29-cloud-intelligence">
+  <div class="v29-section-head"><div><span>ACTIVIDAD Y CONTEXTO</span><h3>Qué está pasando en REPORT.IA</h3></div><button id="v29RefreshActivity" type="button">↻ Actualizar</button></div>
+  <div class="v29-cloud-grid">
+    <article class="v29-activity-card"><div id="v29ActivityFeed" class="v29-activity-feed"><div class="empty">La actividad aparecerá cuando existan publicaciones o incidencias.</div></div></article>
+    <article class="v29-focus-card"><small>FOCO DEL PERIODO</small><h3 id="v29CloudFocus">Sin publicación seleccionada</h3><p id="v29CloudFocusText">Selecciona un mes para revisar su principal señal ejecutiva.</p><button data-view="semaphore" type="button">Abrir semáforo →</button></article>
+  </div>
+</section>
 <section class="v26-home" id="v26Home">
   <div class="v26-hero">
     <div>
@@ -625,9 +649,11 @@
 <link rel="stylesheet" href="v26.css">
 <link rel="stylesheet" href="v27.css">
 <link rel="stylesheet" href="v28.css">
+<link rel="stylesheet" href="v29.css">
 <script src="v26.js"></script>
 <script src="v27.js"></script>
 <script src="v28.js"></script>
+<script src="v29.js"></script>
 
 <div class="metric-modal" id="metricModal" aria-hidden="true">
   <div class="metric-modal-backdrop" data-close-metric></div>
