@@ -40,6 +40,8 @@ function doGet(e) {
   else if (accion === 'v34_general') resultado = v34General(p.token);
   else if (accion === 'v34_sessions') resultado = v34Sesiones(p.token);
   else if (accion === 'v34_heartbeat') resultado = v34Heartbeat(p.token, p.sessionId);
+  else if (accion === 'v38_notifications') resultado = v38Notificaciones(p.token);
+  else if (accion === 'v38_thread') resultado = v38Hilo(p.token, p.module, p.snapshotId, p.region, p.hierarchy);
   else resultado = { ok: false, mensaje: 'Acción no válida.' };
 
   return responder(resultado, callback);
@@ -66,6 +68,10 @@ function doPost(e) {
       resultado = v34GuardarPlan(p.token, p.module, p.snapshotId, p.region, p.hierarchy, p.texto);
     } else if (accion === 'v34_logout') {
       resultado = v34Logout(p.token, p.sessionId);
+    } else if (accion === 'v38_note') {
+      resultado = v38GuardarNota(p.token, p.module, p.snapshotId, p.region, p.hierarchy, p.texto);
+    } else if (accion === 'v38_mark_read') {
+      resultado = v38MarcarLeidas(p.token, p.ids);
     } else {
       resultado = { ok: false, mensaje: 'Acción POST no válida.' };
     }
@@ -599,3 +605,53 @@ function v34ObtenerSnapshot(token,module,snapshotId){try{const s=exigirSesion(to
 function v34Historial(token,module){try{const s=exigirSesion(token);if(!v34EsAdmin(s))return{ok:false,mensaje:'Solo el administrador puede consultar historial.'};module=v34Modulo(module);const sh=v34AsegurarModulo(module);v34Prune(sh);const tz=Session.getScriptTimeZone()||'America/Mexico_City';const items=v34Snapshots(sh).map(x=>({snapshotId:x.snapshotId,fecha:x.fecha instanceof Date?Utilities.formatDate(x.fecha,tz,'dd/MM/yyyy HH:mm:ss'):String(x.fecha),usuario:x.usuario,regiones:x.regiones,archivo:x.archivo}));return{ok:true,items:items};}catch(e){return{ok:false,mensaje:String(e)}}}
 function v34General(token){try{const s=exigirSesion(token),modules={};['gastos','costos','productividad'].forEach(m=>{const p=v34LeerSnapshot(m,'');modules[m]=p?{disponible:true,meta:p.meta,data:v34FiltrarData(p.data,s)}:{disponible:false};});v34LogActividad(s,'CONSULTA','general','','Vista consolidada');return{ok:true,modules:modules};}catch(e){return{ok:false,mensaje:String(e)}}}
 function v34GuardarPlan(token,module,snapshotId,region,hierarchy,texto){try{const s=exigirSesion(token);module=v34Modulo(module);const txt=String(texto||'').trim();if(!txt)return{ok:false,mensaje:'El plan de mejora es obligatorio.'};const reg=v34Region(region);if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso a esa región.'};const pack=v34LeerSnapshot(module,snapshotId);if(!pack)return{ok:false,mensaje:'No se encontró la publicación indicada.'};const sh=v34AsegurarPlanes();const id=Utilities.getUuid();sh.appendRow([id,new Date(),snapshotId,module,reg,String(hierarchy||''),txt,s.usuario,s.tipo]);v34LogActividad(s,'PLAN_MEJORA',module,snapshotId,String(hierarchy||''));return{ok:true,id:id,mensaje:'Plan de mejora guardado.'};}catch(e){return{ok:false,mensaje:String(e)}}}
+
+
+/* =========================================================
+   REPORT.IA RCV v38 · NOTAS, RESPUESTAS Y NOTIFICACIONES
+   ========================================================= */
+const V38_NOTAS = 'V38_NOTAS_INCIDENCIAS';
+function v38AsegurarNotas(){
+  const ss=SpreadsheetApp.openById(ID_SHEET_NUBE);let sh=ss.getSheetByName(V38_NOTAS);if(!sh)sh=ss.insertSheet(V38_NOTAS);
+  if(sh.getLastRow()===0){sh.getRange(1,1,1,12).setValues([['ID','FECHA','SNAPSHOT_ID','MODULO','REGION','JERARQUIA','TEXTO','USUARIO','TIPO','LEIDO_POR','ESTADO','TIPO_MENSAJE']]);sh.setFrozenRows(1);}
+  return sh;
+}
+function v38Fecha(d){const tz=Session.getScriptTimeZone()||'America/Mexico_City';return d instanceof Date?Utilities.formatDate(d,tz,'dd/MM/yyyy HH:mm:ss'):String(d||'');}
+function v38PuedeVerNota(s,row){const tipo=v34Norm(s.tipo),region=v34Region(s.region||s.tipo),notaRegion=v34Region(row[4]);if(tipo==='ADMINISTRADOR')return true;return notaRegion===region;}
+function v38LeidaPor(raw,user){const u=v34Norm(user);return String(raw||'').split('|').map(v=>v34Norm(v)).filter(Boolean).includes(u);}
+function v38GuardarNota(token,module,snapshotId,region,hierarchy,texto){
+  try{
+    const s=exigirSesion(token);module=v34Modulo(module);const txt=String(texto||'').trim();if(!txt)return{ok:false,mensaje:'El mensaje no puede estar vacío.'};
+    const reg=v34Region(region);if(!reg||reg==='TODAS LAS REGIONES')return{ok:false,mensaje:'Selecciona una región específica para enviar la nota.'};
+    if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso a esa región.'};
+    const pack=v34LeerSnapshot(module,snapshotId);if(!pack)return{ok:false,mensaje:'No se encontró la publicación indicada.'};
+    const id=Utilities.getUuid(),tipoMsg=v34EsAdmin(s)?'NOTA_ADMIN':'RESPUESTA_USUARIO';const sh=v38AsegurarNotas();
+    sh.appendRow([id,new Date(),String(snapshotId||''),module,reg,String(hierarchy||''),txt,s.usuario,s.tipo,'','ABIERTO',tipoMsg]);
+    v34LogActividad(s,v34EsAdmin(s)?'NOTA_INCIDENCIA':'RESPUESTA_INCIDENCIA',module,snapshotId,String(hierarchy||''));
+    return{ok:true,id:id,mensaje:'Mensaje guardado.'};
+  }catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v38Hilo(token,module,snapshotId,region,hierarchy){
+  try{
+    const s=exigirSesion(token);module=v34Modulo(module);const reg=v34Region(region);if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso a esa región.'};
+    const sh=v38AsegurarNotas();if(sh.getLastRow()<2)return{ok:true,items:[]};const vals=sh.getRange(2,1,sh.getLastRow()-1,12).getValues();
+    const items=vals.filter(r=>String(r[2])===String(snapshotId)&&String(r[3])===module&&v34Region(r[4])===reg&&String(r[5])===String(hierarchy)&&v38PuedeVerNota(s,r)).map(r=>({id:String(r[0]),fecha:v38Fecha(r[1]),snapshotId:String(r[2]),module:String(r[3]),region:v34Region(r[4]),hierarchy:String(r[5]),texto:String(r[6]),usuario:String(r[7]),tipo:String(r[8]),unread:v34Norm(r[7])!==v34Norm(s.usuario)&&!v38LeidaPor(r[9],s.usuario),tipoMensaje:String(r[11])}));
+    return{ok:true,items:items};
+  }catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v38Notificaciones(token){
+  try{
+    const s=exigirSesion(token),sh=v38AsegurarNotas();if(sh.getLastRow()<2)return{ok:true,unread:0,items:[]};
+    const start=Math.max(2,sh.getLastRow()-499),vals=sh.getRange(start,1,sh.getLastRow()-start+1,12).getValues();
+    const items=vals.filter(r=>v38PuedeVerNota(s,r)&&v34Norm(r[7])!==v34Norm(s.usuario)).filter(r=>v34EsAdmin(s)?v34Norm(r[8])!=='ADMINISTRADOR':v34Norm(r[8])==='ADMINISTRADOR').map(r=>({id:String(r[0]),fecha:v38Fecha(r[1]),snapshotId:String(r[2]),module:String(r[3]),region:v34Region(r[4]),hierarchy:String(r[5]),texto:String(r[6]),usuario:String(r[7]),tipo:String(r[8]),unread:!v38LeidaPor(r[9],s.usuario),tipoMensaje:String(r[11])})).reverse().slice(0,60);
+    return{ok:true,unread:items.filter(x=>x.unread).length,items:items};
+  }catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v38MarcarLeidas(token,idsText){
+  try{
+    const s=exigirSesion(token),ids=new Set(String(idsText||'').split(',').map(v=>v.trim()).filter(Boolean));if(!ids.size)return{ok:true};const sh=v38AsegurarNotas();if(sh.getLastRow()<2)return{ok:true};
+    const vals=sh.getRange(2,1,sh.getLastRow()-1,12).getValues(),user=v34Norm(s.usuario);let changed=0;
+    vals.forEach((r,i)=>{if(!ids.has(String(r[0]))||!v38PuedeVerNota(s,r)||v34Norm(r[7])===user)return;const cur=String(r[9]||''),arr=cur.split('|').map(v=>v34Norm(v)).filter(Boolean);if(!arr.includes(user)){arr.push(user);sh.getRange(i+2,10).setValue(arr.join('|'));changed++;}});
+    return{ok:true,changed:changed};
+  }catch(e){return{ok:false,mensaje:String(e)}}
+}
