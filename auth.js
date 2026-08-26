@@ -49,6 +49,8 @@
   }
 
   function logout(){
+    const s=window.REPORTIA_SESSION;
+    if(s?.token){ try{ fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams({accion:'v34_logout',token:s.token,sessionId:s.sessionId||''})}); }catch(_){} }
     sessionStorage.removeItem(SESSION_KEY);
     location.reload();
   }
@@ -77,7 +79,7 @@
     try{
       const data=await jsonp({accion:"login",usuario,contrasena});
       if(!data?.ok) throw new Error(data?.mensaje||"Usuario o contraseña incorrectos.");
-      const session={usuario:data.usuario,tipo:String(data.tipo||"USUARIO").toUpperCase(),token:String(data.token||""),loginAt:new Date().toISOString()};
+      const session={usuario:data.usuario,tipo:String(data.tipo||"USUARIO").toUpperCase(),region:String(data.region||data.tipo||"").toUpperCase(),sessionId:String(data.sessionId||""),token:String(data.token||""),loginAt:new Date().toISOString()};
       sessionStorage.setItem(SESSION_KEY,JSON.stringify(session));
       applySession(session);
     }catch(err){msg.textContent=err.message;msg.className="secure-login-message error";}
@@ -91,4 +93,7 @@
 
   let session=null;try{session=JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null")}catch(_){}
   if(session?.usuario&&session?.token) applySession(session); else {sessionStorage.removeItem(SESSION_KEY);loadUsers();}
+
+  setInterval(()=>{ const s=window.REPORTIA_SESSION; if(!s?.token)return; jsonp({accion:'v34_heartbeat',token:s.token,sessionId:s.sessionId||''}).catch(()=>{}); },60000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){const s=window.REPORTIA_SESSION;if(s?.token)jsonp({accion:'v34_heartbeat',token:s.token,sessionId:s.sessionId||''}).catch(()=>{});}});
 })();
