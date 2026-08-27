@@ -116,3 +116,5 @@ body.role-user [data-admin-only="true"]{display:none!important}
 body.role-user .quick-nav button[data-action="downloadAll"]{display:none}
 
 @media(max-width:900px){.incident-summary{grid-template-columns:1fr 1fr}.cloud-status-badge{max-width:150px}.view[data-view="home"] .grid-top{grid-template-columns:1fr}}
+
+.copilot-context{padding:7px 11px;background:#eef2f6;border-bottom:1px solid #dbe3ef;color:#475569;font-size:8px;font-weight:750;line-height:1.35}

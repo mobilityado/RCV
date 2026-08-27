@@ -1359,16 +1359,37 @@ async function validateAgainstFinal(){
   }catch(e){console.error(e);setStatus("validationStatus","No fue posible validar el ZIP: "+e.message,"error");}
 }
 
+function copilotRegionalContext(){
+  try{return typeof window.REPORTIA_RCV_CONTEXT==="function"?window.REPORTIA_RCV_CONTEXT():null}catch(_){return null}
+}
+function syncCopilotContext(){
+  const el=$("copilotContext");if(!el)return;
+  const c=copilotRegionalContext();
+  el.textContent=c?`Analizando: ${c.moduleLabel} · ${c.region} · ${c.source} · ${c.period}`:"Contexto: abre Gastos, Costos o Productividad y selecciona la fuente que deseas analizar.";
+}
 function answer(q){
-  if(!state.model)return "Todavía no hay información procesada.";
-  const t=modelTotals(),l=q.toLowerCase();
+  const c=copilotRegionalContext(),l=q.toLowerCase();
+  syncCopilotContext();
+  if(c){
+    const fmt=n=>new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:2}).format(Number(n)||0);
+    const top=c.topRed?.[0], impact=c.topImpact?.[0];
+    if(/resumen/.test(l))return `${c.moduleLabel} · ${c.region} · ${c.period} · ${c.source}. Real ${fmt(c.real)}, presupuesto ${fmt(c.budget)}. Hay ${c.redCount} jerarquías en rojo y ${c.greenCount} en verde de ${c.totalUnits} analizadas.${top?` La principal desviación es ${top.name} por ${fmt(top.deviation)}.`:" No hay desviaciones rojas en el filtro actual."}`;
+    if(/riesgo/.test(l))return top?`El principal riesgo del filtro actual es ${top.name}: desviación de ${fmt(top.deviation)}, con ${top.streak||0} mes(es) consecutivos en rojo. Contexto: ${c.moduleLabel}, ${c.region}, ${c.period}.`:`No hay jerarquías en rojo en ${c.moduleLabel} para ${c.region} y ${c.period}.`;
+    if(/mayor gasto|gerencia.*gasto|mayor costo|mayor impacto/.test(l))return impact?`${impact.name} concentra el mayor importe del filtro actual: ${fmt(impact.real)}. Su presupuesto es ${fmt(impact.budget)} y su estado es ${impact.state==="red"?"ROJO":"VERDE"}.`:"No hay información suficiente en el filtro actual.";
+    if(/productividad|xpv/.test(l))return c.module==="productividad"?`Productividad en ${c.region}: Real ${fmt(c.real)} contra presupuesto ${fmt(c.budget)}; variación ${fmt(c.diff)} y estado ${c.state==="red"?"ROJO":"VERDE"}.`:`Actualmente estás analizando ${c.moduleLabel}. Abre Productividad para que la respuesta use esa publicación y sus filtros.`;
+    if(/80%|pareto|concentra/.test(l)){const a=c.pareto||[];return a.length?`El 80% aproximado del importe se concentra en ${a.length} jerarquía(s): ${a.map(x=>x.name).join(", ")}.`:"No hay información suficiente para calcular la concentración.";}
+    if(/junta|mencionar|discurso/.test(l))return `Para la junta: ${c.moduleLabel} en ${c.region}, periodo ${c.period}. Real ${fmt(c.real)} frente a presupuesto ${fmt(c.budget)}. ${c.redCount?`Hay ${c.redCount} jerarquías en rojo; priorizar ${top?.name||"la principal desviación"}${top?` por ${fmt(top.deviation)}`:""}.`:"No se observan jerarquías en rojo."} Fuente: ${c.source}.`;
+    return `Estoy analizando ${c.moduleLabel} · ${c.region} · ${c.source} · ${c.period}. Puedo darte un resumen, principal riesgo, mayor impacto, concentración 80/20 o puntos para la junta.`;
+  }
+  if(!state.model)return "No encuentro datos en el contexto actual. Abre Gastos, Costos o Productividad y selecciona Procesado en Real o Nube Publicada; usaré exactamente esa vista.";
+  const t=modelTotals();
   if(/resumen/.test(l))return `Periodo ${state.model.month} 2026: costo ${money(t.cost2026)}, gasto ${money(t.expense2026)}, cumplimiento XPV ${(t.xpCompliance*100).toFixed(2)}% y ${new Set(t.deviations.map(d=>d.manager)).size} gerencias con alertas.`;
   if(/riesgo/.test(l)){const d=t.deviations[0];return d?`La mayor desviación es ${d.type} en ${d.manager}: ${(d.pct*100).toFixed(2)}% respecto a 2025.`:"No hay desviaciones mayores al umbral configurado.";}
   if(/mayor gasto|gerencia.*gasto/.test(l)){const x=state.model.expenseSummary.slice().sort((a,b)=>Math.abs(b.y2026)-Math.abs(a.y2026))[0];return `${x.manager} registra el mayor gasto 2026: ${money(x.y2026)}.`;}
   if(/productividad|xpv/.test(l))return `XPV real ${money(t.xpReal)} contra presupuesto ${money(t.xpBudget)}; cumplimiento ${(t.xpCompliance*100).toFixed(2)}%.`;
   if(/junta|mencionar|discurso/.test(l))return prepareSpeech();
   if(/80%|pareto|concentra/.test(l))return paretoAnswer();
-  return "Puedo responder sobre resumen, principal riesgo, mayor gasto y productividad XPV usando el modelo procesado.";
+  return "Puedo responder sobre resumen, principal riesgo, mayor gasto y productividad XPV.";
 }
 
 
@@ -1595,8 +1616,8 @@ document.addEventListener("click",async e=>{
     if(exec.dataset.exec==="recommendations")alert($("execActions").innerText||"Sin recomendaciones.");
   }
   if(e.target.closest("#welcomeAlerts"))$("alertsDrawer")?.classList.add("open");
-  if(e.target.closest("#welcomeCopilot"))$("copilot")?.classList.add("open");
-  if(e.target.closest("#copilotToggle"))$("copilot").classList.add("open");
+  if(e.target.closest("#welcomeCopilot")){$("copilot")?.classList.add("open");syncCopilotContext();}
+  if(e.target.closest("#copilotToggle")){$("copilot").classList.add("open");syncCopilotContext();}
   if(e.target.closest("#copilotClose"))$("copilot").classList.remove("open");
   const prompt=e.target.closest(".prompts button");if(prompt){$("question").value=prompt.textContent;$("askBtn").click();}
   if(e.target.closest("#askBtn")){const q=$("question").value.trim();if(!q)return;$("chat").insertAdjacentHTML("beforeend",`<div class="user-msg">${q}</div><div class="bot">${answer(q)}</div>`);$("question").value="";$("chat").scrollTop=$("chat").scrollHeight;}
