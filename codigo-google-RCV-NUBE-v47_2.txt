@@ -13,7 +13,7 @@ function doGet(e) {
   e = e || { parameter: {} };
   const p = e.parameter || {};
   const accion = String(p.accion || '').trim().toLowerCase();
-  const callback = String(p.callback || '').trim();
+  const callback = String(p.callback || '').trim(); 
   let resultado;
 
   if (!accion) {
