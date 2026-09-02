@@ -1,0 +1,16 @@
+REPORT.IA RCV v42 · CENTRO DE CONTROL EJECUTIVO
+
+MEJORAS
+- KPIs ejecutivos por región: Real, Presupuesto, Variación, uso/cumplimiento y número de incidencias rojas.
+- Top 5 desviaciones con acceso directo a la unidad.
+- Gráfica de evolución mensual Real vs Presupuesto.
+- Buscador en el detalle completo de jerarquía, compatible con filtros Todos/Rojos/Verdes.
+- Centro de notificaciones con estado de seguimiento.
+- Estados de incidencia: PENDIENTE, EN SEGUIMIENTO y ATENDIDA (administrador).
+- Pestaña General convertida en Centro de Control Regional con comparativo por región.
+- Se conserva Local / Nube, histórico de 30 días, regiones, notas y conexiones.
+
+IMPORTANTE
+Esta versión SÍ requiere actualizar Google Apps Script con codigo-google-RCV-NUBE-v42.txt y volver a implementar la aplicación web.
+Después reemplaza todos los archivos del repositorio por los de esta carpeta.
+La interfaz debe mostrar: RCV · CONTROL REGIONAL v42.
