@@ -1,0 +1,613 @@
+(() => {
+  'use strict';
+  const API_URL=String(window.REPORTIA_CONFIG?.API_URL||'').trim();
+  const $=id=>document.getElementById(id);
+  const MODULES={gastos:{label:'Gastos',icon:'▤'},costos:{label:'Costos',icon:'$'},productividad:{label:'Productividad',icon:'↗'},general:{label:'General',icon:'◎'}};
+  const S={session:null,current:'menu',module:null,local:null,cloud:null,cloudMeta:null,history:[],adminRegion:'',adminSnapshot:'',adminSource:'cloud',notificationTimer:null,periodYear:'',periodFrom:'',periodTo:'',compareYears:false,compareBase:'2025',compareTarget:'2026'};
+  const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+  const upper=s=>norm(s).toUpperCase();
+  const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:2}).format(Number(n)||0);
+  const num=v=>{if(typeof v==='number')return Number.isFinite(v)?v:0;let s=String(v??'').trim().replace(/\$/g,'').replace(/\s/g,'');if(!s)return 0;if(s.includes(',')&&s.includes('.'))s=s.replace(/,/g,'');else if(s.includes(',')&&!s.includes('.')){const p=s.split(',');s=(p[p.length-1].length===2)?p.join('.'):p.join('');}else s=s.replace(/,/g,'');const n=Number(s);return Number.isFinite(n)?n:0};
+  const cleanRegion=s=>upper(s).replace(/^RCV\.?\s*REGION\s*/,'').replace(/^REGION\s*/,'').trim();
+  // La REGION operativa se obtiene de Jerarquía Sublibro. El encabezado
+  // Des Área Gestión JDE queda como respaldo cuando el sublibro no permite
+  // reconocer una región de forma inequívoca.
+  const REGION_ALIASES=[
+    ['COATZACOALCOS',['COATZACOALCOS','COATZAC','COATZ']],
+    ['VILLAHERMOSA',['VILLAHERMOSA','VILLA HERMOSA']],
+    ['TUXTLA',['TUXTLA GUTIERREZ','TUXTLA']],
+    ['TAPACHULA',['TAPACHULA']],
+    ['VERACRUZ',['VERACRUZ']],
+    ['OAXACA',['OAXACA']],
+    ['MERIDA',['MERIDA']],
+    ['CANCUN',['CANCUN']],
+    ['CAMPECHE',['CAMPECHE']],
+    ['CHETUMAL',['CHETUMAL']]
+  ];
+  function regionFromSubledger(value,fallback=''){
+    const u=upper(value);
+    for(const [region,aliases] of REGION_ALIASES){
+      if(aliases.some(a=>u.includes(a)))return region;
+    }
+    // Abreviaturas que sólo se usan cuando aparecen como token independiente.
+    if(/(^|[ ._\-])VH([ ._\-]|$)/.test(u) && !/[\-]CO[\-]/.test(u))return 'VILLAHERMOSA';
+    if(/(^|[ ._\-])TGZ([ ._\-]|$)/.test(u))return 'TUXTLA';
+    return cleanRegion(fallback);
+  }
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  function jsonp(params){return new Promise((resolve,reject)=>{const cb='__rcv34_'+Date.now()+'_'+Math.random().toString(36).slice(2);const sc=document.createElement('script');const q=new URLSearchParams({...params,callback:cb});const timer=setTimeout(()=>{cleanup();reject(new Error('Tiempo de espera agotado.'));},18000);function cleanup(){clearTimeout(timer);try{delete window[cb]}catch(_){}sc.remove()}window[cb]=d=>{cleanup();resolve(d)};sc.onerror=()=>{cleanup();reject(new Error('No fue posible conectar con la nube.'))};sc.src=API_URL+(API_URL.includes('?')?'&':'?')+q;document.head.appendChild(sc)})}
+  async function post(params){await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(params)});return true}
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand">REPORT.IA<small>RCV · CONTROL REGIONAL v48.3</small></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v48.3</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main></div></div><div id="r34Detail" class="rcv34-detail"><div class="rcv34-detail-card"><div class="rcv34-detail-head"><div><h3 id="r34DetailTitle">Detalle</h3><p id="r34DetailSub"></p></div><button class="rcv34-close" id="r34DetailClose">×</button></div><div id="r34DetailBody"></div></div></div>`);
+    document.querySelectorAll('[data-r34]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.r34)));const mobileMenu=$('r483MobileMenu'),overlay=$('r483NavOverlay'),shell=document.querySelector('.rcv34-shell');const closeMobileNav=()=>shell?.classList.remove('r483-nav-open');if(mobileMenu)mobileMenu.onclick=()=>shell?.classList.toggle('r483-nav-open');if(overlay)overlay.onclick=closeMobileNav;document.querySelectorAll('[data-r34]').forEach(b=>b.addEventListener('click',closeMobileNav));
+    $('r34Logout').addEventListener('click',()=>document.getElementById('logoutBtn')?.click());$('r482CompareTop').onclick=()=>{S.compareYears=!S.compareYears;const raw=(S.adminSource==='local'?S.local:S.cloud)?.rows||[];const yrs=availableYears(filterRegion(raw));if(yrs.length>=2){S.compareBase=yrs[yrs.length-2];S.compareTarget=yrs[yrs.length-1]}renderCurrentSource()};$('r34DetailClose').onclick=()=>$('r34Detail').classList.remove('open');$('r34Detail').addEventListener('click',e=>{if(e.target===$('r34Detail'))$('r34Detail').classList.remove('open')});
+  }
+  function applyResponsiveMode(){
+    const mobile=window.matchMedia('(max-width: 820px)').matches;
+    document.documentElement.classList.toggle('r483-mobile',mobile);
+  }
+  applyResponsiveMode();window.addEventListener('resize',applyResponsiveMode);
+  function sessionRegion(s){if(upper(s.tipo)==='ADMINISTRADOR')return 'TODAS LAS REGIONES';return cleanRegion(s.region||s.tipo||'SIN REGIÓN')}
+  function navigate(view){S.current=view;document.querySelectorAll('[data-r34]').forEach(b=>b.classList.toggle('active',b.dataset.r34===view));if(view==='menu')return renderMenu();if(view==='sesiones')return renderSessions();if(view==='notificaciones')return renderNotifications();return renderModule(view)}
+  async function renderMenu(){
+    S.module=null;$('r34Title').textContent='Inicio Ejecutivo';$('r34Subtitle').textContent=upper(S.session.tipo)==='ADMINISTRADOR'?'Acceso rápido a módulos y resumen de gestión regional.':'Acceso rápido a tus módulos y asuntos que requieren atención.';
+    const cards=['gastos','costos','productividad','general'].map(k=>`<article class="rcv34-menu-card r472-module-card" data-open="${k}" data-module-card="${k}"><div class="r472-card-top"><div class="ico">${MODULES[k].icon}</div><span id="r472Status-${k}" class="r472-module-status neutral">${k==='general'?'CONSOLIDADO':'CONSULTANDO'}</span></div><h3>${MODULES[k].label}</h3><p>${k==='general'?'Vista consolidada regional.':'Consulta real, presupuesto, semáforo y detalle.'}</p><div class="status">ABRIR MÓDULO →</div></article>`).join('');
+    $('r34Panel').innerHTML=`<div class="r472-quick"><div class="r472-quick-head"><div><span>ACCESO RÁPIDO</span><h2>¿Qué quieres consultar?</h2></div><small>Selecciona un módulo</small></div><div class="rcv34-menu-grid r472-module-grid">${cards}</div></div><section class="r46-home"><div class="r46-home-head"><div><span>RESUMEN DE HOY</span><h2>Centro de gestión regional</h2><p>Última información publicada, pendientes y cambios recientes.</p></div><button id="r46RefreshHome">↻ Actualizar</button></div><div id="r46HomeKpis" class="r46-home-kpis"><article><small>INCIDENCIAS ABIERTAS</small><b>…</b></article><article><small>SIN LEER</small><b>…</b></article><article><small>VENCIDAS</small><b>…</b></article><article><small>REINCIDENTES</small><b>…</b></article></div><div class="r46-home-grid"><article class="r46-panel"><div class="r46-panel-head"><h3>⚠ Atención prioritaria</h3><span>TOP</span></div><div id="r46Priorities"><p class="muted">Cargando…</p></div></article><article class="r46-panel"><div class="r46-panel-head"><h3>↕ Qué cambió</h3><span>ÚLTIMA PUBLICACIÓN</span></div><div id="r46Changes"><p class="muted">Comparando publicaciones…</p></div></article></div><article class="r46-panel" id="r46HealthPanel"><div class="r46-panel-head"><h3>◎ Salud regional</h3><span>VISIÓN GENERAL</span></div><div id="r46Health"><p class="muted">Cargando regiones…</p></div></article></section>`;
+    document.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>navigate(x.dataset.open));$('r46RefreshHome').onclick=()=>renderMenu();
+    await loadExecutiveHome();
+  }
+  function status(module,real,budget){if(module==='productividad')return real>=budget?'green':'red';const ar=Math.abs(real),ab=Math.abs(budget);return ar<=ab?'green':'red'}
+  function periodLabel(rows){const ps=[...new Set(rows.map(r=>r.period).filter(Boolean))];return ps.length?`${ps[0]}${ps.length>1?' – '+ps[ps.length-1]:''}`:'Periodo del archivo'}
+  function totals(rows,module){const real=rows.reduce((a,r)=>a+(Number(r.real)||0),0),budget=rows.reduce((a,r)=>a+(Number(r.budget)||0),0);return{real,budget,diff:module==='productividad'?real-budget:Math.abs(real)-Math.abs(budget),st:status(module,real,budget)}}
+  function findHeader(arr,module){let best=-1,score=-1;for(let i=0;i<Math.min(50,arr.length);i++){const rr=(arr[i]||[]).map(upper);const toks=module==='productividad'?['JERARQUIA','REAL','PRESUPUESTO']:['CUENTA','JERARQUIA','PERIODO','REAL','PRESUPUESTO'];const s=toks.reduce((n,t)=>n+(rr.some(x=>x.includes(t))?1:0),0);if(s>score){score=s;best=i}}return best}
+  function idx(headers,alts){const hs=headers.map(upper);for(const a of alts){let i=hs.findIndex(x=>x===a);if(i>=0)return i;i=hs.findIndex(x=>x.includes(a));if(i>=0)return i}return-1}
+  function inferRegion(arr){for(let i=0;i<Math.min(12,arr.length);i++){const row=arr[i]||[];for(let j=0;j<row.length;j++){if(upper(row[j]).includes('AREA GESTION JDE')||upper(row[j]).includes('ÁREA GESTIÓN JDE')){for(let k=j+1;k<row.length;k++)if(norm(row[k]))return cleanRegion(row[k]);}}}return''}
+  const MONTH_LABELS={1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
+  function inferYearForColumn(arr,hr,col){
+    if(col<0)return'';
+    for(let i=hr-1;i>=Math.max(0,hr-5);i--){const v=(arr[i]||[])[col];if(v instanceof Date&&!isNaN(v))return String(v.getFullYear());const n=Number(v);if(Number.isInteger(n)&&n>=2000&&n<=2100)return String(n);const m=String(v??'').match(/\b(20\d{2})\b/);if(m)return m[1]}
+    return'';
+  }
+  function inferFilePeriod(arr,hr){
+    for(let i=0;i<Math.min(hr,12);i++)for(const v of (arr[i]||[])){if(v instanceof Date&&!isNaN(v))return MONTH_LABELS[v.getMonth()+1]||''}
+    return'';
+  }
+  function rowYears(r){return r?.valuesByYear?Object.keys(r.valuesByYear).filter(Boolean):String(r?.year||'')?[String(r.year)]:[]}
+  function availableYears(rows){return [...new Set((rows||[]).flatMap(rowYears))].filter(y=>/^20\d{2}$/.test(String(y))).sort()}
+  function latestYear(rows){const ys=availableYears(rows);return ys.length?ys[ys.length-1]:''}
+  function filterPeriod(rows){
+    const y=String(S.periodYear||latestYear(rows)||''),from=Number(S.periodFrom||0),to=Number(S.periodTo||0),out=[];
+    for(const r of (rows||[])){
+      let q=r;
+      if(r?.valuesByYear){
+        const v=r.valuesByYear[y];if(!v)continue;
+        q={...r,year:y,real:Number(v.real)||0,budget:Number(v.budget)||0};
+      }else if(y&&String(r.year||'')&&String(r.year)!==y)continue;
+      const m=monthOrder(q.period);if(from&&m!==99&&m<from)continue;if(to&&m!==99&&m>to)continue;out.push(q);
+    }
+    return out;
+  }
+  function yearRows(rows,year){
+    const prev=S.periodYear;S.periodYear=String(year||'');const out=filterPeriod(rows);S.periodYear=prev;return out;
+  }
+  function yoyPct(a,b){a=Number(a)||0;b=Number(b)||0;if(!a)return b?100:0;return((b-a)/Math.abs(a))*100}
+  function yoyLabel(a,b){const p=yoyPct(a,b);return `${p>=0?'+':''}${p.toFixed(1)}%`}
+  function compareTotals(rows,module){
+    const a=totals(yearRows(rows,S.compareBase),module),b=totals(yearRows(rows,S.compareTarget),module);
+    return {base:a,target:b,realPct:yoyPct(a.real,b.real),budgetPct:yoyPct(a.budget,b.budget),diffPct:yoyPct(a.diff,b.diff)}
+  }
+  function periodControls(rows){
+    const years=availableYears(rows),months=[...new Set((rows||[]).map(r=>monthOrder(r.period)).filter(m=>m>=1&&m<=12))].sort((a,b)=>a-b);
+    if(!years.length&&!months.length)return'';
+    const selected=String(S.periodYear||latestYear(rows)||''),yearOpts=years.map(y=>`<option value="${esc(y)}" ${selected===y?'selected':''}>${esc(y)}</option>`).join('');
+    const compareOpts=years.map(y=>`<option value="${esc(y)}">${esc(y)}</option>`).join('');
+    const monthOpts=(value,allLabel)=>`<option value="">${allLabel}</option>`+months.map(m=>`<option value="${m}" ${String(value)===String(m)?'selected':''}>${MONTH_LABELS[m]}</option>`).join('');
+    return `<article class="rcv34-card rcv43-period-card rcv481-period"><div class="rcv43-period-title"><div><b>Análisis del periodo</b><span>Consulta un año o activa la comparativa interanual usando el mismo rango de meses.</span></div><div class="rcv481-mode"><button data-r481-mode="single" class="${!S.compareYears?'active':''}">Año individual</button><button data-r481-mode="compare" class="${S.compareYears?'active':''}">⇄ COMPARAR 2025 / 2026</button></div></div><div class="rcv43-period-grid ${S.compareYears?'is-compare':''}">${S.compareYears?`<label>Año base<select id="r481Base">${compareOpts.replace(`value="${S.compareBase}"`,`value="${S.compareBase}" selected`)}</select></label><label>Comparar contra<select id="r481Target">${compareOpts.replace(`value="${S.compareTarget}"`,`value="${S.compareTarget}" selected`)}</select></label>`:`<label>Año<select id="r43Year">${yearOpts}</select></label>`}<label>Desde<select id="r43From">${monthOpts(S.periodFrom,'Inicio')}</select></label><label>Hasta<select id="r43To">${monthOpts(S.periodTo,'Fin')}</select></label><div class="rcv43-period-hint"><b>${S.compareYears?`${S.compareBase} vs ${S.compareTarget}`:periodRangeLabel()}</b><small>${S.compareYears?'COMPARATIVA INTERANUAL ACTIVA':'Vista de un solo año'}</small></div></div></article>`;
+  }
+  function periodRangeLabel(){const f=Number(S.periodFrom||0),t=Number(S.periodTo||0);if(!f&&!t)return S.periodYear?`Año ${S.periodYear} · acumulado completo`:'Año más reciente · acumulado completo';if(f&&t&&f===t)return `${MONTH_LABELS[f]||''}${S.periodYear?' '+S.periodYear:''}`;return `${f?MONTH_LABELS[f]:'Inicio'} – ${t?MONTH_LABELS[t]:'Fin'}${S.periodYear?' · '+S.periodYear:''}`}
+  function bindPeriodControls(){
+    const y=$('r43Year'),f=$('r43From'),t=$('r43To'),base=$('r481Base'),target=$('r481Target');
+    const rerender=()=>{S.periodYear=y?y.value:S.periodYear;S.periodFrom=f?f.value:'';S.periodTo=t?t.value:'';if(base)S.compareBase=base.value;if(target)S.compareTarget=target.value;renderCurrentSource()};
+    if(y)y.onchange=rerender;if(f)f.onchange=rerender;if(t)t.onchange=rerender;if(base)base.onchange=rerender;if(target)target.onchange=rerender;
+    document.querySelectorAll('[data-r481-mode]').forEach(b=>b.onclick=()=>{S.compareYears=b.dataset.r481Mode==='compare';const yrs=availableYears(filterRegion((S.adminSource==='local'?S.local:S.cloud)||{rows:[]}).rows||[]);if(yrs.length>=2){S.compareBase=yrs[yrs.length-2];S.compareTarget=yrs[yrs.length-1]}renderCurrentSource()});
+  }
+  function monthComparison(regionRows,module){
+    const m=Number(S.periodFrom||0),to=Number(S.periodTo||0);if(!m||m!==to||m<=1)return'';
+    const cur=totals(filterPeriod(regionRows),module),prev=totals(regionRows.filter(r=>monthOrder(r.period)===m-1&&(!S.periodYear||!r.year||String(r.year)===String(S.periodYear))),module);
+    if(!prev.real)return'';const change=((Math.abs(cur.real)-Math.abs(prev.real))/Math.abs(prev.real))*100;const better=module==='productividad'?change>=0:change<=0;
+    return `<span class="rcv43-month-compare ${better?'better':'worse'}">${change>=0?'▲':'▼'} ${Math.abs(change).toFixed(1)}% vs ${MONTH_LABELS[m-1]}</span>`;
+  }
+  function redStreak(rs,module){
+    const by=monthlyGroups(rs),states=by.map(([name,x])=>({m:monthOrder(name),st:totals(x,module).st})).filter(x=>x.m<99).sort((a,b)=>a.m-b.m);let streak=0,best=0;for(const x of states){if(x.st==='red'){streak++;best=Math.max(best,streak)}else streak=0}return best;
+  }
+  async function parseFile(file,module){
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',raw:true,cellDates:true});let all=[];
+    for(const sn of wb.SheetNames){
+      const arr=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});if(!arr.length)continue;
+      const hr=findHeader(arr,module);if(hr<0)continue;
+      const h=(arr[hr]||[]).map(norm),H=h.map(upper),baseRegion=inferRegion(arr);
+      const iRegion=idx(h,['REGION','REGIÓN','AREA GESTION JDE']),iHier=idx(h,['JERARQUIA CUENTA CONTABLE','JERARQUÍA CUENTA CONTABLE']),iAccount=idx(h,['DES CUENTA CONTABLE','CUENTA CONTABLE','JERARQUIA CUENTA CONTABLE']),iSubHierarchy=idx(h,['JERARQUIA SUBLIBRO','JERARQUÍA SUBLIBRO']),iSub=idx(h,['ULTIMO NIVEL DE SL','ÚLTIMO NIVEL DE SL']),iBUCode=idx(h,['JERARQUIA UNIDAD DE NEGOCIO JDE','JERARQUÍA UNIDAD DE NEGOCIO JDE']),iBU=idx(h,['JERARQUIA UNIDAD DE NEGOCIO JDE EN','JERARQUÍA UNIDAD DE NEGOCIO JDE EN','UNIDAD DE NEGOCIO']),iPeriod=idx(h,['PERIODO','MES']);
+      const realCols=H.map((x,i)=>x.includes('REAL GESTION')?i:-1).filter(i=>i>=0),budCols=H.map((x,i)=>x.includes('PRESUPUESTO GESTION')?i:-1).filter(i=>i>=0);
+      const pairs=[];
+      if(module==='productividad'){
+        const rc=realCols[0]??-1,bc=budCols[0]??-1,yr=inferYearForColumn(arr,hr,rc)||inferYearForColumn(arr,hr,bc)||String(new Date().getFullYear());
+        if(rc>=0)pairs.push({year:yr,real:rc,budget:bc});
+      }else{
+        realCols.forEach((rc,ix)=>{
+          const nextReal=realCols[ix+1]??99999;
+          let bc=budCols.find(c=>c>rc&&c<nextReal);if(bc==null)bc=budCols[ix]??-1;
+          const yr=inferYearForColumn(arr,hr,rc)||inferYearForColumn(arr,hr,bc)||String(2025+ix);
+          pairs.push({year:yr,real:rc,budget:bc});
+        });
+      }
+      if(!pairs.length)continue;
+      const defaultPeriod=inferFilePeriod(arr,hr);
+      for(const r of arr.slice(hr+1)){
+        if(!r.some(v=>norm(v)))continue;
+        const subHierarchy=norm(iSubHierarchy>=0?r[iSubHierarchy]:'');
+        const fallbackRegion=cleanRegion(iRegion>=0?r[iRegion]:baseRegion);
+        const region=(fallbackRegion&&fallbackRegion!=='ALL')?fallbackRegion:regionFromSubledger(subHierarchy,fallbackRegion);
+        const hierarchy=norm(iHier>=0?r[iHier]:'SIN JERARQUÍA')||'SIN JERARQUÍA',account=norm(iAccount>=0?r[iAccount]:hierarchy)||hierarchy;
+        const valuesByYear={};pairs.forEach(p=>valuesByYear[p.year]={real:num(p.real>=0?r[p.real]:0),budget:num(p.budget>=0?r[p.budget]:0)});
+        const years=Object.keys(valuesByYear).sort(),latest=years[years.length-1],lv=valuesByYear[latest]||{real:0,budget:0};
+        if(!region&&Object.values(valuesByYear).every(v=>!v.real&&!v.budget))continue;
+        all.push({region:region||'SIN REGIÓN',hierarchy,account,subledger:norm(iSub>=0?r[iSub]:subHierarchy),subledgerHierarchy:subHierarchy,businessUnitCode:norm(iBUCode>=0?r[iBUCode]:''),businessUnit:norm(iBU>=0?r[iBU]:''),period:norm(iPeriod>=0?r[iPeriod]:'')||defaultPeriod,year:latest,real:lv.real,budget:lv.budget,valuesByYear,sourceSheet:sn});
+      }
+    }
+    if(!all.length)throw new Error('No se encontró una estructura reconocible en el archivo.');
+    if(module!=='productividad'){
+      const years=availableYears(all);
+      for(const yr of years){
+        const ratios=all.map(r=>r.valuesByYear?.[yr]).filter(v=>v&&Math.abs(v.real)>1&&Math.abs(v.budget)>1).slice(0,1000).map(v=>Math.abs(v.budget)/Math.abs(v.real)).sort((a,b)=>a-b);
+        const median=ratios.length?ratios[Math.floor(ratios.length/2)]:1;
+        if(median>1000)all.forEach(r=>{if(r.valuesByYear?.[yr])r.valuesByYear[yr].budget/=10000});
+      }
+      all.forEach(r=>{const y=latestYear([r]),v=r.valuesByYear?.[y];if(v){r.year=y;r.real=v.real;r.budget=v.budget}});
+    }
+    return{module,filename:file.name,uploadedLocalAt:new Date().toISOString(),rows:all,regions:[...new Set(all.map(r=>r.region))],years:availableYears(all),period:periodLabel(filterPeriod(all))}
+  }
+  function groupRows(rows,key){const m=new Map();rows.forEach(r=>{const k=typeof key==='function'?key(r):(r[key]||'SIN CLASIFICAR');if(!m.has(k))m.set(k,[]);m.get(k).push(r)});return m}
+  function managerName(r){return norm(r.manager||r.subledgerHierarchy||'SIN GERENCIA')||'SIN GERENCIA'}
+  function areaName(r){const raw=norm(r.area||r.businessUnit||r.businessUnitCode||'SIN ÁREA');const clean=raw.replace(/^\d+(?:\.\d+)+\./,'').replace(/^\d+\./,'').trim();return clean||'SIN ÁREA'}
+  function centerName(r){return norm(r.center||r.subledger||'SIN CENTRO')||'SIN CENTRO'}
+  function unitName(r){return areaName(r)}
+  function filterRegion(data){if(!data?.rows)return[];if(upper(S.session.tipo)==='ADMINISTRADOR'){const reg=cleanRegion(S.adminRegion||'');return reg?data.rows.filter(r=>cleanRegion(r.region)===reg):data.rows;}const reg=sessionRegion(S.session);return data.rows.filter(r=>cleanRegion(r.region)===reg)}
+  function adminRegionLabel(){return upper(S.session.tipo)==='ADMINISTRADOR'?(S.adminRegion||'TODAS LAS REGIONES'):sessionRegion(S.session)}
+  function populateRegionFilter(data,source='cloud'){const sel=$(source==='local'?'r34LocalRegionFilter':'r34CloudRegionFilter');if(!sel||upper(S.session.tipo)!=='ADMINISTRADOR')return;const regions=[...new Set((data?.rows||[]).map(r=>cleanRegion(r.region)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));const keep=S.adminRegion;sel.innerHTML='<option value="">Selecciona una región</option>'+regions.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');if(keep&&regions.includes(keep))sel.value=keep;else{S.adminRegion='';sel.value='';}sel.onchange=()=>{S.adminRegion=cleanRegion(sel.value);renderCurrentSource()}}
+  function publicationCard(meta){return `<div class="rcv34-card rcv34-publication-card"><h3>Publicación oficial en la nube</h3><p>Actualizada: ${esc(meta?.fecha||'—')} · Por: ${esc(meta?.usuario||'—')} ${meta?.snapshotId?'· ID '+esc(meta.snapshotId.slice(0,8)):''}</p></div>`}
+  function sema(st){return `<span class="rcv34-semaforo rcv34-${st}"><i class="rcv34-dot"></i>${st==='green'?'VERDE · BIEN':'ROJO · REQUIERE ACCIÓN'}</span>`}
+  function pctLabel(rows,module){const t=totals(rows,module),den=Math.abs(t.budget);if(!den)return '—';const p=(Math.abs(t.real)/den)*100;return `${p.toFixed(1)}%`}
+  function deviationValue(rows,module){const t=totals(rows,module);return module==='productividad'?Math.max(0,t.budget-t.real):Math.max(0,Math.abs(t.real)-Math.abs(t.budget))}
+  function monthOrder(v){const u=upper(v),map={ENE:1,ENERO:1,FEB:2,FEBRERO:2,MAR:3,MARZO:3,ABR:4,ABRIL:4,MAY:5,MAYO:5,JUN:6,JUNIO:6,JUL:7,JULIO:7,AGO:8,AGOSTO:8,SEP:9,SEPT:9,SEPTIEMBRE:9,OCT:10,OCTUBRE:10,NOV:11,NOVIEMBRE:11,DIC:12,DICIEMBRE:12};for(const k in map)if(u===k||u.startsWith(k))return map[k];return 99}
+  function monthlyGroups(rows){const g=groupRows(rows,'period');return [...g].filter(([k])=>norm(k)).sort((a,b)=>monthOrder(a[0])-monthOrder(b[0]))}
+  function drawTrendChart(c,rows,module){const items=monthlyGroups(rows).map(([name,rs])=>({name,...totals(rs,module)}));const f=fitCanvas(c,260);if(!f||!items.length)return;const{x,w,h}=f,p={l:55,r:20,t:22,b:48},cw=w-p.l-p.r,ch=h-p.t-p.b;const mx=Math.max(...items.flatMap(i=>[Math.abs(i.real),Math.abs(i.budget)]),1);x.font='10px Segoe UI';x.strokeStyle='#e5eaf1';x.fillStyle='#667085';for(let i=0;i<=4;i++){const y=p.t+ch*i/4;x.beginPath();x.moveTo(p.l,y);x.lineTo(w-p.r,y);x.stroke();x.fillText(new Intl.NumberFormat('es-MX',{notation:'compact',maximumFractionDigits:1}).format(mx*(1-i/4)),4,y+3)}const point=(i,v)=>[p.l+(items.length===1?cw/2:cw*i/(items.length-1)),p.t+ch-(Math.abs(v)/mx*ch)];[['real','#2563eb'],['budget','#14b8a6']].forEach(([key,color])=>{x.beginPath();x.strokeStyle=color;x.lineWidth=2.5;items.forEach((it,i)=>{const[a,b]=point(i,it[key]);i?x.lineTo(a,b):x.moveTo(a,b)});x.stroke();items.forEach((it,i)=>{const[a,b]=point(i,it[key]);x.fillStyle=color;x.beginPath();x.arc(a,b,3,0,Math.PI*2);x.fill()})});items.forEach((it,i)=>{const[a]=point(i,0);x.fillStyle='#475467';x.textAlign='center';x.fillText(it.name,a,h-15)});x.fillStyle='#2563eb';x.fillRect(w-170,8,10,10);x.fillStyle='#475467';x.textAlign='left';x.fillText('Real',w-155,17);x.fillStyle='#14b8a6';x.fillRect(w-105,8,10,10);x.fillStyle='#475467';x.fillText('Presupuesto',w-90,17)}
+  function topDeviationBlock(groups,module){const top=[...groups].map(([name,rs])=>({name,rs,dev:deviationValue(rs,module),t:totals(rs,module)})).filter(x=>x.dev>0).sort((a,b)=>b.dev-a.dev).slice(0,10);return `<article class="rcv42-top-card"><div class="rcv42-top-head"><div><h3>Top 10 desviaciones</h3><p>Prioriza las unidades que requieren atención.</p></div><span>${top.length} críticas</span></div><div class="rcv42-top-list">${top.length?top.map((x,i)=>`<button data-top-unit="${esc(x.name)}"><i>${i+1}</i><span><b>${esc(x.name)}</b><small>${module==='productividad'?'Déficit':'Exceso'} ${money(x.dev)}</small></span>${sema('red')}</button>`).join(''):'<div class="rcv34-empty">No hay desviaciones rojas en el filtro actual.</div>'}</div></article>`}
+  function rankBy(groups,module,limit=10){return [...groups].map(([name,rs])=>({name,rs,t:totals(rs,module),value:Math.abs(totals(rs,module).real)})).sort((a,b)=>b.value-a.value).slice(0,limit)}
+  function rankingBlock(groups,module,title,subtitle,kind=''){
+    const top=rankBy(groups,module,10);
+    return `<article class="rcv48-rank"><div class="rcv42-top-head"><div><h3>${esc(title)}</h3><p>${esc(subtitle)}</p></div><span>TOP ${top.length}</span></div><div class="rcv48-rank-list">${top.map((x,i)=>`<button ${kind==='manager'?`data-r48-manager="${esc(x.name)}"`:''}><i>${i+1}</i><span><b>${esc(x.name)}</b><small>Real ${money(x.t.real)} · Presupuesto ${money(x.t.budget)}</small></span>${sema(x.t.st)}</button>`).join('')||'<div class="rcv34-empty">Sin datos para el filtro actual.</div>'}</div></article>`;
+  }
+  function openManager(data,module,manager,meta,source='cloud'){
+    const all=filterPeriod(filterRegion(data)),rows=all.filter(r=>managerName(r)===manager),t=totals(rows,module),areas=groupRows(rows,areaName),bad=[...areas].filter(([,rs])=>totals(rs,module).st==='red').length,good=areas.size-bad;
+    $('r34DetailTitle').textContent=manager;$('r34DetailSub').textContent=`${MODULES[module].label} · ${adminRegionLabel()} · Gerencia → Áreas / departamentos`;
+    const cards=[...areas].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module),centers=new Set(rs.map(centerName)).size;return `<article class="rcv48-area-card ${z.st==='red'?'is-red':'is-green'}" data-r48-area="${esc(name)}"><div><strong>${esc(name)}</strong><small>${centers} centro(s) / subárea(s) · ${rs.length.toLocaleString()} movimientos</small></div>${sema(z.st)}<div class="amounts"><span>Real<b>${money(z.real)}</b></span><span>Presupuesto<b>${money(z.budget)}</b></span></div></article>`}).join('');
+    $('r34DetailBody').innerHTML=`<div class="rcv48-breadcrumb"><b>${esc(adminRegionLabel())}</b><i>›</i><b>${esc(manager)}</b><i>›</i><span>Áreas / departamentos</span></div><div class="rcv34-kpis"><article class="rcv34-kpi"><small>REAL</small><strong>${money(t.real)}</strong></article><article class="rcv34-kpi"><small>PRESUPUESTO</small><strong>${money(t.budget)}</strong></article><article class="rcv34-kpi"><small>VARIACIÓN</small><strong>${money(t.diff)}</strong></article><article class="rcv34-kpi"><small>ÁREAS</small><strong>${areas.size}</strong><span>${bad} rojas · ${good} verdes</span></article></div><div class="rcv48-manager-grid">${rankingBlock(areas,module,'Top 10 por departamento / área','Mayor importe real dentro de esta gerencia.')}</div><article class="rcv34-card"><h3>Áreas que componen la gerencia</h3><p>Selecciona un área para ver cuentas, centros, movimientos y semáforo.</p><div class="rcv48-area-grid">${cards}</div></article>`;
+    $('r34Detail').classList.add('open');
+    $('r34DetailBody').querySelectorAll('[data-r48-area]').forEach(el=>el.onclick=()=>openUnit({...data,rows,_manager:manager},module,el.dataset.r48Area,meta,source));
+  }
+  function regionChooser(data,module,source){const regions=[...new Set((data?.rows||[]).map(r=>cleanRegion(r.region)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));return `<article class="rcv34-card rcv34-region-step"><div class="rcv34-step-title"><span>1</span><div><h3>Selecciona la región</h3><p>Después se mostrarán únicamente las jerarquías / unidades de negocio que pertenecen a esa región.</p></div></div><div class="rcv34-region-grid">${regions.map(reg=>{const rs=(data.rows||[]).filter(r=>cleanRegion(r.region)===reg),t=totals(rs,module);return `<button class="rcv34-region-card" data-pick-region="${esc(reg)}"><strong>${esc(reg)}</strong><span>${rs.length.toLocaleString()} registros</span><small>Real ${money(t.real)} · Presupuesto ${money(t.budget)}</small>${sema(t.st)}</button>`}).join('')||'<div class="rcv34-empty">No se detectaron regiones en este archivo.</div>'}</div></article>`}
+  function compareExecutiveBlock(regionRows,module){
+    if(!S.compareYears)return'';
+    const aRows=yearRows(regionRows,S.compareBase),bRows=yearRows(regionRows,S.compareTarget),c=compareTotals(regionRows,module);
+    const names=[...new Set([...aRows.map(managerName),...bRows.map(managerName)])];
+    const managers=names.map(name=>{const a=totals(aRows.filter(r=>managerName(r)===name),module),b=totals(bRows.filter(r=>managerName(r)===name),module);return{name,a,b,delta:b.real-a.real,pct:yoyPct(a.real,b.real),trend:a.st==='red'&&b.st==='green'?'MEJORÓ':a.st==='green'&&b.st==='red'?'EMPEORÓ':'SIN CAMBIO'}}).sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta));
+    const improved=managers.filter(x=>x.trend==='MEJORÓ').length,worse=managers.filter(x=>x.trend==='EMPEORÓ').length;
+    return `<section class="rcv481-compare"><div class="rcv481-title"><div><span>COMPARATIVA INTERANUAL</span><h2>${esc(S.compareBase)} <i>vs</i> ${esc(S.compareTarget)}</h2><p>Mismo rango de meses aplicado a ambos años.</p></div><div class="rcv481-balance"><b>${improved}</b><small>mejoraron</small><b class="bad">${worse}</b><small>empeoraron</small></div></div><div class="rcv481-kpis"><article><small>REAL ${esc(S.compareBase)}</small><strong>${money(c.base.real)}</strong></article><article><small>REAL ${esc(S.compareTarget)}</small><strong>${money(c.target.real)}</strong><em class="${c.realPct>0?'up':'down'}">${yoyLabel(c.base.real,c.target.real)}</em></article><article><small>PRESUPUESTO ${esc(S.compareBase)}</small><strong>${money(c.base.budget)}</strong></article><article><small>PRESUPUESTO ${esc(S.compareTarget)}</small><strong>${money(c.target.budget)}</strong><em>${yoyLabel(c.base.budget,c.target.budget)}</em></article></div><article class="rcv34-card"><h3>Gerencias · cambio interanual</h3><p>Variación del Real y evolución del semáforo entre ambos años.</p><div class="rcv481-table"><div class="head"><span>Gerencia</span><span>${esc(S.compareBase)}</span><span>${esc(S.compareTarget)}</span><span>Δ Real</span><span>Variación</span><span>Tendencia</span></div>${managers.slice(0,20).map(x=>`<div class="row"><b>${esc(x.name)}</b><span>${money(x.a.real)}</span><span>${money(x.b.real)}</span><strong class="${x.delta>0?'bad':'good'}">${x.delta>=0?'+':''}${money(x.delta)}</strong><span>${x.pct>=0?'+':''}${x.pct.toFixed(1)}%</span><em class="${x.trend==='MEJORÓ'?'good':x.trend==='EMPEORÓ'?'bad':''}">${x.trend}</em></div>`).join('')}</div></article></section>`;
+  }
+  function renderData(data,module,meta={},source='cloud'){
+    const host=$('r34Data')||$('r34Panel'),admin=upper(S.session.tipo)==='ADMINISTRADOR';
+    if(admin&&!S.adminRegion){host.insertAdjacentHTML('beforeend',regionChooser(data,module,source));host.querySelectorAll('[data-pick-region]').forEach(b=>b.onclick=()=>{S.adminRegion=cleanRegion(b.dataset.pickRegion);const sel=$(source==='local'?'r34LocalRegionFilter':'r34CloudRegionFilter');if(sel)sel.value=S.adminRegion;renderCurrentSource()});return}
+    const regionRows=filterRegion(data);if(!S.periodYear){const ly=latestYear(regionRows);if(ly)S.periodYear=ly}if(S.compareYears)S.periodYear=S.compareTarget;
+    const rows=filterPeriod(regionRows);if(!rows.length){host.insertAdjacentHTML('beforeend',`<div class="rcv34-empty">No hay información disponible para ${admin?(S.adminRegion?'la región '+esc(S.adminRegion):'el filtro seleccionado'):'esta región'} y el año/periodo elegido.</div>`);return}
+    if($('r482CompareTop'))$('r482CompareTop').classList.toggle('active',!!S.compareYears);
+    const t=totals(rows,module),managers=groupRows(rows,managerName),areas=groupRows(rows,areaName),bad=[...managers].filter(([,rs])=>totals(rs,module).st==='red').length,good=managers.size-bad,compliance=pctLabel(rows,module);
+    const head=`<div class="rcv34-breadcrumb"><span>Región</span><b>${esc(adminRegionLabel())}</b><i>›</i><strong>Gerencias</strong></div><div class="rcv42-kpis"><article><small>REAL</small><strong>${money(t.real)}</strong><span>${periodRangeLabel()} ${monthComparison(regionRows,module)}</span></article><article><small>PRESUPUESTO</small><strong>${money(t.budget)}</strong><span>Presupuesto acumulado</span></article><article><small>VARIACIÓN</small><strong>${money(t.diff)}</strong></article><article><small>${module==='productividad'?'CUMPLIMIENTO':'USO DE PRESUPUESTO'}</small><strong>${compliance}</strong><span>${bad} gerencias rojas · ${good} verdes</span></article><article class="${bad?'alert':''}"><small>GERENCIAS ROJAS</small><strong>${bad}</strong><span>de ${managers.size} gerencias</span></article></div>`;
+    const chart=`<div class="rcv42-chart-grid"><article class="rcv34-card rcv34-chart-card"><h3>Real vs presupuesto por gerencia</h3><p>Principales gerencias de ${esc(adminRegionLabel())}.</p><canvas id="r34CompareChart"></canvas></article><article class="rcv34-card rcv34-chart-card"><h3>Evolución mensual</h3><p>Comportamiento del Real contra Presupuesto.</p><canvas id="r42TrendChart"></canvas></article><article class="rcv34-card rcv34-chart-card"><h3>Estado de gerencias</h3><p>Distribución rojo / verde.</p><canvas id="r34StatusChart"></canvas><div class="rcv34-chart-legend"><span><i class="green"></i>${good} verdes</span><span><i class="red"></i>${bad} rojas</span></div></article>${topDeviationBlock(managers,module)}</div>`;
+    const managerItems=[...managers].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module),ac=new Set(rs.map(areaName)).size;return `<article class="rcv34-break-item ${z.st==='red'?'is-red':'is-green'}" data-r48-manager="${esc(name)}" data-unit-state="${z.st}"><div class="rcv34-break-top"><div><strong>${esc(name)}</strong><small>${ac} área(s) / departamento(s) · ${rs.length.toLocaleString()} movimientos</small>${redStreak(rs,module)>=2?`<em class="rcv43-reincide">↻ ${redStreak(rs,module)} meses en rojo</em>`:''}</div>${sema(z.st)}</div><div class="amounts"><span>Real<b>${money(z.real)}</b></span><span>Presupuesto<b>${money(z.budget)}</b></span></div></article>`}).join('');
+    const noteBtn=source==='cloud'&&meta?.snapshotId?`<button id="r34RegionNote" class="rcv34-btn">✉ Nueva notificación a ${esc(adminRegionLabel())}</button>`:'';
+    host.insertAdjacentHTML('beforeend',periodControls(regionRows)+compareExecutiveBlock(regionRows,module)+executiveReportBar(rows,module,meta,source)+head+`<div class="rcv48-ranking-grid">${rankingBlock(managers,module,'Top 10 por gerencia','Gerencias con mayor importe Real.','manager')}${rankingBlock(areas,module,'Top 10 por departamento / área','Áreas con mayor importe Real en la región.')}</div>`+chart+`<article class="rcv34-card"><div class="rcv34-card-head"><div><h3>2. Gerencias que componen la región</h3><p>Selecciona una gerencia para desplegar sus departamentos / áreas y después consultar el gasto o costo de cada una.</p></div>${noteBtn}</div><div class="r473-unit-filter"><div><span>FILTRAR GERENCIAS</span><strong id="r473UnitCount">${managers.size} de ${managers.size} visibles</strong></div><div class="r473-filter-buttons"><button class="active" data-r473-filter="all">Todas <b>${managers.size}</b></button><button class="red" data-r473-filter="red">Rojas <b>${bad}</b></button><button class="green" data-r473-filter="green">Verdes <b>${good}</b></button></div></div><div class="rcv34-breakdown" id="r473UnitGrid">${managerItems}</div><div id="r473UnitEmpty" class="r473-empty rcv34-hidden">No hay gerencias con el estado seleccionado.</div></article>`);
+    bindPeriodControls();bindUnitStateFilter(managers.size);bindExecutiveReport(rows,module,meta,source);drawCharts(managers,module);drawTrendChart($('r42TrendChart'),rows,module);
+    host.querySelectorAll('[data-r48-manager]').forEach(el=>el.onclick=()=>openManager(data,module,el.dataset.r48Manager,meta,source));
+    if($('r34RegionNote'))$('r34RegionNote').onclick=()=>openRegionNotification(module,meta);
+  }
+  function bindUnitStateFilter(total){
+    const buttons=[...document.querySelectorAll('[data-r473-filter]')],cards=[...document.querySelectorAll('[data-unit-state]')],count=$('r473UnitCount'),empty=$('r473UnitEmpty');
+    const apply=state=>{
+      let shown=0;cards.forEach(card=>{const ok=state==='all'||card.dataset.unitState===state;card.classList.toggle('r473-hidden',!ok);if(ok)shown++});
+      buttons.forEach(b=>b.classList.toggle('active',b.dataset.r473Filter===state));
+      if(count)count.textContent=`${shown} de ${total} visibles`;
+      if(empty)empty.classList.toggle('rcv34-hidden',shown>0);
+    };
+    buttons.forEach(b=>b.onclick=()=>apply(b.dataset.r473Filter));
+    apply('all');
+  }
+  function drawCharts(groups,module){requestAnimationFrame(()=>{drawCompareChart($('r34CompareChart'),[...groups].map(([name,rs])=>({name,...totals(rs,module)})).sort((a,b)=>Math.abs(b.real)-Math.abs(a.real)).slice(0,8));drawStatusChart($('r34StatusChart'),[...groups].map(([,rs])=>totals(rs,module).st));})}
+  function fitCanvas(c,h=270){if(!c)return null;const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1)),w=Math.max(300,c.clientWidth||600);c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);return{x,w,h}}
+  function drawCompareChart(c,items){const f=fitCanvas(c,285);if(!f)return;const{x,w,h}=f,p={l:52,r:18,t:18,b:75},cw=w-p.l-p.r,ch=h-p.t-p.b;const vals=items.flatMap(i=>[Math.abs(i.real),Math.abs(i.budget)]),mx=Math.max(...vals,1);x.font='10px Segoe UI';x.fillStyle='#667085';x.strokeStyle='#e5eaf1';for(let i=0;i<=4;i++){const y=p.t+ch*i/4;x.beginPath();x.moveTo(p.l,y);x.lineTo(w-p.r,y);x.stroke();const v=mx*(1-i/4);x.fillText(new Intl.NumberFormat('es-MX',{notation:'compact',maximumFractionDigits:1}).format(v),4,y+3)}const slot=cw/Math.max(items.length,1),bw=Math.min(22,slot*.28);items.forEach((it,i)=>{const cx=p.l+slot*i+slot/2,hr=Math.abs(it.real)/mx*ch,hb=Math.abs(it.budget)/mx*ch;x.fillStyle='#2563eb';x.fillRect(cx-bw-2,p.t+ch-hr,bw,hr);x.fillStyle='#14b8a6';x.fillRect(cx+2,p.t+ch-hb,bw,hb);x.save();x.translate(cx,h-10);x.rotate(-.55);x.fillStyle='#475467';x.textAlign='right';x.fillText(it.name.slice(0,30),0,0);x.restore()});x.fillStyle='#2563eb';x.fillRect(w-170,8,10,10);x.fillStyle='#475467';x.fillText('Real',w-155,17);x.fillStyle='#14b8a6';x.fillRect(w-105,8,10,10);x.fillStyle='#475467';x.fillText('Presupuesto',w-90,17)}
+  function drawStatusChart(c,states){const f=fitCanvas(c,220);if(!f)return;const{x,w,h}=f,red=states.filter(s=>s==='red').length,green=states.length-red,total=Math.max(states.length,1),cx=w/2,cy=h/2,r=Math.min(w,h)*.32,th=28;x.lineWidth=th;x.lineCap='butt';let start=-Math.PI/2;[[green,'#10b981'],[red,'#ef4444']].forEach(([v,color])=>{const a=v/total*Math.PI*2;x.beginPath();x.strokeStyle=color;x.arc(cx,cy,r,start,start+a);x.stroke();start+=a});x.fillStyle='#172033';x.textAlign='center';x.font='700 26px Segoe UI';x.fillText(String(states.length),cx,cy+3);x.font='11px Segoe UI';x.fillStyle='#667085';x.fillText('unidades',cx,cy+22)}
+  function threadBlock(module,snapshotId,region,key){if(!snapshotId)return'';const admin=upper(S.session.tipo)==='ADMINISTRADOR';return `<div class="rcv34-thread"><div class="rcv34-thread-head"><div><strong>Seguimiento / notificaciones</strong><p>${admin?'Escribe una nota para los usuarios de esta región. Ellos podrán responderla desde su portal.':'Aquí puedes ver las notas del administrador y responderlas.'}</p></div><div class="rcv42-thread-meta"><span id="r42ThreadStatus" class="rcv42-status pending">PENDIENTE</span><span id="r34ThreadCount" class="rcv34-thread-count">…</span></div></div><div id="r42StatusControls" class="rcv42-status-controls ${admin?'':'rcv34-hidden'}"><button data-r42-status="PENDIENTE">Pendiente</button><button data-r42-status="EN SEGUIMIENTO">En seguimiento</button><button data-r42-status="ATENDIDA">Atendida</button></div><div id="r46Commitment" class="r46-commit"><div><small>RESPONSABLE</small><b id="r46Responsible">Sin asignar</b></div><div><small>FECHA COMPROMISO</small><b id="r46Due">Sin fecha</b></div><span id="r46DueStatus"></span>${admin?'<button id="r46EditCommitment" type="button">Asignar / editar</button>':''}</div><div class="r47-smart"><div class="r47-smart-summary"><small>RESUMEN AUTOMÁTICO</small><p id="r47Summary">Analizando seguimiento…</p></div><div class="r47-smart-progress"><small>AVANCE DEL PLAN</small><div class="r47-track"><i id="r47Bar" style="width:0%"></i></div><div class="r47-progress-row"><strong id="r47Progress">0%</strong><div>${[0,25,50,75,100].map(v=>`<button type="button" data-r47-progress="${v}">${v}%</button>`).join('')}</div></div></div><div class="r47-smart-timeline"><div><small>LÍNEA DE TIEMPO</small><button id="r47TimelineRefresh" type="button">↻</button></div><section id="r47Timeline"><p class="muted">Cargando…</p></section></div></div><div id="r34ThreadList" class="rcv34-thread-list"><div class="rcv34-thread-empty">Cargando mensajes…</div></div><div class="rcv34-thread-compose"><textarea id="r34NoteText" placeholder="${admin?'Escribe una notificación o comentario…':'Escribe tu respuesta al administrador…'}"></textarea><div><span id="r34NoteMsg" class="rcv34-msg"></span><button id="r34SendNote" class="rcv34-btn primary">${admin?'Enviar notificación':'Responder'}</button></div></div></div>`}
+  function openUnit(data,module,unit,meta,source='cloud'){
+    const rows=filterPeriod(filterRegion(data)).filter(r=>unitName(r)===unit),t=totals(rows,module),acctGroups=groupRows(rows,'hierarchy');
+    $('r34DetailTitle').textContent=unit;$('r34DetailSub').textContent=`${MODULES[module].label} · ${adminRegionLabel()} · ${data.period||''}`;
+    const acctCards=[...acctGroups].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module);return `<article class="rcv34-subhier ${z.st==='red'?'is-red':'is-green'}"><div><strong>${esc(name)}</strong>${sema(z.st)}</div><span>Real <b>${money(z.real)}</b></span><span>Presupuesto <b>${money(z.budget)}</b></span></article>`}).join('');
+    const rowState=r=>status(module,r.real,r.budget);
+    const makeRows=list=>list.map(r=>`<tr data-detail-state="${rowState(r)}"><td>${esc(r.hierarchy)}</td><td>${esc(r.account)}</td><td>${esc(managerName(r))}</td><td>${esc(centerName(r))}</td><td>${esc(r.period)}</td><td>${money(r.real)}</td><td>${money(r.budget)}</td><td>${sema(rowState(r))}</td></tr>`).join('');
+    const redRows=rows.filter(r=>rowState(r)==='red').length,greenRows=rows.length-redRows;
+    let plan='';if(t.st==='red'&&meta?.snapshotId){plan=`<div class="rcv34-plan"><strong>Plan de mejora / acción correctiva</strong><p>Describe qué se hará para corregir la desviación de esta unidad.</p><textarea id="r34PlanText" placeholder="Escribe aquí el plan de mejora..."></textarea><div class="rcv34-plan-actions"><span id="r34PlanMsg" class="rcv34-msg"></span><button id="r34SavePlan" class="rcv34-btn primary">Guardar plan de mejora</button></div></div>`}
+    const key=data?._manager?`GERENCIA: ${data._manager} · ÁREA: ${unit}`:`ÁREA: ${unit}`,conversation=source==='cloud'&&meta?.snapshotId?threadBlock(module,meta.snapshotId,adminRegionLabel(),key):'';
+    $('r34DetailBody').innerHTML=`<div class="rcv34-kpis"><article class="rcv34-kpi"><small>REAL</small><strong>${money(t.real)}</strong></article><article class="rcv34-kpi"><small>PRESUPUESTO</small><strong>${money(t.budget)}</strong></article><article class="rcv34-kpi"><small>VARIACIÓN</small><strong>${money(t.diff)}</strong></article><article class="rcv34-kpi"><small>ESTADO</small><strong>${sema(t.st)}</strong></article></div><article class="rcv34-card"><h3>Información contable del área seleccionada</h3><div class="rcv34-subhier-grid">${acctCards}</div></article><article class="rcv34-card"><div class="rcv41-detail-head"><div><h3>Detalle completo del área</h3><p id="r41DetailCount">${rows.length.toLocaleString()} movimientos mostrados de ${rows.length.toLocaleString()}.</p></div><div class="rcv42-detail-tools"><div class="rcv41-detail-filters" role="group" aria-label="Filtrar movimientos por estado"><button class="rcv41-state-btn active" data-r41-state="all">Todos <b>${rows.length.toLocaleString()}</b></button><button class="rcv41-state-btn red" data-r41-state="red">Rojos <b>${redRows.toLocaleString()}</b></button><button class="rcv41-state-btn green" data-r41-state="green">Verdes <b>${greenRows.toLocaleString()}</b></button></div><input id="r42DetailSearch" class="rcv42-search" placeholder="Buscar cuenta, concepto, sublibro…"></div></div><div class="rcv34-table-wrap"><table class="rcv34-table"><thead><tr><th>Jerarquía contable</th><th>Cuenta / concepto</th><th>Gerencia</th><th>Centro / último nivel</th><th>Periodo</th><th>Real</th><th>Presupuesto</th><th>Estado</th></tr></thead><tbody id="r41DetailRows">${makeRows(rows)}</tbody></table></div><div id="r41DetailEmpty" class="rcv41-detail-empty rcv34-hidden">No hay movimientos con el estado seleccionado.</div></article>${plan}${conversation}`;
+    $('r34Detail').classList.add('open');
+    let detailState='all';const applyDetailFilter=state=>{detailState=state;const q=upper($('r42DetailSearch')?.value||'');const trs=[...document.querySelectorAll('#r41DetailRows tr')];let shown=0;trs.forEach(tr=>{const stateOk=state==='all'||tr.dataset.detailState===state,textOk=!q||upper(tr.textContent).includes(q),show=stateOk&&textOk;tr.classList.toggle('rcv34-hidden',!show);if(show)shown++});document.querySelectorAll('[data-r41-state]').forEach(btn=>btn.classList.toggle('active',btn.dataset.r41State===state));if($('r41DetailCount'))$('r41DetailCount').textContent=`${shown.toLocaleString()} movimientos mostrados de ${rows.length.toLocaleString()}.`;if($('r41DetailEmpty'))$('r41DetailEmpty').classList.toggle('rcv34-hidden',shown>0)};
+    document.querySelectorAll('[data-r41-state]').forEach(btn=>btn.onclick=()=>applyDetailFilter(btn.dataset.r41State));if($('r42DetailSearch'))$('r42DetailSearch').oninput=()=>applyDetailFilter(detailState);
+    if($('r34SavePlan'))$('r34SavePlan').onclick=()=>savePlan(module,meta.snapshotId,key);if(conversation){loadThread(module,meta.snapshotId,adminRegionLabel(),key);$('r34SendNote').onclick=()=>sendNote(module,meta.snapshotId,adminRegionLabel(),key)}
+  }
+  function openRegionNotification(module,meta){const region=adminRegionLabel(),key=`AVISO GENERAL · ${MODULES[module].label}`;$('r34DetailTitle').textContent=`Notificación · ${region}`;$('r34DetailSub').textContent=`${MODULES[module].label} · publicación en nube`;$('r34DetailBody').innerHTML=`<article class="rcv34-card"><h3>Notificación general para la región</h3><p>Este mensaje aparecerá en la bandeja de Notificaciones de los usuarios de ${esc(region)}.</p></article>${threadBlock(module,meta.snapshotId,region,key)}`;$('r34Detail').classList.add('open');loadThread(module,meta.snapshotId,region,key);$('r34SendNote').onclick=()=>sendNote(module,meta.snapshotId,region,key)}
+  async function loadThread(module,snapshotId,region,hierarchy){const list=$('r34ThreadList');if(!list)return;try{const d=await jsonp({accion:'v38_thread',token:S.session.token,module,snapshotId,region,hierarchy});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible cargar los mensajes.');const items=d.items||[];$('r34ThreadCount').textContent=items.length+' mensaje'+(items.length===1?'':'s');list.innerHTML=items.length?items.map(x=>`<article class="rcv34-thread-msg ${upper(x.tipo)==='ADMINISTRADOR'?'admin':'user'}"><div><strong>${esc(x.usuario)}</strong><span>${esc(x.fecha)}</span></div><p>${esc(x.texto)}</p><small>${upper(x.tipo)==='ADMINISTRADOR'?'NOTA DEL ADMINISTRADOR':'RESPUESTA DE REGIÓN'}</small></article>`).join(''):'<div class="rcv34-thread-empty">Aún no hay mensajes en este seguimiento.</div>';const unread=items.filter(x=>x.unread).map(x=>x.id);if(unread.length){post({accion:'v38_mark_read',token:S.session.token,ids:unread.join(',')});setTimeout(refreshNotifications,500)}loadThreadStatus(module,snapshotId,region,hierarchy);loadCommitment(module,snapshotId,region,hierarchy);loadSmartFollowup(module,snapshotId,region,hierarchy,items)}catch(e){list.innerHTML=`<div class="rcv34-thread-empty">${esc(e.message)}</div>`}}
+  async function loadSmartFollowup(module,snapshotId,region,hierarchy,items){
+    try{
+      const d=await jsonp({accion:'v47_timeline',token:S.session.token,module,snapshotId,region,hierarchy});
+      if(!d?.ok)return;
+      const av=Number(d.avance||0),bar=$('r47Bar'),val=$('r47Progress'),sum=$('r47Summary'),tl=$('r47Timeline');
+      if(bar)bar.style.width=av+'%';if(val)val.textContent=av+'%';
+      document.querySelectorAll('[data-r47-progress]').forEach(b=>{b.classList.toggle('active',Number(b.dataset.r47Progress)===av);b.onclick=()=>setSmartProgress(module,snapshotId,region,hierarchy,Number(b.dataset.r47Progress))});
+      const c=d.compromiso||{},st=upper(d.estado||'PENDIENTE'),msgCount=(items||[]).length;
+      const bits=[];bits.push(st==='ATENDIDA'?'La incidencia está atendida.':st==='EN SEGUIMIENTO'?'La incidencia está en seguimiento.':'La incidencia está pendiente.');
+      if(c.responsable)bits.push('Responsable: '+c.responsable+'.');if(c.fechaCompromiso)bits.push((c.vencida?'Compromiso vencido: ':'Fecha compromiso: ')+c.fechaCompromiso+'.');bits.push(msgCount+' mensaje'+(msgCount===1?'':'s')+' en la conversación.');
+      if(sum)sum.textContent=bits.join(' ');
+      if(tl){const ev=d.items||[];tl.innerHTML=ev.length?ev.map(x=>`<article class="r47-event"><i></i><div><b>${esc(x.tipo)}</b><p>${esc(x.texto)}</p><small>${esc(x.usuario||'')}${x.fecha?' · '+esc(x.fecha):''}</small></div></article>`).join(''):'<p class="muted">Aún no hay eventos registrados.</p>'}
+      const rr=$('r47TimelineRefresh');if(rr)rr.onclick=()=>loadSmartFollowup(module,snapshotId,region,hierarchy,items);
+    }catch(_){}
+  }
+  async function setSmartProgress(module,snapshotId,region,hierarchy,avance){
+    document.querySelectorAll('[data-r47-progress]').forEach(b=>b.disabled=true);
+    try{const d=await post({accion:'v47_set_progress',token:S.session.token,module,snapshotId,region,hierarchy,avance});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible guardar el avance.');loadThread(module,snapshotId,region,hierarchy)}catch(e){alert(e.message)}finally{setTimeout(()=>document.querySelectorAll('[data-r47-progress]').forEach(b=>b.disabled=false),500)}
+  }
+  async function loadThreadStatus(module,snapshotId,region,hierarchy){try{const d=await jsonp({accion:'v42_thread_status',token:S.session.token,module,snapshotId,region,hierarchy});if(!d?.ok)return;const st=upper(d.estado||'PENDIENTE'),el=$('r42ThreadStatus');if(el){el.textContent=st;el.className='rcv42-status '+(st==='ATENDIDA'?'done':st==='EN SEGUIMIENTO'?'tracking':'pending')}document.querySelectorAll('[data-r42-status]').forEach(b=>{b.classList.toggle('active',upper(b.dataset.r42Status)===st);b.onclick=()=>setThreadStatus(module,snapshotId,region,hierarchy,b.dataset.r42Status)})}catch(_){}}
+  async function setThreadStatus(module,snapshotId,region,hierarchy,estado){if(upper(S.session.tipo)!=='ADMINISTRADOR')return;document.querySelectorAll('[data-r42-status]').forEach(b=>b.disabled=true);try{await post({accion:'v42_set_status',token:S.session.token,module,snapshotId,region,hierarchy,estado});setTimeout(()=>{loadThreadStatus(module,snapshotId,region,hierarchy);renderNotifications()},650)}finally{setTimeout(()=>document.querySelectorAll('[data-r42-status]').forEach(b=>b.disabled=false),800)}}
+  async function sendNote(module,snapshotId,region,hierarchy){const txt=$('r34NoteText')?.value.trim(),msg=$('r34NoteMsg'),btn=$('r34SendNote');if(!txt){if(msg){msg.textContent='Escribe un mensaje.';msg.className='rcv34-msg error'}return}if(btn)btn.disabled=true;if(msg){msg.textContent='Enviando…';msg.className='rcv34-msg'}try{await post({accion:'v38_note',token:S.session.token,module,snapshotId,region,hierarchy,texto:txt});if($('r34NoteText'))$('r34NoteText').value='';if(msg){msg.textContent='Notificación enviada.';msg.className='rcv34-msg ok'}setTimeout(()=>{loadThread(module,snapshotId,region,hierarchy);refreshNotifications()},800)}catch(e){if(msg){msg.textContent=e.message;msg.className='rcv34-msg error'}}finally{setTimeout(()=>{if(btn)btn.disabled=false},900)}}
+  async function refreshNotifications(){if(!S.session)return;try{const d=await jsonp({accion:'v42_notifications',token:S.session.token});if(!d?.ok)return;const b=$('r34NotifBadge');if(b){b.textContent=String(d.unread||0);b.classList.toggle('has',Number(d.unread)>0)}}catch(_){} }
+  async function renderNotifications(){$('r34Title').textContent='Notificaciones';$('r34Subtitle').textContent='Centro de seguimiento de incidencias y respuestas.';$('r34Panel').innerHTML='<div class="rcv34-empty">Consultando mensajes…</div>';try{const d=await jsonp({accion:'v42_notifications',token:S.session.token});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible consultar las notificaciones.');const items=d.items||[];const pending=items.filter(x=>upper(x.estado)!=='ATENDIDA').length,answered=items.filter(x=>upper(x.tipo)!=='ADMINISTRADOR').length;const html=items.length?items.map(x=>`<article class="rcv34-notif-item ${x.unread?'unread':''}" data-notif-module="${esc(x.module)}"><div class="rcv34-notif-icon">${upper(x.tipo)==='ADMINISTRADOR'?'A':'R'}</div><div class="rcv34-notif-main"><div><strong>${esc(x.hierarchy)}</strong><span>${esc(x.fecha)}</span></div><p>${esc(x.texto)}</p><small>${esc(x.usuario)} · ${esc(x.region)} · ${esc(MODULES[x.module]?.label||x.module)}</small></div><span class="rcv42-status ${upper(x.estado)==='ATENDIDA'?'done':upper(x.estado)==='EN SEGUIMIENTO'?'tracking':'pending'}">${esc(x.estado||'PENDIENTE')}</span>${x.unread?'<b class="rcv34-new">NUEVO</b>':''}</article>`).join(''):'<div class="rcv34-empty">No tienes mensajes pendientes.</div>';$('r34Panel').innerHTML=`<div class="rcv42-kpis compact"><article><small>SIN LEER</small><strong>${Number(d.unread||0)}</strong><span>mensajes nuevos</span></article><article><small>ABIERTAS / SEGUIMIENTO</small><strong>${pending}</strong><span>conversaciones activas</span></article><article><small>RESPUESTAS RECIBIDAS</small><strong>${answered}</strong><span>en la bandeja actual</span></article></div><div class="rcv34-section-head"><div><h2>Bandeja de seguimiento</h2><p>Consulta mensajes, respuestas y el estado actual de cada incidencia.</p></div><button id="r34NotifRefresh" class="rcv34-btn">↻ Actualizar</button></div><div class="rcv34-notif-list">${html}</div>`;$('r34NotifRefresh').onclick=renderNotifications;document.querySelectorAll('[data-notif-module]').forEach(el=>el.onclick=()=>navigate(el.dataset.notifModule));const b=$('r34NotifBadge');if(b){b.textContent=String(d.unread||0);b.classList.toggle('has',Number(d.unread)>0)}}catch(e){$('r34Panel').innerHTML=`<div class="rcv34-empty">${esc(e.message)}</div>`}}
+
+  async function savePlan(module,snapshotId,hierarchy){const txt=$('r34PlanText').value.trim(),msg=$('r34PlanMsg');if(!txt){msg.textContent='Escribe el plan de mejora.';msg.className='rcv34-msg error';return}msg.textContent='Guardando…';try{await post({accion:'v34_plan',token:S.session.token,module,snapshotId,region:adminRegionLabel(),hierarchy,texto:txt});msg.textContent='Plan de mejora enviado correctamente.';msg.className='rcv34-msg ok';$('r34SavePlan').disabled=true}catch(e){msg.textContent=e.message;msg.className='rcv34-msg error'}}
+  function sourceTabs(){return `<div class="rcv40-source-banner"><div><b>VISTA DEL ADMINISTRADOR · v43</b><span>Elige claramente qué información deseas consultar</span></div></div><div class="rcv34-source-tabs rcv40-source-tabs"><button id="r34TabLocal" class="${S.adminSource==='local'?'active':''}"><span class="rcv40-tab-icon">⚡</span><span><b>PROCESADO EN REAL</b><small>Archivo cargado y procesado en esta sesión · aún no publicado</small></span></button><button id="r34TabCloud" class="${S.adminSource==='cloud'?'active':''}"><span class="rcv40-tab-icon">☁</span><span><b>NUBE PUBLICADA</b><small>Información oficial publicada · histórico de 30 días</small></span></button></div>`}
+  function renderCurrentSource(){const admin=upper(S.session.tipo)==='ADMINISTRADOR',box=$('r34Data');if(!box)return;const source=admin?S.adminSource:'cloud';if(source==='local'){populateRegionFilter(S.local,'local');box.innerHTML=S.local?'<div class="rcv34-card rcv40-context-card local"><div><b>⚡ PROCESADO EN REAL</b><span>Estás viendo el archivo procesado en esta sesión. No es todavía la publicación oficial.</span></div></div>':'<div class="rcv34-empty">Procesa un archivo para consultar la vista local.</div>';if(S.local)renderData(S.local,S.module,{},'local')}else{populateRegionFilter(S.cloud,'cloud');box.innerHTML=S.cloud?'<div class="rcv34-card rcv40-context-card cloud"><div><b>☁ NUBE PUBLICADA</b><span>Estás viendo la publicación oficial almacenada en la nube.</span></div></div>'+publicationCard(S.cloudMeta||{}):'<div class="rcv34-empty">Consultando información oficial…</div>';if(S.cloud)renderData(S.cloud,S.module,S.cloudMeta||{},'cloud')}}
+  async function renderModule(module){S.module=module;S.local=null;S.cloud=null;S.cloudMeta=null;S.adminRegion='';S.adminSnapshot='';S.periodYear='';S.periodFrom='';S.periodTo='';S.adminSource=upper(S.session.tipo)==='ADMINISTRADOR'?'local':'cloud';$('r34Title').textContent=MODULES[module].label;$('r34Subtitle').textContent=module==='general'?'Consolidado de la publicación más reciente de cada módulo.':'Consulta regional por jerarquía y unidad de negocio.';const admin=upper(S.session.tipo)==='ADMINISTRADOR';if(module==='general')return loadGeneral();$('r34Panel').innerHTML=`<div class="rcv34-section-head"><div><h2>${MODULES[module].label}</h2><p>${admin?'Trabaja en Local para validar y publicar; cambia a Nube para revisar exactamente lo que ya está publicado.':'Consulta la última publicación oficial disponible de tu región.'}</p></div></div>${admin?sourceTabs():''}<div id="r34LocalTools" class="${admin?'':'rcv34-hidden'}"><div class="rcv34-upload"><div class="rcv34-upload-row"><input type="file" id="r34File" accept=".xlsx,.xls"><button id="r34Process" class="rcv34-btn">Procesar archivo</button><button id="r34Publish" class="rcv34-btn primary" disabled>☁ Publicar en nube</button></div><div id="r34UploadMsg" class="rcv34-msg">Carga exclusivamente el archivo de ${MODULES[module].label}.</div></div></div><div id="r34CloudTools" class="${admin?'rcv34-hidden':''}">${admin?`<div class="rcv34-admin-filters"><div><label>Región</label><select id="r34CloudRegionFilter" class="rcv34-history-select"><option value="">Selecciona una región</option></select></div><div><label>Fecha de publicación</label><select id="r34History" class="rcv34-history-select"><option value="">Más reciente</option></select></div><button id="r34Refresh" class="rcv34-btn">↻ Actualizar nube</button></div>`:''}</div>${admin?'<div id="r34LocalRegionTools"><div class="rcv34-admin-filters"><div><label>Región del archivo local</label><select id="r34LocalRegionFilter" class="rcv34-history-select"></select></div></div></div>':''}<div id="r34Data"></div>`;
+    if(admin){const setSource=src=>{S.adminSource=src;S.adminRegion='';$('r34TabLocal').classList.toggle('active',src==='local');$('r34TabCloud').classList.toggle('active',src==='cloud');$('r34LocalTools').classList.toggle('rcv34-hidden',src!=='local');$('r34LocalRegionTools').classList.toggle('rcv34-hidden',src!=='local');$('r34CloudTools').classList.toggle('rcv34-hidden',src!=='cloud');if(src==='cloud')loadCloud(module,S.adminSnapshot);else renderCurrentSource()};$('r34TabLocal').onclick=()=>setSource('local');$('r34TabCloud').onclick=()=>setSource('cloud');$('r34Process').onclick=()=>processSelected(module);$('r34Publish').onclick=()=>publishLocal(module);$('r34Refresh').onclick=()=>loadCloud(module,S.adminSnapshot);loadHistory(module);renderCurrentSource()}else loadCloud(module)}
+  async function processSelected(module){const file=$('r34File').files?.[0],msg=$('r34UploadMsg');if(!file){msg.textContent='Selecciona un archivo Excel.';msg.className='rcv34-msg error';return}msg.textContent='Procesando y validando…';try{S.local=await parseFile(file,module);S.adminRegion='';populateRegionFilter(S.local,'local');msg.textContent=`Validado: ${S.local.rows.length.toLocaleString()} registros · Región(es): ${S.local.regions.join(', ')}`;msg.className='rcv34-msg ok';$('r34Publish').disabled=false;renderCurrentSource()}catch(e){msg.textContent=e.message;msg.className='rcv34-msg error';$('r34Publish').disabled=true}}
+  async function publishLocal(module){if(!S.local)return;const b=$('r34Publish'),msg=$('r34UploadMsg');b.disabled=true;msg.textContent='Publicando…';try{await post({accion:'v34_upload',token:S.session.token,module,payload:JSON.stringify(S.local)});msg.textContent='Publicación enviada correctamente a la nube.';msg.className='rcv34-msg ok';setTimeout(()=>{loadHistory(module);b.disabled=false},1200)}catch(e){msg.textContent=e.message;msg.className='rcv34-msg error';b.disabled=false}}
+  async function loadCloud(module,snapshotId=''){const box=$('r34Data');if(!box)return;if(upper(S.session.tipo)==='ADMINISTRADOR'&&S.adminSource!=='cloud')return;box.innerHTML='<div class="rcv34-empty">Consultando información oficial…</div>';try{const d=await jsonp({accion:snapshotId?'v34_snapshot':'v34_module',token:S.session.token,module,snapshotId});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible consultar.');if(!d.disponible){S.cloud=null;box.innerHTML='<div class="rcv34-empty">Aún no hay una publicación disponible para este módulo.</div>';return}S.cloud=d.data;S.cloudMeta=d.meta||{};S.adminSnapshot=snapshotId||'';populateRegionFilter(S.cloud,'cloud');renderCurrentSource()}catch(e){box.innerHTML=`<div class="rcv34-empty">${esc(e.message)}</div>`}}
+  async function loadHistory(module){const sel=$('r34History');if(!sel)return;try{const d=await jsonp({accion:'v34_history',token:S.session.token,module});if(!d?.ok)return;S.history=d.items||[];sel.innerHTML='<option value="">Más reciente</option>'+S.history.map(x=>`<option value="${esc(x.snapshotId)}">${esc(x.fecha)} · ${esc(x.usuario)}${(x.regiones||[]).length?' · '+esc((x.regiones||[]).join(', ')):''}</option>`).join('');sel.value=S.adminSnapshot||'';sel.onchange=()=>{S.adminSnapshot=sel.value||'';S.adminRegion='';loadCloud(module,S.adminSnapshot)}}catch(_){}}
+  async function loadGeneral(){
+    $('r34Panel').innerHTML='<div class="rcv34-empty">Construyendo centro de control regional…</div>';
+    try{
+      const d=await jsonp({accion:'v34_general',token:S.session.token});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible cargar el consolidado.');
+      const admin=upper(S.session.tipo)==='ADMINISTRADOR';let moduleCards='',rankings='';const allRegions=new Set();
+      for(const m of ['gastos','costos','productividad']){
+        const x=d.modules?.[m];if(!x?.disponible){moduleCards+=`<article class="rcv34-menu-card"><div class="ico">${MODULES[m].icon}</div><h3>${MODULES[m].label}</h3><p>Sin publicación disponible.</p></article>`;continue}
+        const raw=x.data.rows||[],rows=filterPeriod(raw),t=totals(rows,m);raw.forEach(r=>allRegions.add(cleanRegion(r.region)));
+        const redManagers=[...groupRows(rows,managerName)].filter(([,rs])=>totals(rs,m).st==='red').length;
+        moduleCards+=`<article class="rcv34-menu-card" data-general-open="${m}"><div class="ico">${MODULES[m].icon}</div><h3>${MODULES[m].label}</h3><p>Real <b>${money(t.real)}</b><br>Presupuesto <b>${money(t.budget)}</b><br><b>${redManagers}</b> gerencias rojas</p><div class="status">${sema(t.st)}</div></article>`;
+        const rg=groupRows(rows,r=>cleanRegion(r.region));rankings+=rankingBlock(rg,m,`Top 10 regiones · ${MODULES[m].label}`,m==='productividad'?'Regiones con mayor valor Real.':'Regiones con mayor importe Real.');
+      }
+      let regional='';if(admin&&allRegions.size){const regs=[...allRegions].filter(Boolean).sort((a,b)=>a.localeCompare(b,'es'));regional=`<article class="rcv34-card rcv42-regional"><div class="rcv42-top-head"><div><h3>Comparativo entre regiones</h3><p>Selecciona una región para revisar su estructura Región → Gerencia → Área → Detalle.</p></div><span>${regs.length} regiones</span></div><div class="rcv42-region-table"><div class="head"><span>Región</span><span>Gastos</span><span>Costos</span><span>Productividad</span><span>Alertas</span></div>${regs.map(reg=>{let alerts=0;const cells=['gastos','costos','productividad'].map(m=>{const x=d.modules?.[m],rs=filterPeriod((x?.data?.rows||[]).filter(r=>cleanRegion(r.region)===reg));if(!rs.length)return '<span>—</span>';const t=totals(rs,m);if(t.st==='red')alerts++;return `<span>${sema(t.st)}<small>${pctLabel(rs,m)}</small></span>`}).join('');return `<button class="row" data-general-region="${esc(reg)}"><b>${esc(reg)}</b>${cells}<strong class="${alerts?'red':''}">${alerts}</strong></button>`}).join('')}</div></article>`}
+      $('r34Panel').innerHTML=`<div class="rcv34-section-head"><div><h2>Centro de Control Regional</h2><p>Resumen ejecutivo y Top 10 por región de las publicaciones más recientes.</p></div><span class="rcv42-update">${S.periodYear?`Año ${esc(S.periodYear)}`:'Año más reciente'}</span></div><div class="rcv34-menu-grid">${moduleCards}</div><div class="rcv48-general-rankings">${rankings}</div>${regional}`;
+      document.querySelectorAll('[data-general-open]').forEach(x=>x.onclick=()=>navigate(x.dataset.generalOpen));document.querySelectorAll('[data-general-region]').forEach(x=>x.onclick=()=>{S.adminRegion=cleanRegion(x.dataset.generalRegion);navigate('gastos')});
+    }catch(e){$('r34Panel').innerHTML=`<div class="rcv34-empty">${esc(e.message)}</div>`}
+  }
+  async function renderSessions(){if(upper(S.session.tipo)!=='ADMINISTRADOR')return renderMenu();$('r34Title').textContent='Conexiones y actividad';$('r34Subtitle').textContent='Control de accesos y tiempo de consulta de los usuarios.';$('r34Panel').innerHTML='<div class="rcv34-empty">Consultando sesiones…</div>';try{const d=await jsonp({accion:'v34_sessions',token:S.session.token});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible consultar sesiones.');const active=d.items.filter(x=>x.estado==='ACTIVA').length,total=d.items.length,mins=d.items.reduce((a,x)=>a+(Number(x.minutos)||0),0);const trs=d.items.map(x=>`<tr><td>${esc(x.usuario)}</td><td>${esc(x.region)}</td><td>${esc(x.inicio)}</td><td>${esc(x.ultimaActividad)}</td><td>${esc(x.fin||'—')}</td><td>${Number(x.minutos||0).toFixed(1)} min</td><td>${Number(x.consultas||0)}</td><td>${Number(x.planes||0)}</td><td>${esc(x.estado)}</td></tr>`).join('');$('r34Panel').innerHTML=`<div class="rcv34-session-summary"><article class="rcv34-kpi"><small>SESIONES REGISTRADAS</small><strong>${total}</strong></article><article class="rcv34-kpi"><small>ACTIVAS / RECIENTES</small><strong>${active}</strong></article><article class="rcv34-kpi"><small>TIEMPO ACUMULADO</small><strong>${mins.toFixed(0)} min</strong></article></div><article class="rcv34-card"><h3>Bitácora de conexiones</h3><p>Una sesión sin cierre explícito se considera desconectada según su última actividad.</p><div class="rcv34-table-wrap"><table class="rcv34-table"><thead><tr><th>Usuario</th><th>Región</th><th>Inicio</th><th>Última actividad</th><th>Fin</th><th>Duración</th><th>Consultas</th><th>Planes</th><th>Estado</th></tr></thead><tbody>${trs}</tbody></table></div></article>`}catch(e){$('r34Panel').innerHTML=`<div class="rcv34-empty">${esc(e.message)}</div>`}}
+  function init(session){build();S.session=session;$('r34User').textContent=session.usuario;$('r34Role').textContent=upper(session.tipo)==='ADMINISTRADOR'?'Administrador del sistema':`Región ${sessionRegion(session)}`;$('r34Region').textContent=sessionRegion(session);renderMenu();refreshNotifications();if(S.notificationTimer)clearInterval(S.notificationTimer);S.notificationTimer=setInterval(refreshNotifications,60000)}
+  window.addEventListener('reportia:session',e=>init(e.detail));if(window.REPORTIA_SESSION)init(window.REPORTIA_SESSION);
+  function reportFolio(module){const d=new Date(),pad=n=>String(n).padStart(2,'0');const reg=(adminRegionLabel()||'GENERAL').replace(/[^A-Z0-9]/gi,'').slice(0,8).toUpperCase();return `RCV-${upper(module).slice(0,5)}-${reg}-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`}
+  function executiveReportBar(rows,module,meta,source){
+    return `<article class="rcv44-reportbar"><div><span>REPORTE EJECUTIVO</span><b>Genera una salida lista para reunión o exporta el detalle filtrado.</b><small>Respeta región, año, meses y fuente ${source==='cloud'?'Nube Publicada':'Procesado en Real'}.</small></div><div class="rcv44-report-actions"><button id="r44Report" class="rcv44-report-btn primary">📄 Generar reporte ejecutivo</button><button id="r44Excel" class="rcv44-report-btn">▦ Exportar Excel Ejecutivo</button></div></article>`;
+  }
+  function bindExecutiveReport(rows,module,meta,source){const r=$('r44Report'),x=$('r44Excel');if(r)r.onclick=()=>openReportOptions(rows,module,meta,source);if(x)x.onclick=()=>exportExecutiveExcel(rows,module,meta,source)}
+  function openReportOptions(rows,module,meta,source){
+    let m=$('r44Options');if(m)m.remove();document.body.insertAdjacentHTML('beforeend',`<div id="r44Options" class="rcv44-modal open"><div class="rcv44-modal-card"><button class="rcv44-x" id="r44Close">×</button><span class="rcv44-kicker">GENERADOR EJECUTIVO</span><h2>Configurar reporte</h2><p>El reporte usará la vista actualmente filtrada: <b>${esc(MODULES[module]?.label||module)}</b> · <b>${esc(adminRegionLabel())}</b> · <b>${esc(periodRangeLabel())}</b>.</p><div class="rcv44-options"><label><input type="checkbox" data-r44="charts" checked> Gráficas y tendencia mensual</label><label><input type="checkbox" data-r44="top" checked> Top desviaciones</label><label><input type="checkbox" data-r44="repeat" checked> Reincidencias</label><label><input type="checkbox" data-r44="detail"> Detalle de movimientos</label><label><input type="checkbox" data-r44="notes" checked> Resumen de seguimiento</label></div><div class="rcv44-modal-actions"><button id="r44Cancel">Cancelar</button><button id="r44Generate" class="primary">Generar reporte</button></div></div></div>`);const close=()=>$('r44Options')?.remove();$('r44Close').onclick=close;$('r44Cancel').onclick=close;$('r44Options').onclick=e=>{if(e.target===$('r44Options'))close()};$('r44Generate').onclick=()=>{const opt={};document.querySelectorAll('[data-r44]').forEach(i=>opt[i.dataset.r44]=i.checked);close();generateExecutiveReport(rows,module,meta,source,opt)}}
+  function reportConclusions(rows,module){const groups=[...groupRows(rows,unitName)].map(([name,rs])=>({name,rs,t:totals(rs,module),dev:deviationValue(rs,module),streak:redStreak(rs,module)}));const red=groups.filter(x=>x.t.st==='red').sort((a,b)=>b.dev-a.dev);const out=[];if(red.length)out.push(`${red.length} de ${groups.length} unidades presentan semáforo rojo en el periodo seleccionado.`);else out.push(`No se detectan unidades en rojo en el periodo seleccionado.`);if(red[0])out.push(`${red[0].name} concentra la mayor desviación, por ${money(red[0].dev)}.`);const repeat=groups.filter(x=>x.streak>=2).sort((a,b)=>b.streak-a.streak);if(repeat.length)out.push(`${repeat.length} unidad(es) presentan reincidencia de al menos 2 meses consecutivos en rojo; la mayor racha es de ${repeat[0].streak} meses.`);const by=monthlyGroups(rows);if(by.length>=2){const a=totals(by[by.length-2][1],module),b=totals(by[by.length-1][1],module);if(Math.abs(a.real)>0){const ch=((Math.abs(b.real)-Math.abs(a.real))/Math.abs(a.real))*100;out.push(`El Real del último mes ${ch>=0?'aumentó':'disminuyó'} ${Math.abs(ch).toFixed(1)}% respecto al mes anterior disponible.`)}}return out}
+  function reportSvg(rows,module){const data=monthlyGroups(rows).map(([name,rs])=>({name,t:totals(rs,module)}));if(!data.length)return'';const max=Math.max(...data.flatMap(x=>[Math.abs(x.t.real),Math.abs(x.t.budget)]),1),W=760,H=240,p=35,gap=(W-p*2)/Math.max(data.length,1);let bars='';data.forEach((x,i)=>{const bx=p+i*gap+gap*.17,bw=Math.max(8,gap*.25),rh=Math.abs(x.t.real)/max*150,bh=Math.abs(x.t.budget)/max*150;bars+=`<rect x="${bx}" y="${185-rh}" width="${bw}" height="${rh}" rx="3" fill="#2563eb"/><rect x="${bx+bw+4}" y="${185-bh}" width="${bw}" height="${bh}" rx="3" fill="#14b8a6"/><text x="${bx+bw}" y="210" text-anchor="middle" font-size="10" fill="#667085">${esc(x.name)}</text>`});return `<svg viewBox="0 0 ${W} ${H}" class="r44-svg"><line x1="${p}" y1="185" x2="${W-p}" y2="185" stroke="#d0d5dd"/>${bars}<g font-size="11"><rect x="560" y="12" width="10" height="10" rx="2" fill="#2563eb"/><text x="575" y="21">Real</text><rect x="625" y="12" width="10" height="10" rx="2" fill="#14b8a6"/><text x="640" y="21">Presupuesto</text></g></svg>`}
+  function generateExecutiveReport(rows,module,meta,source,opt){const t=totals(rows,module),groups=[...groupRows(rows,unitName)].map(([name,rs])=>({name,rs,t:totals(rs,module),dev:deviationValue(rs,module),streak:redStreak(rs,module)})),reds=groups.filter(x=>x.t.st==='red'),greens=groups.length-reds.length,top=[...reds].sort((a,b)=>b.dev-a.dev).slice(0,5),folio=reportFolio(module),now=new Date().toLocaleString('es-MX'),conclusions=reportConclusions(rows,module);const topHtml=opt.top?`<section><h2>Principales desviaciones</h2><table><thead><tr><th>#</th><th>Unidad</th><th>Real</th><th>Presupuesto</th><th>Desviación</th><th>Estado</th></tr></thead><tbody>${top.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.t.real)}</td><td>${money(x.t.budget)}</td><td>${money(x.dev)}</td><td class="bad">ROJO</td></tr>`).join('')||'<tr><td colspan="6">Sin desviaciones rojas.</td></tr>'}</tbody></table></section>`:'';const repeat=groups.filter(x=>x.streak>=2).sort((a,b)=>b.streak-a.streak);const repeatHtml=opt.repeat?`<section><h2>Reincidencias</h2>${repeat.length?`<div class="chips">${repeat.map(x=>`<span><b>${esc(x.name)}</b> · ${x.streak} meses en rojo</span>`).join('')}</div>`:'<p>No se detectan reincidencias de 2 o más meses consecutivos.</p>'}</section>`:'';const detailHtml=opt.detail?`<section class="page"><h2>Detalle de movimientos</h2><table><thead><tr><th>Jerarquía</th><th>Cuenta / concepto</th><th>Unidad</th><th>Periodo</th><th>Real</th><th>Presupuesto</th><th>Estado</th></tr></thead><tbody>${rows.slice(0,2500).map(r=>{const st=status(module,Number(r.real)||0,Number(r.budget)||0);return `<tr><td>${esc(r.hierarchy)}</td><td>${esc(r.account)}</td><td>${esc(unitName(r))}</td><td>${esc(r.period)}</td><td>${money(r.real)}</td><td>${money(r.budget)}</td><td class="${st==='red'?'bad':'good'}">${st==='red'?'ROJO':'VERDE'}</td></tr>`}).join('')}</tbody></table>${rows.length>2500?'<p><i>Por legibilidad, el PDF limita el detalle a los primeros 2,500 movimientos. Use Exportar a Excel para el universo completo.</i></p>':''}</section>`:'';const html=`<!doctype html><html><head><meta charset="utf-8"><title>${folio}</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172033;margin:0;font-size:11px;background:#fff}.cover{padding:28px;border-radius:18px;background:linear-gradient(135deg,#172554 0%,#1d4ed8 55%,#0f766e 100%);color:#fff;margin-bottom:18px;box-shadow:0 8px 28px rgba(29,78,216,.14)}.brand{font-size:27px;font-weight:900;letter-spacing:.02em}.brand span{font-size:11px;color:#dbeafe;display:block;margin-top:4px;letter-spacing:.08em;text-transform:uppercase}.cover h1{font-size:25px;margin:32px 0 8px}.cover>p{color:#dbeafe}.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:22px}.meta div{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:10px;border-radius:9px}.meta small{color:#bfdbfe}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:15px 0}.kpis div{border:1px solid #dbe5f4;border-radius:10px;padding:11px;background:#f8fbff;position:relative;overflow:hidden}.kpis div:before{content:'';position:absolute;left:0;top:0;width:100%;height:3px;background:#2563eb}.kpis div:nth-child(2):before{background:#14b8a6}.kpis div:nth-child(3):before{background:#7c3aed}.kpis div:nth-child(4):before{background:#ef4444}.kpis div:nth-child(5):before{background:#10b981}.kpis small{display:block;color:#64748b;font-weight:700}.kpis b{display:block;font-size:15px;margin-top:5px;color:#172033}h2{font-size:16px;margin:23px 0 9px;border-bottom:2px solid #dbeafe;padding-bottom:6px;color:#1e3a8a}table{border-collapse:separate;border-spacing:0;width:100%;font-size:9px;border:1px solid #e2e8f0;border-radius:9px;overflow:hidden}th,td{padding:7px;border-bottom:1px solid #e8eef7;text-align:left}th{background:#1e3a8a;color:#fff;font-weight:700}tbody tr:nth-child(even){background:#f8fafc}.bad{color:#dc2626;font-weight:bold}.good{color:#059669;font-weight:bold}.r44-svg{width:100%;height:auto;border:1px solid #dbe5f4;border-radius:10px;background:#fbfdff}.conclusions{padding:13px 18px;background:#eff6ff;border-left:4px solid #2563eb;border-radius:0 9px 9px 0}.conclusions li{margin:7px 0}.chips{display:grid;grid-template-columns:1fr 1fr;gap:7px}.chips span{border:1px solid #ddd6fe;background:#f5f3ff;padding:9px;border-radius:9px;color:#5b21b6}.footer{margin-top:22px;border-top:2px solid #dbeafe;padding-top:8px;color:#64748b;font-size:9px}.page{page-break-before:always}@media print{button{display:none}.cover{-webkit-print-color-adjust:exact;print-color-adjust:exact}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="cover"><div class="brand">REPORT.IA<span>Centro de Control Regional</span></div><h1>Reporte Ejecutivo · ${esc(MODULES[module]?.label||module)}</h1><p>Resumen de la información actualmente seleccionada en el portal.</p><div class="meta"><div><small>REGIÓN</small><b>${esc(adminRegionLabel())}</b></div><div><small>PERIODO</small><b>${esc(periodRangeLabel())}</b></div><div><small>FUENTE</small><b>${source==='cloud'?'Nube Publicada':'Procesado en Real'}</b></div><div><small>FOLIO</small><b>${folio}</b></div><div><small>GENERADO POR</small><b>${esc(S.session?.usuario||'—')}</b></div><div><small>FECHA Y HORA</small><b>${now}</b></div></div></div><div class="kpis"><div><small>REAL</small><b>${money(t.real)}</b></div><div><small>PRESUPUESTO</small><b>${money(t.budget)}</b></div><div><small>VARIACIÓN</small><b>${money(t.diff)}</b></div><div><small>ROJAS</small><b>${reds.length}</b></div><div><small>VERDES</small><b>${greens}</b></div></div>${opt.charts?`<section><h2>Evolución mensual · Real vs Presupuesto</h2>${reportSvg(rows,module)}</section>`:''}${topHtml}<section><h2>Conclusiones automáticas</h2><ol class="conclusions">${conclusions.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></section>${repeatHtml}${opt.notes?`<section><h2>Seguimiento ejecutivo</h2><p>Las incidencias y conversaciones se gestionan desde la vista Nube Publicada. Este reporte identifica las unidades que requieren seguimiento con base en el semáforo y reincidencia del periodo.</p></section>`:''}${detailHtml}<div class="footer">${folio} · Generado desde REPORT.IA · ${now}</div><script>window.onload=()=>setTimeout(()=>window.print(),350)<\/script></body></html>`;const w=window.open('','_blank');if(!w){alert('El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para este sitio.');return}w.document.open();w.document.write(html);w.document.close()}
+  
+  function excelMoney(n){return Number(n)||0}
+  function excelSheetFromAOA(data,widths){
+    const ws=XLSX.utils.aoa_to_sheet(data);
+    if(widths)ws['!cols']=widths.map(w=>({wch:w}));
+    return ws;
+  }
+  function excelTableSheet(data,widths){
+    const ws=XLSX.utils.json_to_sheet(data);
+    if(widths)ws['!cols']=widths.map(w=>({wch:w}));
+    if(data.length){
+      const ref=XLSX.utils.decode_range(ws['!ref']);
+      ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:ref.e.r,c:ref.e.c}})};
+    }
+    return ws;
+  }
+  function chartCanvas(w,h){
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const x=c.getContext('2d');x.fillStyle='#ffffff';x.fillRect(0,0,w,h);
+    return {c,x,w,h};
+  }
+  function chartPngTrend(items,module){
+    const {c,x,w,h}=chartCanvas(1200,430),p={l:90,r:40,t:75,b:70},cw=w-p.l-p.r,ch=h-p.t-p.b;
+    x.fillStyle='#172033';x.font='700 26px Segoe UI';x.fillText('Evolución mensual · Real vs Presupuesto',35,42);
+    x.fillStyle='#64748b';x.font='15px Segoe UI';x.fillText('Datos del filtro utilizado para generar el reporte',35,66);
+    const mx=Math.max(...items.flatMap(i=>[Math.abs(i.real),Math.abs(i.budget)]),1);
+    x.font='13px Segoe UI';x.strokeStyle='#e2e8f0';x.fillStyle='#64748b';x.textAlign='right';
+    for(let i=0;i<=5;i++){const y=p.t+ch*i/5;x.beginPath();x.moveTo(p.l,y);x.lineTo(w-p.r,y);x.stroke();x.fillText(new Intl.NumberFormat('es-MX',{notation:'compact',maximumFractionDigits:1}).format(mx*(1-i/5)),p.l-12,y+4)}
+    const slot=cw/Math.max(items.length,1),bw=Math.min(34,slot*.28);
+    items.forEach((it,i)=>{const cx=p.l+slot*i+slot/2,hr=Math.abs(it.real)/mx*ch,hb=Math.abs(it.budget)/mx*ch;
+      x.fillStyle='#2563eb';x.fillRect(cx-bw-3,p.t+ch-hr,bw,hr);
+      x.fillStyle='#14b8a6';x.fillRect(cx+3,p.t+ch-hb,bw,hb);
+      x.fillStyle='#475569';x.font='12px Segoe UI';x.textAlign='center';x.fillText(String(it.period).slice(0,12),cx,h-32);
+    });
+    x.fillStyle='#2563eb';x.fillRect(w-280,26,16,16);x.fillStyle='#334155';x.textAlign='left';x.font='13px Segoe UI';x.fillText('Real',w-255,39);
+    x.fillStyle='#14b8a6';x.fillRect(w-190,26,16,16);x.fillStyle='#334155';x.fillText('Presupuesto',w-165,39);
+    return c.toDataURL('image/png').split(',')[1];
+  }
+  function chartPngStatus(red,green){
+    const {c,x,w,h}=chartCanvas(620,410),cx=205,cy=220,r=115,th=46,total=Math.max(red+green,1);
+    x.fillStyle='#172033';x.font='700 24px Segoe UI';x.fillText('Estado de jerarquías',28,42);
+    x.fillStyle='#64748b';x.font='14px Segoe UI';x.fillText('Distribución rojo / verde',28,65);
+    x.lineWidth=th;x.lineCap='butt';let start=-Math.PI/2;
+    [[green,'#10b981'],[red,'#ef4444']].forEach(([v,color])=>{const a=v/total*Math.PI*2;x.beginPath();x.strokeStyle=color;x.arc(cx,cy,r,start,start+a);x.stroke();start+=a});
+    x.fillStyle='#172033';x.textAlign='center';x.font='800 36px Segoe UI';x.fillText(String(red+green),cx,cy+5);
+    x.fillStyle='#64748b';x.font='14px Segoe UI';x.fillText('jerarquías',cx,cy+30);
+    x.textAlign='left';x.fillStyle='#10b981';x.fillRect(385,145,18,18);x.fillStyle='#334155';x.font='700 16px Segoe UI';x.fillText(`Verdes  ${green}`,416,160);
+    x.fillStyle='#ef4444';x.fillRect(385,200,18,18);x.fillStyle='#334155';x.fillText(`Rojas   ${red}`,416,215);
+    x.fillStyle='#64748b';x.font='13px Segoe UI';x.fillText(`${((green/total)*100).toFixed(1)}% en objetivo`,385,260);
+    return c.toDataURL('image/png').split(',')[1];
+  }
+  function chartPngTop(top,module){
+    const {c,x,w,h}=chartCanvas(900,410),p={l:300,r:55,t:82,b:40},cw=w-p.l-p.r,ch=h-p.t-p.b;
+    x.fillStyle='#172033';x.font='700 24px Segoe UI';x.fillText('Top desviaciones',28,42);
+    x.fillStyle='#64748b';x.font='14px Segoe UI';x.fillText('Unidades que requieren mayor atención',28,65);
+    const mx=Math.max(...top.map(z=>Math.abs(z.dev)),1),slot=ch/Math.max(top.length,1),bh=Math.min(32,slot*.58);
+    top.forEach((it,i)=>{const y=p.t+i*slot+(slot-bh)/2,wv=Math.abs(it.dev)/mx*cw;
+      x.fillStyle=i===0?'#e85d75':i===1?'#f97316':i===2?'#f59e0b':'#7c3aed';x.fillRect(p.l,y,wv,bh);
+      x.fillStyle='#334155';x.textAlign='right';x.font='13px Segoe UI';x.fillText(String(it.name).slice(0,36),p.l-14,y+bh*.68);
+      x.textAlign='left';x.font='700 12px Segoe UI';x.fillText(new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',notation:'compact',maximumFractionDigits:1}).format(it.dev),p.l+wv+8,y+bh*.68);
+    });
+    return c.toDataURL('image/png').split(',')[1];
+  }
+  function xmlEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
+  function excelDownloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1200)}
+  async function injectExcelDashboardImages(arrayBuffer,sheetName,images){
+    if(!window.JSZip||!images?.length)return new Blob([arrayBuffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const zip=await JSZip.loadAsync(arrayBuffer),wbXml=await zip.file('xl/workbook.xml').async('string'),wbRels=await zip.file('xl/_rels/workbook.xml.rels').async('string');
+    const safe=sheetName.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),sm=wbXml.match(new RegExp(`<sheet[^>]*name="${safe}"[^>]*r:id="([^"]+)"[^>]*/?>`));
+    if(!sm)return new Blob([arrayBuffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const rid=sm[1],rm=wbRels.match(new RegExp(`<Relationship[^>]*Id="${rid}"[^>]*Target="([^"]+)"[^>]*/?>`));
+    if(!rm)return new Blob([arrayBuffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    let target=rm[1].replace(/^\/+/,'');if(!target.startsWith('xl/'))target='xl/'+target.replace(/^\.\//,'');
+    const sheetPath=target,base=sheetPath.split('/').pop(),relsPath=`xl/worksheets/_rels/${base}.rels`;
+    const drawFiles=Object.keys(zip.files).filter(k=>/^xl\/drawings\/drawing\d+\.xml$/.test(k));
+    const dNum=Math.max(0,...drawFiles.map(k=>Number((k.match(/drawing(\d+)/)||[])[1]||0)))+1;
+    const drawingPath=`xl/drawings/drawing${dNum}.xml`,drawingRelsPath=`xl/drawings/_rels/drawing${dNum}.xml.rels`;
+    const mediaFiles=Object.keys(zip.files).filter(k=>/^xl\/media\/image\d+\.png$/.test(k));
+    let imgNum=Math.max(0,...mediaFiles.map(k=>Number((k.match(/image(\d+)/)||[])[1]||0)))+1;
+    const placements=[
+      {col:0,row:12,w:920,h:330},
+      {col:0,row:31,w:470,h:310},
+      {col:8,row:31,w:680,h:310}
+    ];
+    let anchors='',drels=[];
+    images.forEach((im,i)=>{
+      const name=`image${imgNum+i}.png`;zip.file(`xl/media/${name}`,im.base64,{base64:true});
+      const pr=placements[i]||{col:0,row:12+i*18,w:700,h:300},cx=pr.w*9525,cy=pr.h*9525,id=i+1;
+      anchors+=`<xdr:oneCellAnchor><xdr:from><xdr:col>${pr.col}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${pr.row}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${cx}" cy="${cy}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${id}" name="${xmlEsc(im.name||'Gráfica '+id)}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${id}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:ln><a:noFill/></a:ln></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`;
+      drels.push(`<Relationship Id="rId${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${name}"/>`);
+    });
+    zip.file(drawingPath,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${anchors}</xdr:wsDr>`);
+    zip.file(drawingRelsPath,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${drels.join('')}</Relationships>`);
+    let sxml=await zip.file(sheetPath).async('string'),srels=zip.file(relsPath)?await zip.file(relsPath).async('string'):`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+    const ids=[...srels.matchAll(/Id="rId(\d+)"/g)].map(m=>Number(m[1])),srid='rId'+(Math.max(0,...ids)+1);
+    srels=srels.replace('</Relationships>',`<Relationship Id="${srid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${dNum}.xml"/></Relationships>`);
+    if(!/xmlns:r=/.test(sxml))sxml=sxml.replace('<worksheet ','<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+    sxml=sxml.replace('</worksheet>',`<drawing r:id="${srid}"/></worksheet>`);
+    zip.file(sheetPath,sxml);zip.file(relsPath,srels);
+    let ct=await zip.file('[Content_Types].xml').async('string');
+    if(!/Extension="png"/.test(ct))ct=ct.replace('</Types>','<Default Extension="png" ContentType="image/png"/></Types>');
+    if(!ct.includes(`/xl/drawings/drawing${dNum}.xml`))ct=ct.replace('</Types>',`<Override PartName="/xl/drawings/drawing${dNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>`);
+    zip.file('[Content_Types].xml',ct);
+    return await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  }
+  async function exportExecutiveExcel(rows,module,meta,source){
+    if(!window.XLSX){alert('No está disponible el componente de Excel.');return}
+    const t=totals(rows,module),folio=reportFolio(module),now=new Date().toLocaleString('es-MX'),region=adminRegionLabel(),period=periodRangeLabel(),sourceLabel=source==='cloud'?'Nube Publicada':'Procesado en Real';
+    const unitGroups=[...groupRows(rows,unitName)].map(([name,rs])=>{const z=totals(rs,module);return{name,rs,t:z,dev:deviationValue(rs,module),streak:redStreak(rs,module),accounts:new Set(rs.map(r=>r.hierarchy).filter(Boolean)).size}}).sort((a,b)=>Math.abs(b.t.real)-Math.abs(a.t.real));
+    const red=unitGroups.filter(x=>x.t.st==='red'),green=unitGroups.length-red.length,top=[...red].sort((a,b)=>b.dev-a.dev),repeat=unitGroups.filter(x=>x.streak>=2).sort((a,b)=>b.streak-a.streak);
+    const monthly=monthlyGroups(rows).map(([name,rs])=>{const z=totals(rs,module);return{period:name,real:z.real,budget:z.budget,variation:z.diff,state:z.st==='red'?'ROJO':'VERDE'}});
+    const hierarchyRows=[...groupRows(rows,'hierarchy')].map(([name,rs])=>{const z=totals(rs,module);return{'Jerarquía contable':name,'Unidad(es)':new Set(rs.map(unitName)).size,'Movimientos':rs.length,'Real':z.real,'Presupuesto':z.budget,'Variación':z.diff,'Estado':z.st==='red'?'ROJO':'VERDE'}}).sort((a,b)=>Math.abs(b.Real)-Math.abs(a.Real));
+    const detail=rows.map(r=>({'Región':r.region,'Gerencia':managerName(r),'Área / departamento':areaName(r),'Jerarquía contable':r.hierarchy,'Cuenta / concepto':r.account,'Jerarquía Sublibro':r.subledgerHierarchy||r.subledger,'Periodo':r.period,'Año':r.year,'Real':r.real,'Presupuesto':r.budget,'Variación':module==='productividad'?(Number(r.real)||0)-(Number(r.budget)||0):Math.abs(Number(r.real)||0)-Math.abs(Number(r.budget)||0),'Estado':status(module,Number(r.real)||0,Number(r.budget)||0)==='red'?'ROJO':'VERDE'}));
+    const dashboard=[
+      ['REPORT.IA · DASHBOARD EJECUTIVO'],[],
+      ['Módulo',MODULES[module]?.label||module,'Región',region],
+      ['Periodo',period,'Fuente',sourceLabel],
+      ['Folio',folio,'Generado',now],
+      ['Usuario',S.session?.usuario||'','Movimientos',rows.length],
+      [],
+      ['INDICADORES','VALOR'],
+      ['Real',t.real],['Presupuesto',t.budget],['Variación',t.diff],
+      ['Jerarquías rojas',red.length],['Jerarquías verdes',green],['Reincidentes',repeat.length],...(S.compareYears?[[],['COMPARATIVA',`${S.compareBase} vs ${S.compareTarget}`],['Nota','El portal mantiene la comparativa visual; esta exportación corresponde al año objetivo seleccionado.']]:[]),
+      [],['GRÁFICAS'],['Las gráficas del filtro actual aparecen debajo.']
+    ];
+    const wb=XLSX.utils.book_new();
+    const wsDash=excelSheetFromAOA(dashboard,[25,22,22,28,16,16,16,16,16,16,16,16,16,16,16]);
+    wsDash['!merges']=[XLSX.utils.decode_range('A1:D1')];
+    XLSX.utils.book_append_sheet(wb,wsDash,'Dashboard');
+    const wsSummary=excelSheetFromAOA([
+      ['REPORT.IA · RESUMEN EJECUTIVO'],[],
+      ['Folio',folio],['Módulo',MODULES[module]?.label||module],['Región',region],['Periodo',period],['Fuente',sourceLabel],['Generado por',S.session?.usuario||''],['Fecha',now],[],
+      ['KPI','Valor'],['Real',t.real],['Presupuesto',t.budget],['Variación',t.diff],['Áreas / departamentos',unitGroups.length],['Rojas',red.length],['Verdes',green],['Reincidentes',repeat.length],[],
+      ['PRINCIPALES HALLAZGOS'],
+      ...reportConclusions(rows,module).map(x=>[x])
+    ],[28,28,24,24]);
+    XLSX.utils.book_append_sheet(wb,wsSummary,'Resumen Ejecutivo');
+    const wsTrend=excelTableSheet(monthly.map(x=>({'Periodo':x.period,'Real':x.real,'Presupuesto':x.budget,'Variación':x.variation,'Estado':x.state})),[18,18,18,18,14]);
+    XLSX.utils.book_append_sheet(wb,wsTrend,'Tendencia Mensual');
+    const jer=unitGroups.map(x=>({'Unidad / Jerarquía':x.name,'Jerarquías contables':x.accounts,'Movimientos':x.rs.length,'Real':x.t.real,'Presupuesto':x.t.budget,'Variación':x.t.diff,'Estado':x.t.st==='red'?'ROJO':'VERDE','Meses consecutivos rojo':x.streak||0}));
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(jer,[38,20,16,18,18,18,14,22]),'Unidades');
+    const topRows=top.map((x,i)=>({'Posición':i+1,'Unidad / Jerarquía':x.name,'Real':x.t.real,'Presupuesto':x.t.budget,'Desviación':x.dev,'Meses rojo':x.streak||0,'Movimientos':x.rs.length}));
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(topRows,[10,38,18,18,18,14,14]),'Top Desviaciones');
+    const repRows=repeat.map(x=>({'Unidad / Jerarquía':x.name,'Meses consecutivos en rojo':x.streak,'Real':x.t.real,'Presupuesto':x.t.budget,'Desviación':x.dev,'Movimientos':x.rs.length}));
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(repRows,[38,24,18,18,18,14]),'Reincidencias');
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(hierarchyRows,[38,14,14,18,18,18,14]),'Jerarquías Contables');
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(detail,[18,34,34,42,34,14,10,18,18,18,14]),'Detalle Completo');
+
+    if(source==='cloud'){
+      try{
+        const [notes,commit]=await Promise.all([jsonp({accion:'v42_notifications',token:S.session.token}),jsonp({accion:'v46_commitments',token:S.session.token})]);
+        const nitems=(notes?.items||[]).filter(x=>(!x.module||x.module===module)&&(!region||region==='TODAS LAS REGIONES'||cleanRegion(x.region)===cleanRegion(region)));
+        const citems=(commit?.items||[]).filter(x=>(!x.module||x.module===module)&&(!region||region==='TODAS LAS REGIONES'||cleanRegion(x.region)===cleanRegion(region)));
+        const tracking=[...nitems.map(x=>({'Tipo':'Mensaje','Región':x.region,'Incidencia / Jerarquía':x.hierarchy,'Usuario':x.usuario,'Fecha':x.fecha,'Estado':x.estado||'','Responsable':'','Fecha compromiso':'','Vencida':'','Texto':x.texto})),
+          ...citems.map(x=>({'Tipo':'Compromiso','Región':x.region,'Incidencia / Jerarquía':x.hierarchy,'Usuario':x.actualizadoPor||'','Fecha':'','Estado':x.estado||'','Responsable':x.responsable||'','Fecha compromiso':x.fechaCompromiso||'','Vencida':x.vencida?'SÍ':'NO','Texto':''}))];
+        if(tracking.length)XLSX.utils.book_append_sheet(wb,excelTableSheet(tracking,[14,18,42,22,18,18,24,20,12,55]),'Seguimiento');
+      }catch(_){}
+    }
+
+    const images=[
+      {name:'Tendencia mensual',base64:chartPngTrend(monthly,module)},
+      {name:'Semáforo de jerarquías',base64:chartPngStatus(red.length,green)},
+      {name:'Top desviaciones',base64:chartPngTop(top.slice(0,7),module)}
+    ];
+    const arr=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=await injectExcelDashboardImages(arr,'Dashboard',images);
+    excelDownloadBlob(blob,`${folio}.xlsx`);
+  }
+
+
+/* ===== REPORT.IA v46 · Gestión Ejecutiva ===== */
+ 'use strict';
+ function findRows(){
+   try{
+    const box=$('r34Data'); if(!box) return [];
+    const data=(typeof S!=='undefined'?(S.adminSource==='local'?S.local:S.cloud):null);
+    if(!data?.rows) return [];
+    let rows=data.rows.slice();
+    if(typeof filterRowsByRegion==='function') rows=filterRowsByRegion(rows);
+    if(typeof periodFilteredRows==='function') rows=periodFilteredRows(rows);
+    return rows;
+   }catch(e){return []}
+ }
+ function forecast(rows,module){
+   const by={}; rows.forEach(r=>{let m=Number(r.month)||0;if(!m&&r.period){const x=String(r.period).match(/(?:^|\D)(1[0-2]|[1-9])(?:\D|$)/);m=x?Number(x[1]):0}if(!m)return;(by[m]??=[]).push(r)});
+   const months=Object.keys(by).map(Number).sort((a,b)=>a-b); if(!months.length)return null;
+   let real=0,budget=0; months.forEach(m=>{const t=totals(by[m],module);real+=Math.abs(t.real);budget+=Math.abs(t.budget)});
+   const avg=real/months.length, projected=avg*12, budgetAnnual=budget/months.length*12;
+   return {months:months.length,last:months.at(-1),real,budget,projected,budgetAnnual,gap:projected-budgetAnnual};
+ }
+ function priorityRows(rows,module){
+   const groups=[...groupRows(rows,unitName)].map(([name,rs])=>{const t=totals(rs,module);return{name,rs,t,dev:deviationValue(rs,module),streak:redStreak(rs,module)}});
+   return groups.filter(x=>x.t.st==='red').sort((a,b)=>b.dev-a.dev);
+ }
+ function renderCenter(){
+   const rows=findRows(); if(!rows.length||!S?.module||S.module==='general')return;
+   const host=$('r34Data'); if(!host||$('r45Center'))return;
+   const red=priorityRows(rows,S.module), reinc=red.filter(x=>x.streak>=2), f=forecast(rows,S.module);
+   const html=`<section id="r45Center" class="r45-center"><div class="r45-head"><div><span>CENTRO DE ATENCIÓN</span><h3>Prioridades del periodo</h3></div><button id="r45Presentation">▣ Modo presentación</button></div><div class="r45-kpis"><button data-r45="red"><small>DESVIACIONES</small><b>${red.length}</b><em>requieren revisión</em></button><button data-r45="repeat"><small>REINCIDENTES</small><b>${reinc.length}</b><em>2+ meses en rojo</em></button><div><small>PROYECCIÓN CIERRE</small><b>${f?money(f.projected):'—'}</b><em>${f?`${f.months} mes(es) disponibles`:'Sin periodo suficiente'}</em></div><div class="${f&&f.gap>0?'danger':'ok'}"><small>RIESGO PROYECTADO</small><b>${f?money(f.gap):'—'}</b><em>${f&&f.gap>0?'sobre presupuesto anualizado':'sin exceso proyectado'}</em></div></div>${red.length?`<div class="r45-priority"><h4>Atención requerida</h4>${red.slice(0,5).map((x,i)=>`<div><span class="rank">${i+1}</span><span><b>${esc(x.name)}</b><small>${x.streak>=2?`↻ ${x.streak} meses consecutivos en rojo`:'Incidencia del periodo'}</small></span><strong>${money(x.dev)}</strong></div>`).join('')}</div>`:''}</section>`;
+   const anchor=host.querySelector('.rcv44-report-center')||host.firstElementChild; if(anchor)anchor.insertAdjacentHTML('afterend',html); else host.insertAdjacentHTML('afterbegin',html);
+   $('r45Presentation')?.addEventListener('click',()=>document.body.classList.toggle('r45-present'));
+ }
+ const obs=new MutationObserver(()=>setTimeout(renderCenter,20));
+ window.addEventListener('load',()=>{const p=$('r34Panel');if(p)obs.observe(p,{childList:true,subtree:true});setTimeout(renderCenter,600)});
+
+  async function loadCommitment(module,snapshotId,region,hierarchy){
+    const wrap=$('r46Commitment');if(!wrap)return;
+    try{
+      const d=await jsonp({accion:'v46_commitment',token:S.session.token,module,snapshotId,region,hierarchy});if(!d?.ok)return;
+      const c=d.item||{},resp=$('r46Responsible'),due=$('r46Due'),st=$('r46DueStatus');
+      if(resp)resp.textContent=c.responsable||'Sin asignar';if(due)due.textContent=c.fechaCompromiso||'Sin fecha';
+      if(st){st.textContent=c.vencida?'VENCIDA':(c.fechaCompromiso?'EN TIEMPO':'SIN COMPROMISO');st.className=c.vencida?'overdue':c.fechaCompromiso?'ontime':'none'}
+      const edit=$('r46EditCommitment');if(edit)edit.onclick=()=>editCommitment(module,snapshotId,region,hierarchy,c);
+    }catch(_){}
+  }
+  function editCommitment(module,snapshotId,region,hierarchy,c){
+    let m=$('r46CommitModal');if(m)m.remove();
+    document.body.insertAdjacentHTML('beforeend',`<div id="r46CommitModal" class="rcv44-modal open"><div class="rcv44-modal-card"><button id="r46CommitClose" class="rcv44-x">×</button><span class="rcv44-kicker">INCIDENCIA 2.0</span><h2>Asignar seguimiento</h2><p>${esc(region)} · ${esc(hierarchy)}</p><div class="r46-form"><label>Responsable<input id="r46CommitResp" value="${esc(c?.responsable||region)}" placeholder="Responsable o área"></label><label>Fecha compromiso<input id="r46CommitDue" type="date" value="${esc(c?.fechaISO||'')}"></label></div><div class="rcv44-modal-actions"><button id="r46CommitCancel">Cancelar</button><button id="r46CommitSave" class="primary">Guardar compromiso</button></div><div id="r46CommitMsg" class="rcv34-msg"></div></div></div>`);
+    const close=()=>$('r46CommitModal')?.remove();$('r46CommitClose').onclick=close;$('r46CommitCancel').onclick=close;
+    $('r46CommitSave').onclick=async()=>{const b=$('r46CommitSave');b.disabled=true;try{const d=await post({accion:'v46_set_commitment',token:S.session.token,module,snapshotId,region,hierarchy,responsable:$('r46CommitResp').value.trim(),fechaCompromiso:$('r46CommitDue').value});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible guardar.');close();loadCommitment(module,snapshotId,region,hierarchy);refreshNotifications()}catch(e){$('r46CommitMsg').textContent=e.message;$('r46CommitMsg').className='rcv34-msg error'}finally{b.disabled=false}};
+  }
+  function healthScore(redModules,openInc,overdue){return Math.max(0,Math.min(100,100-redModules*18-Math.min(openInc,10)*2-overdue*7))}
+  async function loadExecutiveHome(){
+    try{
+      const [g,n,c]=await Promise.all([jsonp({accion:'v34_general',token:S.session.token}),jsonp({accion:'v42_notifications',token:S.session.token}),jsonp({accion:'v46_commitments',token:S.session.token})]);
+      const items=n?.items||[], commitments=c?.items||[], open=items.filter(x=>upper(x.estado)!=='ATENDIDA').length, overdue=commitments.filter(x=>x.vencida).length;
+      let reinc=0, priorities=[], regions=new Set();
+      for(const mod of ['gastos','costos','productividad']){
+        const pack=g?.modules?.[mod],rows=pack?.data?.rows||[];rows.forEach(r=>regions.add(cleanRegion(r.region)));
+        const badge=$('r472Status-'+mod);if(badge){if(!rows.length){badge.textContent='SIN DATOS';badge.className='r472-module-status neutral'}else{const mt=totals(rows,mod);badge.textContent=mt.st==='red'?'● REQUIERE ATENCIÓN':'● EN OBJETIVO';badge.className='r472-module-status '+(mt.st==='red'?'red':'green')}}
+        [...groupRows(rows,unitName)].forEach(([name,rs])=>{const t=totals(rs,mod),streak=redStreak(rs,mod);if(streak>=2)reinc++;if(t.st==='red')priorities.push({module:mod,name,region:cleanRegion(rs[0]?.region),dev:deviationValue(rs,mod),streak})});
+      }
+      const gb=$('r472Status-general');if(gb){gb.textContent=priorities.length?'● '+priorities.length+' ALERTAS':'● ESTABLE';gb.className='r472-module-status '+(priorities.length?'red':'green')}
+      const hk=$('r46HomeKpis');if(hk)hk.innerHTML=`<article><small>INCIDENCIAS ABIERTAS</small><b>${open}</b><em>Pendiente / seguimiento</em></article><article><small>SIN LEER</small><b>${Number(n?.unread||0)}</b><em>Mensajes nuevos</em></article><article class="${overdue?'danger':''}"><small>VENCIDAS</small><b>${overdue}</b><em>Fecha compromiso superada</em></article><article><small>REINCIDENTES</small><b>${reinc}</b><em>2+ meses en rojo</em></article>`;
+      priorities.sort((a,b)=>b.dev-a.dev);const pr=$('r46Priorities');if(pr)pr.innerHTML=priorities.length?priorities.slice(0,6).map((x,i)=>`<button class="r46-priority-row" data-r46-mod="${x.module}" data-r46-reg="${esc(x.region)}"><span>${i+1}</span><div><b>${esc(x.name)}</b><small>${esc(x.region)} · ${MODULES[x.module].label}${x.streak>=2?' · ↻ '+x.streak+' meses':''}</small></div><strong>${money(x.dev)}</strong></button>`).join(''):'<p class="muted">No hay prioridades rojas en las publicaciones actuales.</p>';
+      document.querySelectorAll('[data-r46-mod]').forEach(b=>b.onclick=()=>{S.adminRegion=cleanRegion(b.dataset.r46Reg);navigate(b.dataset.r46Mod)});
+      if($('r46HealthPanel'))$('r46HealthPanel').classList.toggle('rcv34-hidden',upper(S.session.tipo)!=='ADMINISTRADOR');
+      if(upper(S.session.tipo)==='ADMINISTRADOR'){const arr=[...regions].filter(Boolean).sort();const h=$('r46Health');if(h)h.innerHTML=`<div class="r46-health-table">${arr.map(reg=>{let rm=0;for(const mod of ['gastos','costos','productividad']){const rs=(g?.modules?.[mod]?.data?.rows||[]).filter(r=>cleanRegion(r.region)===reg);if(rs.length&&totals(rs,mod).st==='red')rm++}const oi=items.filter(x=>cleanRegion(x.region)===reg&&upper(x.estado)!=='ATENDIDA').length,ov=commitments.filter(x=>cleanRegion(x.region)===reg&&x.vencida).length,score=healthScore(rm,oi,ov);return `<button data-r46-health="${esc(reg)}"><span><b>${esc(reg)}</b><small>${oi} incidencias · ${ov} vencidas</small></span><strong class="${score>=85?'good':score>=65?'warn':'bad'}">${score}/100</strong><em>${rm===0?'● Estable':'● '+rm+' módulo(s) en rojo'}</em></button>`}).join('')}</div>`;document.querySelectorAll('[data-r46-health]').forEach(b=>b.onclick=()=>{S.adminRegion=cleanRegion(b.dataset.r46Health);navigate('general')})}
+      loadPublicationChanges(g);
+    }catch(e){const ch=$('r46Changes');if(ch)ch.innerHTML=`<p class="muted">No fue posible completar el resumen: ${esc(e.message)}</p>`}
+  }
+  async function loadPublicationChanges(general){
+    const box=$('r46Changes');if(!box)return;const changes=[];
+    for(const mod of ['gastos','costos','productividad']){
+      try{
+        const h=await jsonp({accion:'v34_history',token:S.session.token,module:mod}),hist=h?.items||[];
+        if(hist.length<2){changes.push({mod,text:'Sin publicación anterior para comparar.',kind:'same'});continue}
+        const cur=general?.modules?.[mod]?.data?.rows||[],prevPack=await jsonp({accion:'v34_snapshot',token:S.session.token,module:mod,snapshotId:hist[1].snapshotId||hist[1].id}),prev=prevPack?.data?.rows||prevPack?.payload?.rows||[];
+        const tc=totals(cur,mod),tp=totals(prev,mod),delta=Math.abs(tc.real)-Math.abs(tp.real);
+        const rc=new Set([...groupRows(cur,unitName)].filter(([,rs])=>totals(rs,mod).st==='red').map(([n])=>n)),rp=new Set([...groupRows(prev,unitName)].filter(([,rs])=>totals(rs,mod).st==='red').map(([n])=>n));
+        const news=[...rc].filter(x=>!rp.has(x)).length,recovered=[...rp].filter(x=>!rc.has(x)).length;
+        changes.push({mod,text:`Real ${delta>=0?'↑':'↓'} ${money(Math.abs(delta))} · ${news} nuevos rojos · ${recovered} recuperados`,kind:delta>0?'bad':'good'});
+      }catch(_){changes.push({mod,text:'Comparación no disponible.',kind:'same'})}
+    }
+    box.innerHTML=changes.map(x=>`<div class="r46-change ${x.kind}"><span>${MODULES[x.mod].icon}</span><div><b>${MODULES[x.mod].label}</b><small>${esc(x.text)}</small></div></div>`).join('');
+  }
+
+  /* REPORT.IA v47.4 · puente de contexto para Copiloto */
+  window.REPORTIA_RCV_CONTEXT=function(){
+    try{
+      if(!S.session||!S.module||S.module==='general')return null;
+      const admin=upper(S.session.tipo)==='ADMINISTRADOR';
+      const source=admin?S.adminSource:'cloud';
+      const data=source==='local'?S.local:S.cloud;
+      if(!data?.rows?.length)return null;
+      let rows=data.rows.slice();
+      const region=admin?(S.adminRegion||'') : sessionRegion(S.session);
+      if(region)rows=rows.filter(r=>cleanRegion(r.region)===cleanRegion(region));
+      rows=filterPeriod(rows);
+      if(!rows.length)return null;
+      const t=totals(rows,S.module);
+      const groups=[...groupRows(rows,unitName)].map(([name,rs])=>{
+        const x=totals(rs,S.module);
+        return {name,real:x.real,budget:x.budget,state:x.st,deviation:deviationValue(rs,S.module),streak:redStreak(rs,S.module)};
+      }).sort((a,b)=>b.deviation-a.deviation);
+      const red=groups.filter(x=>x.state==='red'), green=groups.filter(x=>x.state==='green');
+      const totalImpact=groups.reduce((s,x)=>s+Math.abs(Number(x.real)||0),0);
+      let acc=0,pareto=[];
+      for(const x of [...groups].sort((a,b)=>Math.abs(b.real)-Math.abs(a.real))){
+        if(totalImpact&&acc/totalImpact>=.8)break;
+        pareto.push(x);acc+=Math.abs(Number(x.real)||0);
+      }
+      return {
+        module:S.module,moduleLabel:MODULES[S.module]?.label||S.module,
+        region:region||'TODAS LAS REGIONES',period:periodRangeLabel(),
+        source:source==='cloud'?'Nube Publicada':'Procesado en Real',
+        real:t.real,budget:t.budget,diff:t.diff,state:t.st,
+        rows:rows.length,totalUnits:groups.length,redCount:red.length,greenCount:green.length,
+        topRed:red.slice(0,8),topImpact:groups.slice().sort((a,b)=>Math.abs(b.real)-Math.abs(a.real)).slice(0,8),
+        pareto:pareto.slice(0,12)
+      };
+    }catch(e){console.warn('Copilot context',e);return null}
+  };
+
+})();
