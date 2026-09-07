@@ -1,13 +1,12 @@
-// REPORT.IA v51 · Configuración pública Firebase Web
-// Reemplaza los valores PEGA_AQUI con los que te entregue Firebase al registrar la app Web.
+// REPORT.IA RCV v51.3 · Firebase Web configurado
 globalThis.REPORTIA_FIREBASE_CONFIG = {
-  apiKey: "PEGA_AQUI_API_KEY",
-  authDomain: "PEGA_AQUI.firebaseapp.com",
-  projectId: "PEGA_AQUI_PROJECT_ID",
-  storageBucket: "PEGA_AQUI.firebasestorage.app",
-  messagingSenderId: "PEGA_AQUI_SENDER_ID",
-  appId: "PEGA_AQUI_APP_ID"
+  apiKey: "AIzaSyChVxE23biZ_WqffDf9WKuxaeqwv1K79Po",
+  authDomain: "reportia-rcv.firebaseapp.com",
+  projectId: "reportia-rcv",
+  storageBucket: "reportia-rcv.firebasestorage.app",
+  messagingSenderId: "552905070880",
+  appId: "1:552905070880:web:9c8fb780f986ad78751f45"
 };
-// Firebase Console > Project settings > Cloud Messaging > Web Push certificates
-// Pega la CLAVE PÚBLICA VAPID.
-globalThis.REPORTIA_VAPID_KEY = "PEGA_AQUI_VAPID_PUBLIC_KEY";
+
+// Firebase Console > Configuración del proyecto > Cloud Messaging > Certificados push web
+globalThis.REPORTIA_VAPID_KEY = "BKV3ljvargjKoxFKe2nDV8uOVLdt5d-CXr1ioWQgr8360xl3alE2I2RxaESCTM2JZvT1-uwefwR2ioIGjFyLJn4";
