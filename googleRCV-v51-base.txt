@@ -1,0 +1,715 @@
+const ID_SHEET = '1-ubGZl24R0QMMcF9acK2_6wX4lOZcVPT0OOKTOLT0Mo';
+const ID_SHEET_NUBE = '1GxGOnlU81t_TAGOpO_emxOV09NexouNQppdfwWRB7Q0';
+
+const HOJA_NUBE = 'REPORTIA_NUBE'; // legado / compatibilidad
+const MESES_NUBE = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+const HOJA_NOTAS = 'REPORTIA_NOTAS';
+const HOJA_INCIDENCIAS = 'REPORTIA_INCIDENCIAS';
+const HOJA_PUBLICACIONES = 'REPORTIA_PUBLICACIONES';
+const CHUNK_SIZE = 40000;
+const TOKEN_TTL = 21600; // 6 horas
+
+function doGet(e) {
+  e = e || { parameter: {} };
+  const p = e.parameter || {};
+  const accion = String(p.accion || '').trim().toLowerCase();
+  const callback = String(p.callback || '').trim();
+  let resultado;
+
+  if (!accion) {
+    resultado = {
+      ok: true,
+      mensaje: 'API REPORT.IA RCV activa',
+      acciones: ['usuarios', 'login', 'cloud_data', 'cloud_meta', 'notas', 'workflow', 'publication_history', 'cloud_months', 'backup_url', 'v34_module', 'v34_snapshot', 'v34_history', 'v34_general', 'v34_sessions', 'v34_heartbeat']
+    };
+    return responder(resultado, callback);
+  }
+
+  if (accion === 'usuarios') resultado = obtenerUsuariosDatos();
+  else if (accion === 'login') resultado = validarLoginDatos(p.usuario, p.contrasena);
+  else if (accion === 'cloud_meta') resultado = obtenerMetaNube(p.token, p.periodIndex);
+  else if (accion === 'cloud_data') resultado = obtenerDatosNube(p.token, p.periodIndex);
+  else if (accion === 'notas') resultado = obtenerNotas(p.token, p.gerencia, p.snapshotId);
+  else if (accion === 'workflow') resultado = obtenerWorkflow(p.token, p.gerencia, p.snapshotId, p.periodIndex);
+  else if (accion === 'publication_history') resultado = obtenerHistorialPublicaciones(p.token);
+  else if (accion === 'cloud_months') resultado = obtenerMesesDisponibles(p.token);
+  else if (accion === 'backup_url') resultado = obtenerUrlRespaldo(p.token);
+  else if (accion === 'v34_module') resultado = v34ObtenerModulo(p.token, p.module);
+  else if (accion === 'v34_snapshot') resultado = v34ObtenerSnapshot(p.token, p.module, p.snapshotId);
+  else if (accion === 'v34_history') resultado = v34Historial(p.token, p.module);
+  else if (accion === 'v34_general') resultado = v34General(p.token);
+  else if (accion === 'v34_sessions') resultado = v34Sesiones(p.token);
+  else if (accion === 'v34_heartbeat') resultado = v34Heartbeat(p.token, p.sessionId);
+  else if (accion === 'v38_notifications') resultado = v38Notificaciones(p.token);
+  else if (accion === 'v38_thread') resultado = v38Hilo(p.token, p.module, p.snapshotId, p.region, p.hierarchy);
+  else if (accion === 'v42_thread_status') resultado = v42EstadoHilo(p.token, p.module, p.snapshotId, p.region, p.hierarchy);
+  else if (accion === 'v42_notifications') resultado = v42Notificaciones(p.token);
+  else if (accion === 'v46_commitment') resultado = v46ObtenerCompromiso(p.token,p.module,p.snapshotId,p.region,p.hierarchy);
+  else if (accion === 'v46_commitments') resultado = v46Compromisos(p.token);
+  else if (accion === 'v47_timeline') resultado = v47Timeline(p.token,p.module,p.snapshotId,p.region,p.hierarchy);
+  else resultado = { ok: false, mensaje: 'Acción no válida.' };
+
+  return responder(resultado, callback);
+}
+
+function doPost(e) {
+  e = e || { parameter: {}, postData: { contents: '' } };
+  const p = e.parameter || {};
+  const accion = String(p.accion || '').trim().toLowerCase();
+  let resultado;
+
+  try {
+    if (accion === 'subir_nube') {
+      resultado = subirModeloNube(p.token, p.payload);
+    } else if (accion === 'agregar_nota') {
+      resultado = agregarNota(p.token, p.snapshotId, p.gerencia, p.indicador, p.texto, p.parentId, p.tipoNota);
+    } else if (accion === 'actualizar_estado') {
+      resultado = actualizarEstadoIncidencia(p.token, p.snapshotId, p.gerencia, p.estado, p.prioridad);
+    } else if (accion === 'sincronizar_incidencias') {
+      resultado = sincronizarIncidencias(p.token, p.snapshotId, p.items);
+    } else if (accion === 'v34_upload') {
+      resultado = v34SubirModulo(p.token, p.module, p.payload);
+    } else if (accion === 'v34_plan') {
+      resultado = v34GuardarPlan(p.token, p.module, p.snapshotId, p.region, p.hierarchy, p.texto);
+    } else if (accion === 'v34_logout') {
+      resultado = v34Logout(p.token, p.sessionId);
+    } else if (accion === 'v38_note') {
+      resultado = v38GuardarNota(p.token, p.module, p.snapshotId, p.region, p.hierarchy, p.texto);
+    } else if (accion === 'v42_set_status') {
+      resultado = v42ActualizarEstado(p.token, p.module, p.snapshotId, p.region, p.hierarchy, p.estado);
+    } else if (accion === 'v38_mark_read') {
+      resultado = v38MarcarLeidas(p.token, p.ids);
+    } else if (accion === 'v46_set_commitment') {
+      resultado = v46GuardarCompromiso(p.token,p.module,p.snapshotId,p.region,p.hierarchy,p.responsable,p.fechaCompromiso);
+    } else if (accion === 'v47_set_progress') {
+      resultado = v47GuardarAvance(p.token,p.module,p.snapshotId,p.region,p.hierarchy,p.avance);
+    } else {
+      resultado = { ok: false, mensaje: 'Acción POST no válida.' };
+    }
+  } catch (error) {
+    resultado = { ok: false, mensaje: String(error) };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(resultado)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function obtenerUsuariosDatos() {
+  try {
+    const ss = SpreadsheetApp.openById(ID_SHEET);
+    const sh = ss.getSheets()[0];
+    const values = sh.getDataRange().getDisplayValues();
+    const usuarios = [];
+
+    for (let i = 1; i < values.length; i++) {
+      const usuario = String(values[i][0] || '').trim();
+      const tipo = String(values[i][2] || 'USUARIO').trim().toUpperCase();
+      if (usuario) usuarios.push({ usuario: usuario, tipo: tipo });
+    }
+    return { ok: true, usuarios: usuarios };
+  } catch (error) {
+    return { ok: false, mensaje: String(error) };
+  }
+}
+
+function validarLoginDatos(usuario, contrasena) {
+  try {
+    const ss = SpreadsheetApp.openById(ID_SHEET);
+    const sh = ss.getSheets()[0];
+    const values = sh.getDataRange().getDisplayValues();
+    const u = String(usuario || '').trim().toUpperCase();
+    const p = String(contrasena || '').trim();
+
+    for (let i = 1; i < values.length; i++) {
+      const user = String(values[i][0] || '').trim().toUpperCase();
+      const pass = String(values[i][1] || '').trim();
+      const tipo = String(values[i][2] || 'USUARIO').trim().toUpperCase();
+      if (user === u && pass === p) {
+        const token = Utilities.getUuid() + '-' + Utilities.getUuid();
+        const region = String(values[i][3] || (tipo === 'ADMINISTRADOR' ? 'TODAS LAS REGIONES' : tipo)).trim().toUpperCase();
+        const sessionId = Utilities.getUuid();
+        CacheService.getScriptCache().put('tk_' + token, JSON.stringify({
+          usuario: values[i][0], tipo: tipo, region: region, sessionId: sessionId, creado: new Date().toISOString()
+        }), TOKEN_TTL);
+        try { v34RegistrarSesion(sessionId, values[i][0], tipo, region); } catch (_) {}
+        return { ok: true, usuario: values[i][0], tipo: tipo, region: region, sessionId: sessionId, token: token };
+      }
+    }
+    return { ok: false, mensaje: 'Usuario o contraseña incorrectos.' };
+  } catch (error) {
+    return { ok: false, mensaje: String(error) };
+  }
+}
+
+function sesionPorToken(token) {
+  const t = String(token || '').trim();
+  if (!t) return null;
+  const raw = CacheService.getScriptCache().get('tk_' + t);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch (_) { return null; }
+}
+
+function exigirSesion(token) {
+  const s = sesionPorToken(token);
+  if (!s) throw new Error('Sesión vencida. Cierra sesión e ingresa nuevamente.');
+  return s;
+}
+
+
+function indiceMesSeguro(periodIndex) {
+  const n = Number(periodIndex);
+  if (isFinite(n) && n >= 0 && n <= 11) return Math.floor(n);
+  return null;
+}
+
+function nombreHojaMes(periodIndex) {
+  const i = indiceMesSeguro(periodIndex);
+  if (i === null) throw new Error('Periodo mensual no válido.');
+  return 'REPORTIA_' + MESES_NUBE[i];
+}
+
+function asegurarHojaMes(periodIndex) {
+  const ss = SpreadsheetApp.openById(ID_SHEET_NUBE);
+  const name = nombreHojaMes(periodIndex);
+  let sh = ss.getSheetByName(name);
+  if (!sh) sh = ss.insertSheet(name);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1,1,1,9).setValues([['SNAPSHOT_ID','FECHA','USUARIO','TIPO','INDICE_CHUNK','TOTAL_CHUNKS','PERIODO','ANIO','CONTENIDO']]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function extraerAnioPayload(payload) {
+  const candidates = [
+    payload && payload.model && payload.model.month,
+    payload && payload.model && payload.model.period,
+    payload && payload.periodLabel
+  ].filter(Boolean).join(' ');
+  const m = String(candidates).match(/\b(20\d{2})\b/);
+  return m ? m[1] : String(new Date().getFullYear());
+}
+
+function leerPayloadMes(periodIndex) {
+  const i = indiceMesSeguro(periodIndex);
+  if (i === null) return null;
+  const sh = asegurarHojaMes(i);
+  if (sh.getLastRow() < 2) return null;
+  const values = sh.getRange(2,1,sh.getLastRow()-1,9).getValues();
+  if (!values.length) return null;
+  values.sort((a,b)=>Number(a[4])-Number(b[4]));
+  const json = values.map(r=>String(r[8] || '')).join('');
+  if (!json) return null;
+  return JSON.parse(json);
+}
+
+function leerPayloadNubeMasReciente() {
+  const ss = SpreadsheetApp.openById(ID_SHEET_NUBE);
+  let best = null;
+  MESES_NUBE.forEach(function(_,i){
+    const sh = ss.getSheetByName(nombreHojaMes(i));
+    if (!sh || sh.getLastRow() < 2) return;
+    const fecha = sh.getRange(2,2).getValue();
+    const d = fecha instanceof Date ? fecha : new Date(fecha);
+    if (!best || (!isNaN(d.getTime()) && d > best.fecha)) {
+      const payload = leerPayloadMes(i);
+      if (payload) best = {fecha:d,payload:payload,periodIndex:i};
+    }
+  });
+  return best;
+}
+
+function obtenerMesesDisponibles(token) {
+  try {
+    exigirSesion(token);
+    const ss = SpreadsheetApp.openById(ID_SHEET_NUBE);
+    const meses = MESES_NUBE.map(function(nombre,i){
+      const sh = ss.getSheetByName(nombreHojaMes(i));
+      if (!sh || sh.getLastRow() < 2) return {periodIndex:i,mes:nombre,disponible:false};
+      const row = sh.getRange(2,1,1,9).getDisplayValues()[0];
+      return {periodIndex:i,mes:nombre,disponible:true,snapshotId:row[0],fecha:row[1],usuario:row[2],periodo:row[6],anio:row[7]};
+    });
+    return {ok:true,meses:meses};
+  } catch(error) { return {ok:false,mensaje:String(error)}; }
+}
+
+function obtenerUrlRespaldo(token) {
+  try {
+    const s = exigirSesion(token);
+    if (normalizarRol(s.tipo) !== 'ADMINISTRADOR') return {ok:false,mensaje:'Solo el administrador puede descargar el respaldo completo.'};
+    return {
+      ok:true,
+      url:'https://docs.google.com/spreadsheets/d/' + ID_SHEET_NUBE + '/export?format=xlsx',
+      nombre:'REPORTIA_RCV_RESPALDO_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'America/Mexico_City', 'yyyyMMdd_HHmm') + '.xlsx'
+    };
+  } catch(error) { return {ok:false,mensaje:String(error)}; }
+}
+
+function asegurarHojaNube() {
+  const ss = SpreadsheetApp.openById(ID_SHEET_NUBE);
+  let sh = ss.getSheetByName(HOJA_NUBE);
+  if (!sh) sh = ss.insertSheet(HOJA_NUBE);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1,1,1,7).setValues([['SNAPSHOT_ID','FECHA','USUARIO','TIPO','INDICE_CHUNK','TOTAL_CHUNKS','CONTENIDO']]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function asegurarHojaNotas() {
+  const ss = SpreadsheetApp.openById(ID_SHEET_NUBE);
+  let sh = ss.getSheetByName(HOJA_NOTAS);
+  if (!sh) sh = ss.insertSheet(HOJA_NOTAS);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1,1,1,11).setValues([['ID','SNAPSHOT_ID','GERENCIA','INDICADOR','TIPO_NOTA','TEXTO','AUTOR','TIPO_CUENTA','PARENT_ID','FECHA','ESTADO']]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+
+function asegurarHojaIncidencias() {
+  const ss = SpreadsheetApp.openById(ID_SHEET_NUBE);
+  let sh = ss.getSheetByName(HOJA_INCIDENCIAS);
+  if (!sh) sh = ss.insertSheet(HOJA_INCIDENCIAS);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1,1,1,8).setValues([['SNAPSHOT_ID','GERENCIA','ESTADO','PRIORIDAD','CREADA','ACTUALIZADA','ACTUALIZADO_POR','TIPO_CUENTA']]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function asegurarHojaPublicaciones() {
+  const ss = SpreadsheetApp.openById(ID_SHEET_NUBE);
+  let sh = ss.getSheetByName(HOJA_PUBLICACIONES);
+  if (!sh) sh = ss.insertSheet(HOJA_PUBLICACIONES);
+  if (sh.getLastRow() === 0) {
+    sh.getRange(1,1,1,7).setValues([['SNAPSHOT_ID','FECHA','USUARIO','TIPO','PERIODO','MODO','CHUNKS']]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function guardarHistorialPublicacion(snapshotId, fecha, s, payload, chunks) {
+  const sh = asegurarHojaPublicaciones();
+  const periodo = payload && payload.model && payload.model.month ? payload.model.month : '';
+  sh.appendRow([snapshotId,fecha,s.usuario,s.tipo,periodo,String(payload.inputMode||''),chunks]);
+  // Conserva las 100 publicaciones más recientes de metadata.
+  if (sh.getLastRow() > 101) sh.deleteRows(2, sh.getLastRow() - 101);
+}
+
+function subirModeloNube(token, payloadText) {
+  const s = exigirSesion(token);
+  if (String(s.tipo).toUpperCase() !== 'ADMINISTRADOR') {
+    return { ok: false, mensaje: 'Solo un ADMINISTRADOR puede publicar información en la nube.' };
+  }
+  const payload = JSON.parse(String(payloadText || '{}'));
+  if (!payload || !payload.model) return { ok: false, mensaje: 'No se recibió un modelo válido.' };
+
+  const snapshotId = Utilities.getUuid();
+  const fecha = new Date().toISOString();
+  payload.cloud = { snapshotId: snapshotId, uploadedAt: fecha, uploadedBy: s.usuario };
+  const json = JSON.stringify(payload);
+  const chunks = [];
+  for (let i=0; i<json.length; i+=CHUNK_SIZE) chunks.push(json.slice(i, i+CHUNK_SIZE));
+
+  const periodIndex = indiceMesSeguro(payload.periodIndex);
+  if (periodIndex === null) return { ok:false, mensaje:'No fue posible identificar el mes que deseas publicar.' };
+  const sh = asegurarHojaMes(periodIndex);
+  // Cada mes es un espacio fijo. Una nueva publicación del mismo mes reemplaza solo esa pestaña.
+  if (sh.getLastRow() > 1) sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).clearContent();
+  const periodo = payload && payload.model && payload.model.month ? String(payload.model.month) : MESES_NUBE[periodIndex];
+  const anio = extraerAnioPayload(payload);
+  const rows = chunks.map((c,i)=>[snapshotId,fecha,s.usuario,s.tipo,i+1,chunks.length,periodo,anio,c]);
+  sh.getRange(2,1,rows.length,9).setValues(rows);
+  guardarHistorialPublicacion(snapshotId, fecha, s, payload, chunks.length);
+  // Crea el expediente inicial de cada gerencia a partir del semáforo calculado en el portal.
+  if (Array.isArray(payload.workflowSeed)) {
+    payload.workflowSeed.forEach(function(x){
+      const g = String(x && x.gerencia || '').trim();
+      if (g) {
+        // Conserva la lectura del semáforo al crear el flujo inicial:
+        // Crítico = pendiente prioritario; Atención = ya clasificado en atención.
+        const estadoInicial = String(x && x.semaforo || '').toUpperCase() === 'ATENCIÓN' || String(x && x.semaforo || '').toUpperCase() === 'ATENCION'
+          ? 'EN_ATENCION'
+          : 'PENDIENTE';
+        asegurarIncidencia(snapshotId, g, x.prioridad || 'MEDIA', s.usuario, s.tipo, estadoInicial);
+      }
+    });
+  }
+  SpreadsheetApp.flush();
+  return { ok: true, mensaje: 'Información publicada en la nube.', snapshotId: snapshotId, uploadedAt: fecha, chunks: chunks.length };
+}
+
+function leerPayloadNube(periodIndex) {
+  const i = indiceMesSeguro(periodIndex);
+  if (i !== null) return leerPayloadMes(i);
+  const recent = leerPayloadNubeMasReciente();
+  if (recent) return recent.payload;
+
+  // Compatibilidad con la versión anterior si todavía existe REPORTIA_NUBE.
+  const sh = asegurarHojaNube();
+  if (sh.getLastRow() < 2) return null;
+  const values = sh.getRange(2,1,sh.getLastRow()-1,7).getValues();
+  if (!values.length) return null;
+  values.sort((a,b)=>Number(a[4])-Number(b[4]));
+  const json = values.map(r=>String(r[6] || '')).join('');
+  if (!json) return null;
+  return JSON.parse(json);
+}
+
+
+function leerPayloadPorSnapshot(snapshotId) {
+  const target = String(snapshotId || '').trim();
+  if (!target) return null;
+  for (let i=0;i<12;i++) {
+    const p = leerPayloadMes(i);
+    if (p && p.cloud && String(p.cloud.snapshotId || '') === target) return p;
+  }
+  return null;
+}
+
+function normalizarRol(s) {
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\./g,'').replace(/\s+/g,' ').trim();
+}
+
+function filaPerteneceARol(row, tipo) {
+  const rol = normalizarRol(tipo);
+  if (rol === 'ADMINISTRADOR') return true;
+  const manager = normalizarRol(row && row.manager);
+  const aliases = {
+    'ADMVA':['ADMVA','ADMINISTRATIVA','ADMINISTRATIVO','ADMINISTRACION'],
+    'COMERCIAL':['COMERCIAL'],
+    'ESPECIALIZADO':['ESPECIALIZADO'],
+    'GENERAL':['GENERAL'],
+    'JEF SERV':['JEF SERV','JEFE SERV','JEFATURA SERV'],
+    'MANTTO':['MANTTO','MANTENIMIENTO'],
+    'OP INTERM':['OP INTERM','OPERACION INTERM','OPERACION INTERMEDIA'],
+    'OP PRIMERA':['OP PRIMERA','OPERACION PRIMERA','PRIMERA'],
+    'REC HUM':['REC HUM','RECURSOS HUMANOS','RECURSO HUMANO']
+  };
+  const arr = aliases[rol] || [rol];
+  return arr.some(a => manager === a || manager.indexOf(a) >= 0);
+}
+
+function filtrarModeloPorRol(model, tipo) {
+  if (!model || normalizarRol(tipo) === 'ADMINISTRADOR') return model;
+  const copy = JSON.parse(JSON.stringify(model));
+  const arrays = ['costOperating','costMaintenance','premises','smo','expenses','expenseSummary','xpv','xpvSummary','costSummary'];
+  arrays.forEach(k=>{
+    if (Array.isArray(copy[k])) copy[k] = copy[k].filter(r=>filaPerteneceARol(r,tipo));
+  });
+  // Los acumulados mensuales globales no deben mostrarse a un usuario de área.
+  copy.costMonthly = [];
+  copy.expenseMonthly = [];
+  copy.sourceMode = 'CLOUD';
+  return copy;
+}
+
+function obtenerMetaNube(token, periodIndex) {
+  try {
+    exigirSesion(token);
+    const p = leerPayloadNube(periodIndex);
+    if (!p) return { ok: true, disponible: false, mensaje: 'Aún no hay información publicada por el administrador.' };
+    return { ok: true, disponible: true, cloud: p.cloud || {}, month: p.model && p.model.month, periodIndex: p.periodIndex, slot: indiceMesSeguro(periodIndex) };
+  } catch (error) { return { ok: false, mensaje: String(error) }; }
+}
+
+function obtenerDatosNube(token, periodIndex) {
+  try {
+    const s = exigirSesion(token);
+    const p = leerPayloadNube(periodIndex);
+    if (!p) return { ok: true, disponible: false, mensaje: 'Aún no hay información publicada por el administrador.' };
+    return {
+      ok: true,
+      disponible: true,
+      cloud: p.cloud || {},
+      periodIndex: p.periodIndex,
+      inputMode: 'CLOUD',
+      model: filtrarModeloPorRol(p.model, s.tipo),
+      usuario: s.usuario,
+      tipo: s.tipo
+    };
+  } catch (error) { return { ok: false, mensaje: String(error) }; }
+}
+
+function agregarNota(token, snapshotId, gerencia, indicador, texto, parentId, tipoNota) {
+  const s = exigirSesion(token);
+  const txt = String(texto || '').trim();
+  const g = String(gerencia || '').trim();
+  if (!g || !txt) return { ok: false, mensaje: 'Gerencia y texto son obligatorios.' };
+
+  const p = leerPayloadPorSnapshot(snapshotId);
+  const currentSnapshot = p && p.cloud && p.cloud.snapshotId;
+  if (!currentSnapshot || String(snapshotId || '') !== String(currentSnapshot)) {
+    return { ok: false, mensaje: 'La información cambió. Actualiza la página antes de registrar la nota.' };
+  }
+  if (normalizarRol(s.tipo) !== 'ADMINISTRADOR' && !filaPerteneceARol({manager:g}, s.tipo)) {
+    return { ok: false, mensaje: 'Tu cuenta no tiene acceso a esta gerencia.' };
+  }
+
+  const sh = asegurarHojaNotas();
+  const id = Utilities.getUuid();
+  const clase = normalizarRol(s.tipo) === 'ADMINISTRADOR' ? 'NOTA_ADMIN' : 'ACCION_CORRECTIVA';
+  const tipoFinal = String(tipoNota || clase).toUpperCase();
+  sh.appendRow([id,currentSnapshot,g,String(indicador||'SEMÁFORO'),tipoFinal,txt,s.usuario,s.tipo,String(parentId||''),new Date().toISOString(),'ABIERTO']);
+  return { ok: true, id: id, mensaje: 'Seguimiento guardado.' };
+}
+
+function obtenerNotas(token, gerencia, snapshotId) {
+  try {
+    const s = exigirSesion(token);
+    const g = String(gerencia || '').trim();
+    if (normalizarRol(s.tipo) !== 'ADMINISTRADOR' && !filaPerteneceARol({manager:g}, s.tipo)) {
+      return { ok: false, mensaje: 'Tu cuenta no tiene acceso a esta gerencia.' };
+    }
+    const sh = asegurarHojaNotas();
+    if (sh.getLastRow() < 2) return { ok: true, notas: [] };
+    const vals = sh.getRange(2,1,sh.getLastRow()-1,11).getDisplayValues();
+    const out = vals.filter(r => (!snapshotId || r[1] === String(snapshotId)) && (!g || r[2] === g)).map(r=>({
+      id:r[0], snapshotId:r[1], gerencia:r[2], indicador:r[3], tipoNota:r[4], texto:r[5], autor:r[6], tipoCuenta:r[7], parentId:r[8], fecha:r[9], estado:r[10]
+    }));
+    return { ok: true, notas: out };
+  } catch (error) { return { ok: false, mensaje: String(error) }; }
+}
+
+
+function estadoPermitido(estado) {
+  return ['PENDIENTE','EN_ATENCION','POR_VALIDAR','CERRADA'].indexOf(String(estado||'').toUpperCase()) >= 0;
+}
+
+function filaIncidencia(sh, snapshotId, gerencia) {
+  if (sh.getLastRow() < 2) return 0;
+  const vals = sh.getRange(2,1,sh.getLastRow()-1,2).getDisplayValues();
+  for (let i=0;i<vals.length;i++) if (vals[i][0] === String(snapshotId) && vals[i][1] === String(gerencia)) return i+2;
+  return 0;
+}
+
+function asegurarIncidencia(snapshotId, gerencia, prioridad, usuario, tipo, estadoInicial) {
+  const sh = asegurarHojaIncidencias();
+  let row = filaIncidencia(sh, snapshotId, gerencia);
+  if (!row) {
+    const now = new Date().toISOString();
+    const estado = estadoPermitido(estadoInicial) ? String(estadoInicial).toUpperCase() : 'PENDIENTE';
+    sh.appendRow([snapshotId,gerencia,estado,String(prioridad||'MEDIA').toUpperCase(),now,now,usuario||'',tipo||'']);
+    row = sh.getLastRow();
+  } else if (prioridad) {
+    sh.getRange(row,4).setValue(String(prioridad).toUpperCase());
+  }
+  return row;
+}
+
+function sincronizarIncidencias(token, snapshotId, itemsText) {
+  const s = exigirSesion(token);
+  if (normalizarRol(s.tipo) !== 'ADMINISTRADOR') return {ok:false,mensaje:'Solo el administrador puede sincronizar incidencias.'};
+  const p = leerPayloadPorSnapshot(snapshotId);
+  const actual = p && p.cloud && p.cloud.snapshotId;
+  if (!actual || String(snapshotId||'') !== String(actual)) return {ok:false,mensaje:'La publicación cambió. Actualiza la página.'};
+  let items=[];
+  try { items=JSON.parse(String(itemsText||'[]')); } catch (_) { return {ok:false,mensaje:'Lista de incidencias no válida.'}; }
+  let creadas=0;
+  items.forEach(x=>{
+    const g=String(x.gerencia||'').trim(); if(!g)return;
+    const sh=asegurarHojaIncidencias();
+    const existed=filaIncidencia(sh,actual,g);
+    asegurarIncidencia(actual,g,x.prioridad||'MEDIA',s.usuario,s.tipo);
+    if(!existed)creadas++;
+  });
+  return {ok:true,creadas:creadas,total:items.length};
+}
+
+function actualizarEstadoIncidencia(token, snapshotId, gerencia, estado, prioridad) {
+  const s = exigirSesion(token);
+  const g = String(gerencia||'').trim();
+  const nuevo = String(estado||'').toUpperCase();
+  if (!g || !estadoPermitido(nuevo)) return {ok:false,mensaje:'Gerencia o estado no válido.'};
+  const p = leerPayloadPorSnapshot(snapshotId);
+  const actual = p && p.cloud && p.cloud.snapshotId;
+  if (!actual || String(snapshotId||'') !== String(actual)) return {ok:false,mensaje:'La publicación cambió. Actualiza la página.'};
+  if (normalizarRol(s.tipo) !== 'ADMINISTRADOR' && !filaPerteneceARol({manager:g}, s.tipo)) return {ok:false,mensaje:'Tu cuenta no tiene acceso a esta gerencia.'};
+
+  const sh = asegurarHojaIncidencias();
+  let row = asegurarIncidencia(actual,g,prioridad||'MEDIA',s.usuario,s.tipo);
+  const actualEstado = String(sh.getRange(row,3).getDisplayValue()||'PENDIENTE').toUpperCase();
+  const admin = normalizarRol(s.tipo) === 'ADMINISTRADOR';
+  const permitidasAdmin = ['PENDIENTE','EN_ATENCION','POR_VALIDAR','CERRADA'];
+  const permitidasUsuario = ['EN_ATENCION','POR_VALIDAR'];
+  if ((admin && permitidasAdmin.indexOf(nuevo)<0) || (!admin && permitidasUsuario.indexOf(nuevo)<0)) return {ok:false,mensaje:'Tu tipo de cuenta no puede aplicar ese cambio de estado.'};
+  if (!admin && actualEstado === 'CERRADA') return {ok:false,mensaje:'La incidencia ya está cerrada por el administrador.'};
+  sh.getRange(row,3,1,6).setValues([[nuevo,String(prioridad||sh.getRange(row,4).getDisplayValue()||'MEDIA').toUpperCase(),sh.getRange(row,5).getValue()||new Date(),new Date().toISOString(),s.usuario,s.tipo]]);
+  return {ok:true,estado:nuevo,mensaje:'Estado actualizado.'};
+}
+
+function obtenerWorkflow(token, gerencia, snapshotId, periodIndex) {
+  try {
+    const s = exigirSesion(token);
+    const p = leerPayloadNube(periodIndex);
+    if (!p) return {ok:true,disponible:false,incidencias:[],resumen:{PENDIENTE:0,EN_ATENCION:0,POR_VALIDAR:0,CERRADA:0}};
+    const actual = p.cloud && p.cloud.snapshotId;
+    const snap = String(snapshotId||actual||'');
+    const g = String(gerencia||'').trim();
+    if (g && normalizarRol(s.tipo)!=='ADMINISTRADOR' && !filaPerteneceARol({manager:g},s.tipo)) return {ok:false,mensaje:'Tu cuenta no tiene acceso a esta gerencia.'};
+    const sh = asegurarHojaIncidencias();
+    let rows=[];
+    if (sh.getLastRow()>=2) rows=sh.getRange(2,1,sh.getLastRow()-1,8).getDisplayValues();
+    let out=rows.filter(r=>r[0]===snap && (!g||r[1]===g)).map(r=>({snapshotId:r[0],gerencia:r[1],estado:r[2]||'PENDIENTE',prioridad:r[3]||'MEDIA',creada:r[4],actualizada:r[5],actualizadoPor:r[6],tipoCuenta:r[7]}));
+    if (normalizarRol(s.tipo)!=='ADMINISTRADOR') out=out.filter(x=>filaPerteneceARol({manager:x.gerencia},s.tipo));
+    const resumen={PENDIENTE:0,EN_ATENCION:0,POR_VALIDAR:0,CERRADA:0};
+    out.forEach(x=>{if(resumen[x.estado]!==undefined)resumen[x.estado]++;});
+    return {ok:true,disponible:true,cloud:p.cloud||{},incidencias:out,resumen:resumen,usuario:s.usuario,tipo:s.tipo};
+  } catch(error) { return {ok:false,mensaje:String(error)}; }
+}
+
+function obtenerHistorialPublicaciones(token) {
+  try {
+    const s = exigirSesion(token);
+    if (normalizarRol(s.tipo) !== 'ADMINISTRADOR') return {ok:false,mensaje:'Solo el administrador puede consultar el historial de publicaciones.'};
+    const sh = asegurarHojaPublicaciones();
+    if (sh.getLastRow()<2) return {ok:true,publicaciones:[]};
+    const vals=sh.getRange(2,1,sh.getLastRow()-1,7).getDisplayValues();
+    const out=vals.map(r=>({snapshotId:r[0],fecha:r[1],usuario:r[2],tipo:r[3],periodo:r[4],modo:r[5],chunks:r[6]})).reverse().slice(0,30);
+    return {ok:true,publicaciones:out};
+  } catch(error) { return {ok:false,mensaje:String(error)}; }
+}
+
+function responder(objeto, callback) {
+  const json = JSON.stringify(objeto);
+  if (callback) {
+    return ContentService.createTextOutput(callback + '(' + json + ');').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+
+// ============================================================================
+// REPORT.IA RCV v34 · módulos independientes, filtro regional e historial 30 días
+// ============================================================================
+const V34_MODULE_SHEETS = {gastos:'V34_GASTOS',costos:'V34_COSTOS',productividad:'V34_PRODUCTIVIDAD'};
+const V34_SESIONES = 'V34_SESIONES';
+const V34_PLANES = 'V34_PLANES';
+const V34_ACTIVIDAD = 'V34_ACTIVIDAD';
+const V34_DIAS_HISTORIAL = 30;
+
+function v34Norm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();}
+function v34Region(s){return v34Norm(s).replace(/^RCV\.?\s*REGION\s*/,'').replace(/^REGION\s*/,'').trim();}
+function v34Modulo(m){m=String(m||'').toLowerCase().trim();if(!V34_MODULE_SHEETS[m])throw new Error('Módulo no válido.');return m;}
+function v34EsAdmin(s){return v34Norm(s&&s.tipo)==='ADMINISTRADOR';}
+function v34AsegurarModulo(m){
+  m=v34Modulo(m);const ss=SpreadsheetApp.openById(ID_SHEET_NUBE);const name=V34_MODULE_SHEETS[m];let sh=ss.getSheetByName(name);if(!sh)sh=ss.insertSheet(name);
+  if(sh.getLastRow()===0){sh.getRange(1,1,1,10).setValues([['SNAPSHOT_ID','FECHA','USUARIO','TIPO','MODULO','REGIONES','INDICE_CHUNK','TOTAL_CHUNKS','ARCHIVO','CONTENIDO']]);sh.setFrozenRows(1);}return sh;
+}
+function v34AsegurarSesiones(){const ss=SpreadsheetApp.openById(ID_SHEET_NUBE);let sh=ss.getSheetByName(V34_SESIONES);if(!sh)sh=ss.insertSheet(V34_SESIONES);if(sh.getLastRow()===0){sh.getRange(1,1,1,9).setValues([['SESSION_ID','USUARIO','TIPO','REGION','INICIO','ULTIMA_ACTIVIDAD','FIN','ESTADO','MINUTOS']]);sh.setFrozenRows(1);}return sh;}
+function v34AsegurarPlanes(){const ss=SpreadsheetApp.openById(ID_SHEET_NUBE);let sh=ss.getSheetByName(V34_PLANES);if(!sh)sh=ss.insertSheet(V34_PLANES);if(sh.getLastRow()===0){sh.getRange(1,1,1,9).setValues([['ID','FECHA','SNAPSHOT_ID','MODULO','REGION','JERARQUIA','PLAN','USUARIO','TIPO']]);sh.setFrozenRows(1);}return sh;}
+function v34AsegurarActividad(){const ss=SpreadsheetApp.openById(ID_SHEET_NUBE);let sh=ss.getSheetByName(V34_ACTIVIDAD);if(!sh)sh=ss.insertSheet(V34_ACTIVIDAD);if(sh.getLastRow()===0){sh.getRange(1,1,1,7).setValues([['FECHA','USUARIO','REGION','ACCION','MODULO','SNAPSHOT_ID','DETALLE']]);sh.setFrozenRows(1);}return sh;}
+function v34LogActividad(s,accion,module,snapshotId,detalle){try{const sh=v34AsegurarActividad();sh.appendRow([new Date(),s.usuario,v34Region(s.region||s.tipo),String(accion||''),String(module||''),String(snapshotId||''),String(detalle||'')]);if(sh.getLastRow()>3001)sh.deleteRows(2,sh.getLastRow()-3001);}catch(_){}}
+function v34RegistrarSesion(id,usuario,tipo,region){const sh=v34AsegurarSesiones();const now=new Date();sh.appendRow([id,usuario,tipo,region,now,now,'','ACTIVA',0]);}
+function v34FilaSesion(sh,id){if(!id||sh.getLastRow()<2)return 0;const vals=sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues();for(let i=vals.length-1;i>=0;i--)if(vals[i][0]===String(id))return i+2;return 0;}
+function v34Heartbeat(token,sessionId){try{const s=exigirSesion(token);const id=String(sessionId||s.sessionId||'');const sh=v34AsegurarSesiones();const row=v34FilaSesion(sh,id);if(row){const inicio=sh.getRange(row,5).getValue();const now=new Date();const mins=inicio instanceof Date?(now-inicio)/60000:0;sh.getRange(row,6).setValue(now);sh.getRange(row,8,1,2).setValues([['ACTIVA',Math.max(0,mins)]]);}return{ok:true};}catch(e){return{ok:false,mensaje:String(e)}}}
+function v34Logout(token,sessionId){try{const s=sesionPorToken(token);const id=String(sessionId||(s&&s.sessionId)||'');const sh=v34AsegurarSesiones();const row=v34FilaSesion(sh,id);if(row){const inicio=sh.getRange(row,5).getValue();const now=new Date();const mins=inicio instanceof Date?(now-inicio)/60000:0;sh.getRange(row,6,1,4).setValues([[now,now,'CERRADA',Math.max(0,mins)]]);}return{ok:true};}catch(e){return{ok:false,mensaje:String(e)}}}
+function v34Sesiones(token){try{const s=exigirSesion(token);if(!v34EsAdmin(s))return{ok:false,mensaje:'Solo el administrador puede consultar conexiones.'};const sh=v34AsegurarSesiones();if(sh.getLastRow()<2)return{ok:true,items:[]};const vals=sh.getRange(Math.max(2,sh.getLastRow()-299),1,Math.min(300,sh.getLastRow()-1),9).getValues();const counts={};const ash=v34AsegurarActividad();if(ash.getLastRow()>=2){const av=ash.getRange(Math.max(2,ash.getLastRow()-2999),1,Math.min(3000,ash.getLastRow()-1),7).getValues();av.forEach(r=>{const u=String(r[1]||'');if(!counts[u])counts[u]={consultas:0,planes:0};if(String(r[3])==='CONSULTA')counts[u].consultas++;if(String(r[3])==='PLAN_MEJORA')counts[u].planes++;});}const now=new Date();const tz=Session.getScriptTimeZone()||'America/Mexico_City';const fmt=d=>d instanceof Date?Utilities.formatDate(d,tz,'dd/MM/yyyy HH:mm:ss'):String(d||'');const items=vals.reverse().map(r=>{const last=r[5] instanceof Date?r[5]:new Date(r[5]);const stale=isNaN(last.getTime())?true:(now-last)>3*60000;const estado=String(r[7]||'ACTIVA')==='CERRADA'?'CERRADA':(stale?'DESCONECTADA':'ACTIVA');const inicio=r[4] instanceof Date?r[4]:new Date(r[4]);const fin=r[6] instanceof Date?r[6]:(estado==='ACTIVA'?null:last);const mins=Number(r[8])||(!isNaN(inicio.getTime())&&!isNaN((fin||now).getTime())?((fin||now)-inicio)/60000:0);const c=counts[String(r[1]||'')]||{consultas:0,planes:0};return{sessionId:r[0],usuario:r[1],tipo:r[2],region:r[3],inicio:fmt(inicio),ultimaActividad:fmt(last),fin:fmt(fin),estado:estado,minutos:Math.max(0,mins),consultas:c.consultas,planes:c.planes};});return{ok:true,items:items};}catch(e){return{ok:false,mensaje:String(e)}}}
+function v34Prune(sh){if(sh.getLastRow()<2)return;const vals=sh.getRange(2,1,sh.getLastRow()-1,2).getValues();const cutoff=Date.now()-V34_DIAS_HISTORIAL*86400000;const remove=new Set();vals.forEach(r=>{const d=r[1] instanceof Date?r[1]:new Date(r[1]);if(!isNaN(d.getTime())&&d.getTime()<cutoff)remove.add(String(r[0]));});if(!remove.size)return;for(let i=vals.length-1;i>=0;i--)if(remove.has(String(vals[i][0])))sh.deleteRow(i+2);}
+function v34SubirModulo(token,module,payloadText){const s=exigirSesion(token);if(!v34EsAdmin(s))return{ok:false,mensaje:'Solo un administrador puede publicar.'};module=v34Modulo(module);const payload=JSON.parse(String(payloadText||'{}'));if(!payload||!Array.isArray(payload.rows)||!payload.rows.length)return{ok:false,mensaje:'El archivo procesado no contiene registros.'};const sh=v34AsegurarModulo(module);v34Prune(sh);const snapshotId=Utilities.getUuid(),fecha=new Date();payload.module=module;payload.snapshotId=snapshotId;payload.publishedAt=fecha.toISOString();payload.publishedBy=s.usuario;const json=JSON.stringify(payload),chunks=[];for(let i=0;i<json.length;i+=CHUNK_SIZE)chunks.push(json.slice(i,i+CHUNK_SIZE));const regs=[...new Set(payload.rows.map(r=>v34Region(r.region)).filter(Boolean))];const rows=chunks.map((c,i)=>[snapshotId,fecha,s.usuario,s.tipo,module,regs.join(' | '),i+1,chunks.length,String(payload.filename||''),c]);sh.getRange(sh.getLastRow()+1,1,rows.length,10).setValues(rows);SpreadsheetApp.flush();return{ok:true,snapshotId:snapshotId,fecha:fecha.toISOString(),chunks:chunks.length};}
+function v34Snapshots(sh){if(sh.getLastRow()<2)return[];const vals=sh.getRange(2,1,sh.getLastRow()-1,10).getValues();const map={};vals.forEach(r=>{const id=String(r[0]);if(!map[id])map[id]={snapshotId:id,fecha:r[1],usuario:r[2],tipo:r[3],module:r[4],regiones:String(r[5]||'').split('|').map(v=>v.trim()).filter(Boolean),archivo:r[8],chunks:[]};map[id].chunks.push({i:Number(r[6]),txt:String(r[9]||'')});});return Object.values(map).sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));}
+function v34LeerSnapshot(module,snapshotId){const sh=v34AsegurarModulo(module);const list=v34Snapshots(sh);const snap=snapshotId?list.find(x=>x.snapshotId===String(snapshotId)):list[0];if(!snap)return null;snap.chunks.sort((a,b)=>a.i-b.i);const data=JSON.parse(snap.chunks.map(x=>x.txt).join(''));return{meta:{snapshotId:snap.snapshotId,fecha:snap.fecha instanceof Date?snap.fecha.toISOString():String(snap.fecha),usuario:snap.usuario,tipo:snap.tipo,regiones:snap.regiones,archivo:snap.archivo},data:data};}
+function v34FiltrarData(data,s){if(v34EsAdmin(s))return data;const reg=v34Region(s.region||s.tipo);const copy=JSON.parse(JSON.stringify(data));copy.rows=(copy.rows||[]).filter(r=>v34Region(r.region)===reg);copy.regions=[reg];return copy;}
+function v34ObtenerModulo(token,module){try{const s=exigirSesion(token);module=v34Modulo(module);const pack=v34LeerSnapshot(module,'');if(!pack)return{ok:true,disponible:false};v34LogActividad(s,'CONSULTA',module,pack.meta.snapshotId,'Última publicación');return{ok:true,disponible:true,meta:pack.meta,data:v34FiltrarData(pack.data,s)};}catch(e){return{ok:false,mensaje:String(e)}}}
+function v34ObtenerSnapshot(token,module,snapshotId){try{const s=exigirSesion(token);if(!v34EsAdmin(s))return{ok:false,mensaje:'Solo el administrador puede consultar publicaciones anteriores.'};module=v34Modulo(module);const pack=v34LeerSnapshot(module,snapshotId);if(!pack)return{ok:true,disponible:false};return{ok:true,disponible:true,meta:pack.meta,data:pack.data};}catch(e){return{ok:false,mensaje:String(e)}}}
+function v34Historial(token,module){try{const s=exigirSesion(token);if(!v34EsAdmin(s))return{ok:false,mensaje:'Solo el administrador puede consultar historial.'};module=v34Modulo(module);const sh=v34AsegurarModulo(module);v34Prune(sh);const tz=Session.getScriptTimeZone()||'America/Mexico_City';const items=v34Snapshots(sh).map(x=>({snapshotId:x.snapshotId,fecha:x.fecha instanceof Date?Utilities.formatDate(x.fecha,tz,'dd/MM/yyyy HH:mm:ss'):String(x.fecha),usuario:x.usuario,regiones:x.regiones,archivo:x.archivo}));return{ok:true,items:items};}catch(e){return{ok:false,mensaje:String(e)}}}
+function v34General(token){try{const s=exigirSesion(token),modules={};['gastos','costos','productividad'].forEach(m=>{const p=v34LeerSnapshot(m,'');modules[m]=p?{disponible:true,meta:p.meta,data:v34FiltrarData(p.data,s)}:{disponible:false};});v34LogActividad(s,'CONSULTA','general','','Vista consolidada');return{ok:true,modules:modules};}catch(e){return{ok:false,mensaje:String(e)}}}
+function v34GuardarPlan(token,module,snapshotId,region,hierarchy,texto){try{const s=exigirSesion(token);module=v34Modulo(module);const txt=String(texto||'').trim();if(!txt)return{ok:false,mensaje:'El plan de mejora es obligatorio.'};const reg=v34Region(region);if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso a esa región.'};const pack=v34LeerSnapshot(module,snapshotId);if(!pack)return{ok:false,mensaje:'No se encontró la publicación indicada.'};const sh=v34AsegurarPlanes();const id=Utilities.getUuid();sh.appendRow([id,new Date(),snapshotId,module,reg,String(hierarchy||''),txt,s.usuario,s.tipo]);v34LogActividad(s,'PLAN_MEJORA',module,snapshotId,String(hierarchy||''));return{ok:true,id:id,mensaje:'Plan de mejora guardado.'};}catch(e){return{ok:false,mensaje:String(e)}}}
+
+
+/* =========================================================
+   REPORT.IA RCV v38 · NOTAS, RESPUESTAS Y NOTIFICACIONES
+   ========================================================= */
+const V38_NOTAS = 'V38_NOTAS_INCIDENCIAS';
+function v38AsegurarNotas(){
+  const ss=SpreadsheetApp.openById(ID_SHEET_NUBE);let sh=ss.getSheetByName(V38_NOTAS);if(!sh)sh=ss.insertSheet(V38_NOTAS);
+  if(sh.getLastRow()===0){sh.getRange(1,1,1,12).setValues([['ID','FECHA','SNAPSHOT_ID','MODULO','REGION','JERARQUIA','TEXTO','USUARIO','TIPO','LEIDO_POR','ESTADO','TIPO_MENSAJE']]);sh.setFrozenRows(1);}
+  return sh;
+}
+function v38Fecha(d){const tz=Session.getScriptTimeZone()||'America/Mexico_City';return d instanceof Date?Utilities.formatDate(d,tz,'dd/MM/yyyy HH:mm:ss'):String(d||'');}
+function v38PuedeVerNota(s,row){const tipo=v34Norm(s.tipo),region=v34Region(s.region||s.tipo),notaRegion=v34Region(row[4]);if(tipo==='ADMINISTRADOR')return true;return notaRegion===region;}
+function v38LeidaPor(raw,user){const u=v34Norm(user);return String(raw||'').split('|').map(v=>v34Norm(v)).filter(Boolean).includes(u);}
+function v38GuardarNota(token,module,snapshotId,region,hierarchy,texto){
+  try{
+    const s=exigirSesion(token);module=v34Modulo(module);const txt=String(texto||'').trim();if(!txt)return{ok:false,mensaje:'El mensaje no puede estar vacío.'};
+    const reg=v34Region(region);if(!reg||reg==='TODAS LAS REGIONES')return{ok:false,mensaje:'Selecciona una región específica para enviar la nota.'};
+    if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso a esa región.'};
+    const pack=v34LeerSnapshot(module,snapshotId);if(!pack)return{ok:false,mensaje:'No se encontró la publicación indicada.'};
+    const id=Utilities.getUuid(),tipoMsg=v34EsAdmin(s)?'NOTA_ADMIN':'RESPUESTA_USUARIO';const sh=v38AsegurarNotas();
+    sh.appendRow([id,new Date(),String(snapshotId||''),module,reg,String(hierarchy||''),txt,s.usuario,s.tipo,'','ABIERTO',tipoMsg]);
+    v34LogActividad(s,v34EsAdmin(s)?'NOTA_INCIDENCIA':'RESPUESTA_INCIDENCIA',module,snapshotId,String(hierarchy||''));
+    return{ok:true,id:id,mensaje:'Mensaje guardado.'};
+  }catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v38Hilo(token,module,snapshotId,region,hierarchy){
+  try{
+    const s=exigirSesion(token);module=v34Modulo(module);const reg=v34Region(region);if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso a esa región.'};
+    const sh=v38AsegurarNotas();if(sh.getLastRow()<2)return{ok:true,items:[]};const vals=sh.getRange(2,1,sh.getLastRow()-1,12).getValues();
+    const items=vals.filter(r=>String(r[2])===String(snapshotId)&&String(r[3])===module&&v34Region(r[4])===reg&&String(r[5])===String(hierarchy)&&v38PuedeVerNota(s,r)).map(r=>({id:String(r[0]),fecha:v38Fecha(r[1]),snapshotId:String(r[2]),module:String(r[3]),region:v34Region(r[4]),hierarchy:String(r[5]),texto:String(r[6]),usuario:String(r[7]),tipo:String(r[8]),unread:v34Norm(r[7])!==v34Norm(s.usuario)&&!v38LeidaPor(r[9],s.usuario),tipoMensaje:String(r[11])}));
+    return{ok:true,items:items};
+  }catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v38Notificaciones(token){
+  try{
+    const s=exigirSesion(token),sh=v38AsegurarNotas();if(sh.getLastRow()<2)return{ok:true,unread:0,items:[]};
+    const start=Math.max(2,sh.getLastRow()-499),vals=sh.getRange(start,1,sh.getLastRow()-start+1,12).getValues();
+    const items=vals.filter(r=>v38PuedeVerNota(s,r)&&v34Norm(r[7])!==v34Norm(s.usuario)).filter(r=>v34EsAdmin(s)?v34Norm(r[8])!=='ADMINISTRADOR':v34Norm(r[8])==='ADMINISTRADOR').map(r=>({id:String(r[0]),fecha:v38Fecha(r[1]),snapshotId:String(r[2]),module:String(r[3]),region:v34Region(r[4]),hierarchy:String(r[5]),texto:String(r[6]),usuario:String(r[7]),tipo:String(r[8]),unread:!v38LeidaPor(r[9],s.usuario),tipoMensaje:String(r[11])})).reverse().slice(0,60);
+    return{ok:true,unread:items.filter(x=>x.unread).length,items:items};
+  }catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v38MarcarLeidas(token,idsText){
+  try{
+    const s=exigirSesion(token),ids=new Set(String(idsText||'').split(',').map(v=>v.trim()).filter(Boolean));if(!ids.size)return{ok:true};const sh=v38AsegurarNotas();if(sh.getLastRow()<2)return{ok:true};
+    const vals=sh.getRange(2,1,sh.getLastRow()-1,12).getValues(),user=v34Norm(s.usuario);let changed=0;
+    vals.forEach((r,i)=>{if(!ids.has(String(r[0]))||!v38PuedeVerNota(s,r)||v34Norm(r[7])===user)return;const cur=String(r[9]||''),arr=cur.split('|').map(v=>v34Norm(v)).filter(Boolean);if(!arr.includes(user)){arr.push(user);sh.getRange(i+2,10).setValue(arr.join('|'));changed++;}});
+    return{ok:true,changed:changed};
+  }catch(e){return{ok:false,mensaje:String(e)}}
+}
+
+
+/* =========================================================
+   REPORT.IA RCV v42 · ESTADO DE INCIDENCIAS
+   ========================================================= */
+function v42EstadoHilo(token,module,snapshotId,region,hierarchy){
+  try{const s=exigirSesion(token);module=v34Modulo(module);const reg=v34Region(region);if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso a esa región.'};const sh=v38AsegurarNotas();if(sh.getLastRow()<2)return{ok:true,estado:'PENDIENTE'};const vals=sh.getRange(2,1,sh.getLastRow()-1,12).getValues().filter(r=>String(r[2])===String(snapshotId)&&String(r[3])===module&&v34Region(r[4])===reg&&String(r[5])===String(hierarchy));const estado=vals.length?String(vals[vals.length-1][10]||'PENDIENTE').toUpperCase():'PENDIENTE';return{ok:true,estado:estado};}catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v42ActualizarEstado(token,module,snapshotId,region,hierarchy,estado){
+  try{const s=exigirSesion(token);if(!v34EsAdmin(s))return{ok:false,mensaje:'Solo el administrador puede cambiar el estado.'};module=v34Modulo(module);const reg=v34Region(region),st=String(estado||'').toUpperCase();if(['PENDIENTE','EN SEGUIMIENTO','ATENDIDA'].indexOf(st)<0)return{ok:false,mensaje:'Estado no válido.'};const sh=v38AsegurarNotas();if(sh.getLastRow()<2)return{ok:false,mensaje:'La incidencia todavía no tiene mensajes.'};const vals=sh.getRange(2,1,sh.getLastRow()-1,12).getValues();let changed=0;vals.forEach((r,i)=>{if(String(r[2])===String(snapshotId)&&String(r[3])===module&&v34Region(r[4])===reg&&String(r[5])===String(hierarchy)){sh.getRange(i+2,11).setValue(st);changed++;}});if(!changed)return{ok:false,mensaje:'No se encontró la incidencia.'};v34LogActividad(s,'ESTADO_INCIDENCIA',module,snapshotId,String(hierarchy)+' · '+st);return{ok:true,estado:st,changed:changed};}catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v42Notificaciones(token){
+  try{const base=v38Notificaciones(token);if(!base.ok)return base;const sh=v38AsegurarNotas();if(sh.getLastRow()<2)return base;const vals=sh.getRange(2,1,sh.getLastRow()-1,12).getValues();const state={};vals.forEach(r=>{const k=[String(r[2]),String(r[3]),v34Region(r[4]),String(r[5])].join('|');state[k]=String(r[10]||'PENDIENTE').toUpperCase();});base.items=(base.items||[]).map(x=>{const k=[x.snapshotId,x.module,v34Region(x.region),x.hierarchy].join('|');x.estado=state[k]||'PENDIENTE';return x;});return base;}catch(e){return{ok:false,mensaje:String(e)}}
+}
+
+
+/* =========================================================
+   REPORT.IA RCV v46 · RESPONSABLES Y FECHAS COMPROMISO
+   ========================================================= */
+const V46_COMPROMISOS='V46_COMPROMISOS';
+function v46AsegurarCompromisos(){
+  const ss=SpreadsheetApp.openById(ID_SHEET_NUBE);let sh=ss.getSheetByName(V46_COMPROMISOS);if(!sh)sh=ss.insertSheet(V46_COMPROMISOS);
+  if(sh.getLastRow()===0){sh.getRange(1,1,1,9).setValues([['ID','MODULO','SNAPSHOT_ID','REGION','JERARQUIA','RESPONSABLE','FECHA_COMPROMISO','ACTUALIZADO_POR','ACTUALIZADO']]);sh.setFrozenRows(1);}
+  return sh;
+}
+function v46DateISO(v){if(!v)return'';const d=v instanceof Date?v:new Date(String(v)+'T12:00:00');if(isNaN(d.getTime()))return'';return Utilities.formatDate(d,Session.getScriptTimeZone()||'America/Mexico_City','yyyy-MM-dd');}
+function v46DateMX(v){if(!v)return'';const d=v instanceof Date?v:new Date(String(v)+'T12:00:00');if(isNaN(d.getTime()))return String(v);return Utilities.formatDate(d,Session.getScriptTimeZone()||'America/Mexico_City','dd/MM/yyyy');}
+function v46Vencida(fecha,estado){if(!fecha||String(estado||'').toUpperCase()==='ATENDIDA')return false;const d=new Date(v46DateISO(fecha)+'T23:59:59');return d.getTime()<new Date().getTime();}
+function v46EstadoActual(module,snapshotId,region,hierarchy){
+  const sh=v38AsegurarNotas();if(sh.getLastRow()<2)return'PENDIENTE';const vals=sh.getRange(2,1,sh.getLastRow()-1,12).getValues().filter(r=>String(r[2])===String(snapshotId)&&String(r[3])===String(module)&&v34Region(r[4])===v34Region(region)&&String(r[5])===String(hierarchy));return vals.length?String(vals[vals.length-1][10]||'PENDIENTE').toUpperCase():'PENDIENTE';
+}
+function v46ObtenerCompromiso(token,module,snapshotId,region,hierarchy){
+ try{const s=exigirSesion(token);module=v34Modulo(module);const reg=v34Region(region);if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso a esa región.'};const sh=v46AsegurarCompromisos();if(sh.getLastRow()<2)return{ok:true,item:{}};const vals=sh.getRange(2,1,sh.getLastRow()-1,9).getValues().filter(r=>String(r[1])===module&&String(r[2])===String(snapshotId)&&v34Region(r[3])===reg&&String(r[4])===String(hierarchy));if(!vals.length)return{ok:true,item:{}};const r=vals[vals.length-1],estado=v46EstadoActual(module,snapshotId,reg,hierarchy);return{ok:true,item:{responsable:String(r[5]||''),fechaCompromiso:v46DateMX(r[6]),fechaISO:v46DateISO(r[6]),estado:estado,vencida:v46Vencida(r[6],estado),actualizadoPor:String(r[7]||'')}};}catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v46GuardarCompromiso(token,module,snapshotId,region,hierarchy,responsable,fechaCompromiso){
+ try{const s=exigirSesion(token);if(!v34EsAdmin(s))return{ok:false,mensaje:'Solo el administrador puede asignar compromisos.'};module=v34Modulo(module);const reg=v34Region(region),resp=String(responsable||'').trim(),fecha=v46DateISO(fechaCompromiso);if(!reg||reg==='TODAS LAS REGIONES')return{ok:false,mensaje:'Selecciona una región específica.'};const sh=v46AsegurarCompromisos(),vals=sh.getLastRow()>1?sh.getRange(2,1,sh.getLastRow()-1,9).getValues():[];let row=0;for(let i=vals.length-1;i>=0;i--){const r=vals[i];if(String(r[1])===module&&String(r[2])===String(snapshotId)&&v34Region(r[3])===reg&&String(r[4])===String(hierarchy)){row=i+2;break}}const record=[row?sh.getRange(row,1).getValue():Utilities.getUuid(),module,String(snapshotId||''),reg,String(hierarchy||''),resp,fecha?new Date(fecha+'T12:00:00'):'',s.usuario,new Date()];if(row)sh.getRange(row,1,1,9).setValues([record]);else sh.appendRow(record);v34LogActividad(s,'COMPROMISO_INCIDENCIA',module,snapshotId,String(hierarchy||'')+' · '+resp+' · '+fecha);return{ok:true,mensaje:'Compromiso guardado.'};}catch(e){return{ok:false,mensaje:String(e)}}
+}
+function v46Compromisos(token){
+ try{const s=exigirSesion(token),sh=v46AsegurarCompromisos();if(sh.getLastRow()<2)return{ok:true,items:[]};const vals=sh.getRange(2,1,sh.getLastRow()-1,9).getValues();const items=vals.filter(r=>v34EsAdmin(s)||v34Region(r[3])===v34Region(s.region||s.tipo)).map(r=>{const estado=v46EstadoActual(String(r[1]),String(r[2]),v34Region(r[3]),String(r[4]));return{id:String(r[0]),module:String(r[1]),snapshotId:String(r[2]),region:v34Region(r[3]),hierarchy:String(r[4]),responsable:String(r[5]||''),fechaCompromiso:v46DateMX(r[6]),fechaISO:v46DateISO(r[6]),estado:estado,vencida:v46Vencida(r[6],estado),actualizadoPor:String(r[7]||'')}});return{ok:true,items:items};}catch(e){return{ok:false,mensaje:String(e)}}
+}
+
+
+const V47_AVANCE='V47_AVANCE_INCIDENCIAS';
+function v47AsegurarAvance(){const ss=SpreadsheetApp.openById(ID_SHEET_NUBE);let sh=ss.getSheetByName(V47_AVANCE);if(!sh)sh=ss.insertSheet(V47_AVANCE);if(sh.getLastRow()===0){sh.getRange(1,1,1,8).setValues([['ID','MODULO','SNAPSHOT_ID','REGION','JERARQUIA','AVANCE','USUARIO','FECHA']]);sh.setFrozenRows(1);}return sh;}
+function v47GuardarAvance(token,module,snapshotId,region,hierarchy,avance){try{const s=exigirSesion(token);module=v34Modulo(module);const reg=v34Region(region);if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso.'};const av=Number(avance);if([0,25,50,75,100].indexOf(av)<0)return{ok:false,mensaje:'Avance no válido.'};const sh=v47AsegurarAvance(),vals=sh.getLastRow()>1?sh.getRange(2,1,sh.getLastRow()-1,8).getValues():[];let row=0;for(let i=vals.length-1;i>=0;i--){const r=vals[i];if(String(r[1])===module&&String(r[2])===String(snapshotId)&&v34Region(r[3])===reg&&String(r[4])===String(hierarchy)){row=i+2;break}}const rec=[row?sh.getRange(row,1).getValue():Utilities.getUuid(),module,String(snapshotId||''),reg,String(hierarchy||''),av,s.usuario,new Date()];if(row)sh.getRange(row,1,1,8).setValues([rec]);else sh.appendRow(rec);v34LogActividad(s,'AVANCE_INCIDENCIA',module,snapshotId,String(hierarchy||'')+' · '+av+'%');return{ok:true,avance:av};}catch(e){return{ok:false,mensaje:String(e)}}}
+function v47AvanceActual(module,snapshotId,region,hierarchy){const sh=v47AsegurarAvance();if(sh.getLastRow()<2)return 0;const vals=sh.getRange(2,1,sh.getLastRow()-1,8).getValues().filter(r=>String(r[1])===String(module)&&String(r[2])===String(snapshotId)&&v34Region(r[3])===v34Region(region)&&String(r[4])===String(hierarchy));return vals.length?Number(vals[vals.length-1][5]||0):0;}
+function v47Timeline(token,module,snapshotId,region,hierarchy){try{const s=exigirSesion(token);module=v34Modulo(module);const reg=v34Region(region);if(!v34EsAdmin(s)&&reg!==v34Region(s.region||s.tipo))return{ok:false,mensaje:'No tienes acceso.'};const events=[],notes=v38Hilo(token,module,snapshotId,reg,hierarchy);(notes.items||[]).forEach(x=>events.push({fecha:x.fecha,tipo:String(x.tipoMensaje||'MENSAJE'),texto:x.texto,usuario:x.usuario}));const com=v46ObtenerCompromiso(token,module,snapshotId,reg,hierarchy),c=com.ok?(com.item||{}):{};if(c.fechaCompromiso)events.push({fecha:c.fechaCompromiso,tipo:'COMPROMISO',texto:'Responsable: '+(c.responsable||'Sin asignar')+' · Fecha compromiso: '+c.fechaCompromiso,usuario:c.actualizadoPor||''});const av=v47AvanceActual(module,snapshotId,reg,hierarchy),est=v42EstadoHilo(token,module,snapshotId,reg,hierarchy);events.push({fecha:'',tipo:'ESTADO',texto:'Estado actual: '+String(est.estado||'PENDIENTE'),usuario:''});if(av>0)events.push({fecha:'',tipo:'AVANCE',texto:'Avance actual: '+av+'%',usuario:''});return{ok:true,avance:av,estado:String(est.estado||'PENDIENTE'),compromiso:c,items:events};}catch(e){return{ok:false,mensaje:String(e)}}}

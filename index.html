@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>REPORT.IA RCV · Control Regional v44</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0047ab"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png">
+  <title>REPORT.IA RCV · Control Regional v51</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="stylesheet" href="styles.css?v=29.5">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -97,7 +97,7 @@
     </nav>
 
     <div class="sidebar-bottom">
-      <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
+      <div class="user"><div id="sessionAvatar">AD</div><span><strong id="sessionUser">Administrador</strong><small id="sessionRole">Administrador del sistema</small></span></div><button class="logout-btn" id="v51ProfileBtn" type="button">👤 Mi perfil</button><button class="logout-btn" id="logoutBtn">↪ Cerrar sesión</button>
       <div class="online"><i></i><span>Sistema en línea</span><b>v29.5</b></div>
     </div>
   </aside>
@@ -658,9 +658,25 @@
   </section>
 </div>
 
+
+<div class="v51-profile-modal" id="v51ProfileModal">
+  <div class="v51-profile-backdrop" id="v51ProfileBackdrop"></div>
+  <section class="v51-profile-card" role="dialog" aria-modal="true" aria-label="Mi perfil">
+    <button class="v51-profile-close" id="v51ProfileClose" type="button">×</button>
+    <div class="v51-profile-head"><small>MI PERFIL · REPORT.IA v51</small><h2 id="v51ProfileUser">Usuario</h2><p>Tu sesión permanece abierta en este dispositivo hasta que cierres sesión o cambies tu contraseña.</p></div>
+    <div class="v51-profile-grid"><div><span>TIPO DE CUENTA</span><b id="v51ProfileRole">—</b></div><div><span>REGIÓN</span><b id="v51ProfileRegion">—</b></div><div><span>GERENCIA</span><b id="v51ProfileManager">—</b></div><div><span>SESIÓN</span><b>Persistente</b></div></div>
+    <div class="v51-section"><h3>🔔 Notificaciones del dispositivo</h3><p>Cuando estén activadas, recibirás avisos dirigidos a tu gerencia aunque REPORT.IA no esté abierta.</p><div class="v51-push-row"><div><b>Estado</b><div id="v51PushStatus" class="v51-push-status pending">Consultando…</div></div><button id="v51EnablePush" class="v51-action" type="button">Activar notificaciones</button></div><span id="v51PushMsg" class="v51-msg"></span></div>
+    <div class="v51-section"><h3>🔐 Cambiar contraseña</h3><p>Al cambiarla se cerrarán todas tus sesiones y se desactivarán los dispositivos registrados. Deberás iniciar sesión nuevamente.</p><div class="v51-password"><label><span>CONTRASEÑA ACTUAL</span><input id="v51CurrentPassword" type="password" autocomplete="current-password"></label><label><span>NUEVA CONTRASEÑA</span><input id="v51NewPassword" type="password" autocomplete="new-password"></label><label><span>CONFIRMAR NUEVA</span><input id="v51ConfirmPassword" type="password" autocomplete="new-password"></label></div><button id="v51ChangePassword" class="v51-action" type="button">Cambiar contraseña</button><span id="v51PasswordMsg" class="v51-msg"></span></div>
+  </section>
+</div>
+
 <script src="config.js"></script>
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging-compat.js"></script>
 <script src="app.js?v=29.5"></script>
-<script src="auth.js?v=29.5"></script>
+<script src="auth-v51.js?v=51.0"></script>
+<script src="push-v51.js?v=51.0"></script>
 <link rel="stylesheet" href="v26.css?v=29.5">
 <link rel="stylesheet" href="v27.css?v=29.5">
 <link rel="stylesheet" href="v28.css?v=29.5">
@@ -684,7 +700,7 @@
   </div>
 </div>
 
-<link rel="stylesheet" href="v50_4.css?v=50.4.20260906">
-<script src="v50_4.js?v=50.4.20260906"></script>
+<link rel="stylesheet" href="v51.css?v=51.0.20260906">
+<script src="v51.js?v=51.0.20260906"></script>
 </body>
 </html>
