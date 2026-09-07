@@ -8,4 +8,4 @@ globalThis.REPORTIA_FIREBASE_CONFIG = {
   appId: "1:552905070880:web:9c8fb780f986ad78751f45",
   measurementId: "G-2EGCMSWX11"
 };
-globalThis.REPORTIA_VAPID_KEY = "BKV3ljvargjKoxFKe2nDV8uOVLdt5d-CXr1ioWQgr8360xl3alE2I2RxaESCTM2JZvT1-uwefwR2ioIGjFyLJn4";
+globalThis.REPORTIA_VAPID_KEY = "BKV3ljvargjKoxFKe2nDV8uOVLdt5d-CXr1ioW9gr8360xl3alE2I2RxaESCTM2JZvT1-uwefwR2ioIGjFyLJn4";
