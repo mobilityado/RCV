@@ -1,0 +1,20 @@
+REPORT.IA RGI v51.8
+
+Cambio solicitado:
+- La marca visible del portal cambia de RCV a RGI.
+- Pantalla principal: RGI · CONTROL REGIONAL.
+- Hero: Control ejecutivo RGI.
+- Perfil: REPORT.IA RGI.
+- PWA/manifest: REPORT.IA RGI.
+- Folios nuevos generados desde el portal usan prefijo RGI.
+- Notificaciones visibles usan REPORT.IA RGI.
+
+Compatibilidad conservada:
+- No se cambiaron IDs internos rcv*, nombres de funciones, acciones API ni hojas V51_*.
+- No se cambió el reconocimiento de datos fuente que todavía puedan traer "RCV.REGION ...".
+- Firebase, sesiones y push siguen con la lógica ya validada.
+
+Apps Script:
+- El portal web funcionará con el backend v51.6/v51.7 ya instalado.
+- Se incluye codigo-google-RGI-NUBE-v51_8.txt por si deseas que también cambien
+  los textos de diagnóstico/prueba del backend de RCV a RGI.

@@ -1,7 +1,7 @@
 {
-  "name": "REPORT.IA RCV",
-  "short_name": "REPORT.IA",
-  "description": "Centro de Inteligencia Regional RCV",
+  "name": "REPORT.IA RGI",
+  "short_name": "REPORT.IA RGI",
+  "description": "REPORT.IA RGI · Control regional de Gastos, Costos y Productividad",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
