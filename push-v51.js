@@ -12,7 +12,27 @@
   async function unregister(){const s=window.REPORTIA_SESSION;const pt=currentToken||localStorage.getItem('reportia_push_token_v51')||'';if(s?.token)try{await post({accion:'v51_unregister_push',token:s.token,pushToken:pt})}catch(_){}try{if(messaging&&pt)await messaging.deleteToken()}catch(_){}localStorage.removeItem('reportia_push_token_v51');currentToken='';return true}
   async function refreshStatus(){const s=window.REPORTIA_SESSION,el=$('v51PushStatus'),btn=$('v51EnablePush');if(!s?.token||!el)return;try{const d=await jsonp({accion:'v51_push_status',token:s.token});const perm=('Notification'in window)?Notification.permission:'unsupported';if(!configured()){el.textContent='Pendiente de configurar Firebase';el.className='v51-push-status pending';if(btn)btn.textContent='Configurar después';return}if(perm==='granted'&&Number(d.activos||0)>0){el.textContent='Activas en este usuario · '+d.gerencia;el.className='v51-push-status ok';if(btn)btn.textContent='Reactivar en este dispositivo'}else{el.textContent=perm==='denied'?'Bloqueadas por el navegador':'No activadas en este dispositivo';el.className='v51-push-status '+(perm==='denied'?'error':'pending');if(btn)btn.textContent='Activar notificaciones'}}catch(e){el.textContent=e.message;el.className='v51-push-status error'}}
   async function handleEnable(){const btn=$('v51EnablePush'),msg=$('v51PushMsg');if(btn)btn.disabled=true;if(msg){msg.textContent='Solicitando permiso…';msg.className='v51-msg'}try{await enable();if(msg){msg.textContent='Listo. Este dispositivo recibirá avisos de tu gerencia.';msg.className='v51-msg ok'}}catch(e){if(msg){msg.textContent=e.message;msg.className='v51-msg error'}}finally{if(btn)btn.disabled=false;refreshStatus()}}
+
+  async function testPush(){
+    const s=window.REPORTIA_SESSION;
+    const box=$('v516AdminPushTest'),btn=$('v516TestPush'),msg=$('v516TestPushMsg');
+    if(!s?.token)throw new Error('Inicia sesión primero.');
+    if(String(s.tipo||'').toUpperCase()!=='ADMINISTRADOR')throw new Error('Solo disponible para administrador.');
+    if(btn)btn.disabled=true;
+    if(msg)msg.textContent='Enviando prueba…';
+    try{
+      const d=await jsonp({accion:'v51_test_push',token:s.token},25000);
+      if(!d?.ok)throw new Error(d?.mensaje||'No fue posible enviar la prueba.');
+      if(msg)msg.textContent=`Prueba enviada · ${Number(d.enviados||0)}/${Number(d.destinatarios||0)} dispositivo(s).${d.error?' '+d.error:''}`;
+      return d;
+    }finally{if(btn)btn.disabled=false}
+  }
+  function refreshAdminTestVisibility(){
+    const s=window.REPORTIA_SESSION,box=$('v516AdminPushTest');
+    if(box)box.hidden=String(s?.tipo||'').toUpperCase()!=='ADMINISTRADOR';
+  }
+
   async function autoInit(){if(!window.REPORTIA_SESSION)return;try{await registerSW()}catch(_){}if(configured()&&Notification?.permission==='granted'){try{await initMessaging();currentToken=await messaging.getToken({vapidKey:window.REPORTIA_VAPID_KEY,serviceWorkerRegistration:swReg});if(currentToken){localStorage.setItem('reportia_push_token_v51',currentToken);await post({accion:'v51_register_push',token:window.REPORTIA_SESSION.token,pushToken:currentToken,deviceLabel:navigator.userAgent.slice(0,120),platform:navigator.platform||''})}}catch(_){}}}
-  window.addEventListener('reportia:session',()=>autoInit());document.addEventListener('DOMContentLoaded',()=>{$('v51EnablePush')?.addEventListener('click',handleEnable);registerSW().catch(()=>{})});
-  window.REPORTIA_PUSH={enable,unregister,refreshStatus,configured};
+  window.addEventListener('reportia:session',()=>{refreshAdminTestVisibility();autoInit()});document.addEventListener('DOMContentLoaded',()=>{$('v51EnablePush')?.addEventListener('click',handleEnable);$('v516TestPush')?.addEventListener('click',()=>testPush().catch(e=>{const m=$('v516TestPushMsg');if(m)m.textContent=e.message}));refreshAdminTestVisibility();registerSW().catch(()=>{})});
+  window.REPORTIA_PUSH={enable,unregister,refreshStatus,configured,testPush};
 })();
