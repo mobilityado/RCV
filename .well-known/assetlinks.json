@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "mx.reportia.rgi",
+      "sha256_cert_fingerprints": [
+        "42:5B:01:C7:8D:06:22:59:CF:B0:70:DD:8D:AE:6A:F6:84:A1:45:E7:61:2D:4D:F2:CE:9C:66:EB:13:52:0F:72"
+      ]
+    }
+  }
+]
