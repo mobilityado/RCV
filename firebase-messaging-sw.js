@@ -1,3 +1,4 @@
+const REPORTIA_SW_VERSION='53.3';
 importScripts('./firebase-config.js');
 importScripts('https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging-compat.js');
@@ -14,3 +15,6 @@ if(ready){
 }
 self.addEventListener('notificationclick',event=>{event.notification.close();const url=new URL(event.notification.data?.url||'./?reportiaNotification=1',self.registration.scope).href;event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const c of list){if('focus'in c){c.navigate(url);return c.focus()}}return clients.openWindow?clients.openWindow(url):null}))});
 self.addEventListener('fetch',()=>{});
+
+self.addEventListener('install',event=>{self.skipWaiting();});
+self.addEventListener('activate',event=>{event.waitUntil(self.clients.claim());});
