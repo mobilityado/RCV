@@ -10,17 +10,24 @@
   function showForeground(payload){const data=payload?.data||{},title=data.title||'REPORT.IA',body=data.body||'Tienes una nueva notificación.';const toast=document.createElement('div');toast.className='v51-push-toast';toast.innerHTML=`<b>🔔 ${title}</b><span>${body}</span>`;document.body.appendChild(toast);setTimeout(()=>toast.classList.add('show'),20);setTimeout(()=>{toast.classList.remove('show');setTimeout(()=>toast.remove(),350)},6500);try{window.REPORTIA_REFRESH_NOTIFICATIONS?.()}catch(_){} }
   async function enable(){const s=window.REPORTIA_SESSION;if(!s?.token)throw new Error('Inicia sesión primero.');if(!('Notification'in window))throw new Error('Este navegador no admite notificaciones.');const permission=await Notification.requestPermission();if(permission!=='granted')throw new Error('Permiso de notificaciones no concedido.');const m=await initMessaging();currentToken=await m.getToken({vapidKey:window.REPORTIA_VAPID_KEY,serviceWorkerRegistration:swReg});if(!currentToken)throw new Error('No fue posible obtener el token de notificaciones.');await post({accion:'v51_register_push',token:s.token,pushToken:currentToken,deviceLabel:navigator.userAgent.slice(0,120),platform:navigator.platform||''});localStorage.setItem('reportia_push_token_v51',currentToken);await new Promise(r=>setTimeout(r,600));await refreshStatus();return currentToken}
   async function unregister(){const s=window.REPORTIA_SESSION;const pt=currentToken||localStorage.getItem('reportia_push_token_v51')||'';if(s?.token)try{await post({accion:'v51_unregister_push',token:s.token,pushToken:pt})}catch(_){}try{if(messaging&&pt)await messaging.deleteToken()}catch(_){}localStorage.removeItem('reportia_push_token_v51');currentToken='';return true}
+  async function syncCurrentToken(pt,force=false){
+    const s=window.REPORTIA_SESSION;if(!s?.token||!pt)return false;
+    const key='reportia_push_sync_v531',now=Date.now(),last=Number(localStorage.getItem(key)||0);
+    if(!force&&now-last<120000)return true;
+    await post({accion:'v51_register_push',token:s.token,pushToken:pt,deviceLabel:navigator.userAgent.slice(0,120),platform:navigator.platform||''});
+    localStorage.setItem(key,String(now));return true;
+  }
   async function deviceStatus(){
     const s=window.REPORTIA_SESSION;
     const permission=('Notification'in window)?Notification.permission:'unsupported';
     let pt=currentToken||localStorage.getItem('reportia_push_token_v51')||'',serviceWorker=false,registered=false,activeUserDevices=0,device=null;
     try{const r=await registerSW();serviceWorker=!!r}catch(_){}
     if(s?.token&&configured()&&permission==='granted'){
-      try{const m=await initMessaging();pt=await m.getToken({vapidKey:window.REPORTIA_VAPID_KEY,serviceWorkerRegistration:swReg})||pt;if(pt){currentToken=pt;localStorage.setItem('reportia_push_token_v51',pt)}}catch(_){}
+      try{const m=await initMessaging();pt=await m.getToken({vapidKey:window.REPORTIA_VAPID_KEY,serviceWorkerRegistration:swReg})||pt;if(pt){currentToken=pt;localStorage.setItem('reportia_push_token_v51',pt);await syncCurrentToken(pt)}}catch(_){}
     }
     if(s?.token){
       try{const d=await jsonp({accion:'v51_push_status',token:s.token});activeUserDevices=Number(d.activos||0)}catch(_){}
-      if(pt)try{const d=await jsonp({accion:'v51_push_device_status',token:s.token,pushToken:pt});registered=!!d?.activo;device=d?.device||null}catch(_){}
+      if(pt)try{let d=await jsonp({accion:'v51_push_device_status',token:s.token,pushToken:pt});registered=!!d?.activo;device=d?.device||null;if(!registered&&permission==='granted'){await syncCurrentToken(pt,true);await new Promise(r=>setTimeout(r,700));d=await jsonp({accion:'v51_push_device_status',token:s.token,pushToken:pt});registered=!!d?.activo;device=d?.device||null}}catch(_){}
     }
     return{permission,permissionLabel:permission==='granted'?'Permitido':permission==='denied'?'Bloqueado':permission==='default'?'Pendiente':'No compatible',serviceWorker,registered,activeUserDevices,platform:navigator.platform||navigator.userAgent||'',device};
   }
@@ -42,7 +49,7 @@
     try{
       const d=await jsonp({accion:'v51_test_push',token:s.token},25000);
       if(!d?.ok)throw new Error(d?.mensaje||'No fue posible enviar la prueba.');
-      if(msg)msg.textContent=`Prueba enviada · ${Number(d.enviados||0)}/${Number(d.destinatarios||0)} dispositivo(s).${d.error?' '+d.error:''}`;
+      if(msg){const dep=Number(d.depurados||0),fall=Number(d.fallidos||0);let t=`Prueba enviada · ${Number(d.enviados||0)}/${Number(d.destinatarios||0)} dispositivo(s).`;if(dep)t+=` ${dep} registro(s) antiguo(s) depurado(s) automáticamente.`;if(fall)t+=` ${fall} dispositivo(s) requieren volver a registrarse.`;msg.textContent=t}
       return d;
     }finally{if(btn)btn.disabled=false}
   }
@@ -51,7 +58,7 @@
     if(box)box.hidden=String(s?.tipo||'').toUpperCase()!=='ADMINISTRADOR';
   }
 
-  async function autoInit(){if(!window.REPORTIA_SESSION)return;try{await registerSW()}catch(_){}if(configured()&&Notification?.permission==='granted'){try{await initMessaging();currentToken=await messaging.getToken({vapidKey:window.REPORTIA_VAPID_KEY,serviceWorkerRegistration:swReg});if(currentToken){localStorage.setItem('reportia_push_token_v51',currentToken);await post({accion:'v51_register_push',token:window.REPORTIA_SESSION.token,pushToken:currentToken,deviceLabel:navigator.userAgent.slice(0,120),platform:navigator.platform||''})}}catch(_){}}}
+  async function autoInit(){if(!window.REPORTIA_SESSION)return;try{await registerSW()}catch(_){}if(configured()&&Notification?.permission==='granted'){try{await initMessaging();currentToken=await messaging.getToken({vapidKey:window.REPORTIA_VAPID_KEY,serviceWorkerRegistration:swReg});if(currentToken){localStorage.setItem('reportia_push_token_v51',currentToken);await syncCurrentToken(currentToken,true)}}catch(_){}}}
   window.addEventListener('reportia:session',()=>{refreshAdminTestVisibility();autoInit()});document.addEventListener('DOMContentLoaded',()=>{$('v51EnablePush')?.addEventListener('click',handleEnable);$('v516TestPush')?.addEventListener('click',()=>testPush().catch(e=>{const m=$('v516TestPushMsg');if(m)m.textContent=e.message}));refreshAdminTestVisibility();registerSW().catch(()=>{})});
   window.REPORTIA_PUSH={enable,unregister,refreshStatus,configured,testPush,deviceStatus,testLocal};
 })();

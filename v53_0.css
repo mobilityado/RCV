@@ -1031,7 +1031,7 @@ body{
 }
 
 
-/* REPORT.IA RGI v53.0 · Centro Ejecutivo */
+/* REPORT.IA RGI v53.1 · Centro Ejecutivo */
 .r530-command{margin:18px 0 22px;padding:22px;border:1px solid #dbe6f4;border-radius:24px;background:linear-gradient(145deg,#f8fbff 0%,#eef5ff 55%,#fff 100%);box-shadow:0 14px 34px rgba(7,29,73,.08)}
 .r530-command-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}.r530-command-head span{font-size:11px;font-weight:900;letter-spacing:.14em;color:#0b63ce}.r530-command-head h2{margin:5px 0 4px;color:#071d49;font-size:25px}.r530-command-head p{margin:0;color:#64748b;max-width:760px}.r530-refresh{border:1px solid #cbdcf1;background:#fff;color:#0b3f8f;font-weight:800;border-radius:12px;padding:10px 14px;cursor:pointer}
 .r530-command-grid{display:grid;grid-template-columns:1.05fr 1.35fr 1.15fr;gap:14px}.r530-command-grid>article{background:#fff;border:1px solid #dfe9f5;border-radius:19px;min-height:190px;box-shadow:0 7px 20px rgba(7,29,73,.055)}
