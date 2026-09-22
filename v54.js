@@ -15,6 +15,7 @@
   const REGION_ALIASES=[
     ['COATZACOALCOS',['COATZACOALCOS','COATZAC','COATZ']],
     ['VILLAHERMOSA',['VILLAHERMOSA','VILLA HERMOSA']],
+    ['CARDENAS',['CARDENAS']],
     ['TUXTLA',['TUXTLA GUTIERREZ','TUXTLA']],
     ['TAPACHULA',['TAPACHULA']],
     ['VERACRUZ',['VERACRUZ']],
@@ -24,15 +25,19 @@
     ['CAMPECHE',['CAMPECHE']],
     ['CHETUMAL',['CHETUMAL']]
   ];
-  function regionFromSubledger(value,fallback=''){
+  function knownRegion(value){
     const u=upper(value);
     for(const [region,aliases] of REGION_ALIASES){
       if(aliases.some(a=>u.includes(a)))return region;
     }
-    // Abreviaturas que sólo se usan cuando aparecen como token independiente.
     if(/(^|[ ._\-])VH([ ._\-]|$)/.test(u) && !/[\-]CO[\-]/.test(u))return 'VILLAHERMOSA';
     if(/(^|[ ._\-])TGZ([ ._\-]|$)/.test(u))return 'TUXTLA';
-    return cleanRegion(fallback);
+    return '';
+  }
+  function regionFromSubledger(value,fallback=''){
+    // Nunca devolver códigos numéricos (ej. 705) como región.
+    // Primero intenta la jerarquía/sublibro y después el respaldo del encabezado.
+    return knownRegion(value)||knownRegion(fallback)||'';
   }
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   function jsonp(params){return new Promise((resolve,reject)=>{const cb='__rcv34_'+Date.now()+'_'+Math.random().toString(36).slice(2);const sc=document.createElement('script');const q=new URLSearchParams({...params,callback:cb});const timer=setTimeout(()=>{cleanup();reject(new Error('Tiempo de espera agotado.'));},18000);function cleanup(){clearTimeout(timer);try{delete window[cb]}catch(_){}sc.remove()}window[cb]=d=>{cleanup();resolve(d)};sc.onerror=()=>{cleanup();reject(new Error('No fue posible conectar con la nube.'))};sc.src=API_URL+(API_URL.includes('?')?'&':'?')+q;document.head.appendChild(sc)})}
@@ -50,7 +55,7 @@
     });
   }
   async function post(params){await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(params)});return true}
-  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.1</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.1</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.2</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.2</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
 <nav class="r49-bottom-nav" id="r49BottomNav">
   <button data-r49nav="menu"><span>⌂</span><b>Inicio</b></button>
   <button data-r49nav="gastos"><span>▤</span><b>Gastos</b></button>
@@ -239,7 +244,10 @@
         const account=norm(cellValue(rowXml,'A')),hierarchy=norm(cellValue(rowXml,'B')),sub=norm(cellValue(rowXml,'C')),subHierarchy=norm(cellValue(rowXml,'D')),buCode=norm(cellValue(rowXml,'E')),bu=norm(cellValue(rowXml,'F')),period=norm(cellValue(rowXml,'G'));
         const r1=num(cellValue(rowXml,'H')),b1=num(cellValue(rowXml,'I')),r2=num(cellValue(rowXml,'J')),b2=num(cellValue(rowXml,'K'));
         if(!account&&!hierarchy&&!sub&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2)continue;
-        const region=regionFromSubledger(subHierarchy,baseRegion)||cleanRegion(baseRegion)||'SIN REGION',valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
+        // En ORIGEN2 algunos archivos traen un código (p. ej. 705) en B2 o en
+        // Jerarquía Sublibro. Buscamos la región real también en las columnas
+        // descriptivas de la fila antes de declarar SIN REGION.
+        const region=regionFromSubledger(subHierarchy,baseRegion)||knownRegion([hierarchy,sub,subHierarchy,buCode,bu].join(' '))||'SIN REGION',valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
         rows.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,sourceSheet:'ORIGEN2'});
       }
     };
@@ -257,7 +265,7 @@
       }catch(e){reject(e)}
     });
     if(!foundSheet)throw new Error('No se encontró ORIGEN2 (sheet2.xml) dentro del XLSX.');
-    if(!rows.length)throw new Error(`ORIGEN2 fue localizada pero no produjo registros. Lector v54.1 · ZIP streaming + Shared Strings activo.`);
+    if(!rows.length)throw new Error(`ORIGEN2 fue localizada pero no produjo registros. Lector v54.2 · ZIP streaming + Shared Strings activo.`);
     return rows;
   }
   async function parseFile(file,module){
