@@ -1,0 +1,23 @@
+REPORT.IA RGI v56.0 — AJUSTE ESTÉTICO
+
+Base: v55.9 GZIP CORREGIDO (versión confirmada como funcional).
+
+ÚNICOS CAMBIOS FUNCIONALES/VISUALES:
+- En Desglose comparativo: "Diferencia" -> "Diferencia (+/-)".
+- En Desglose comparativo: "Variación" -> "Variación (+/-)".
+- En la tarjeta de detalle comparativo: "Diferencia" -> "Diferencia (+/-)".
+- Identificador visual del portal actualizado a v56.0.
+
+NO se modificó:
+- Apps Script / Código.gs.
+- Publicación GZIP.
+- Carga a nube.
+- Login / usuarios.
+- Lectura de nube.
+- Reglas de regiones.
+- Cálculos ni fórmulas.
+
+INSTALACIÓN:
+1. Sube los archivos del paquete al mismo repositorio GitHub, sustituyendo los existentes.
+2. NO necesitas volver a implementar Apps Script; conserva el Código.gs v55.9 que ya funciona.
+3. Haz Ctrl+Shift+R y verifica que el portal muestre v56.0.
