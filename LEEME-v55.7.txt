@@ -1,0 +1,18 @@
+REPORT.IA RGI v55.7 - PUBLICACION AUTO-FINALIZADA
+
+CORRECCION PRINCIPAL:
+- El ultimo bloque ahora FINALIZA la publicacion dentro de la misma llamada a Apps Script.
+- Ya no depende de un POST adicional v55_upload_finish, que era el punto que no se estaba ejecutando.
+- Nube Publicada ignora automaticamente snapshots JSON dañados/incompletos en la consulta mas reciente.
+- Se conserva login estable de v55.6 y la correccion regional.
+- Version visual corregida a 55.7.
+
+INSTALACION:
+1. Reemplaza TODO Codigo.gs por codigo-google-RGI-NUBE-v55_7.txt.
+2. Implementar > Gestionar implementaciones > Editar > Nueva version > Implementar. Conserva la misma URL /exec.
+3. Sube los archivos del paquete a GitHub.
+4. Ctrl+Shift+R y verifica v55.7.
+5. Procesa Gastos y Publicar en nube.
+
+IMPORTANTE:
+El snapshot manual actualmente pegado en V34_GASTOS esta truncado por el limite de 32,767 caracteres por celda de XLSX. No lo uses como publicacion final. La v55.7 creara un snapshot valido directamente desde Apps Script.
