@@ -211,7 +211,9 @@
   async function parseFile(file,module){
     const wb=XLSX.read(await file.arrayBuffer(),{type:'array',raw:true,cellDates:true});let all=[];
     for(const sn of wb.SheetNames){
-      const arr=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:true});if(!arr.length)continue;
+      const ws=wb.Sheets[sn],ref=ws?.['!ref'];if(!ref)continue;
+      const rg=XLSX.utils.decode_range(ref);rg.e.r=Math.min(rg.e.r,199999);
+      const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:rg});if(!arr.length)continue;
       const hr=findHeader(arr,module);if(hr<0)continue;
       const h=(arr[hr]||[]).map(norm),H=h.map(upper),baseRegion=inferRegion(arr);
       const iRegion=idx(h,['REGION','REGIÓN','AREA GESTION JDE']),iHier=idx(h,['JERARQUIA CUENTA CONTABLE','JERARQUÍA CUENTA CONTABLE']),iAccount=idx(h,['DES CUENTA CONTABLE','CUENTA CONTABLE','JERARQUIA CUENTA CONTABLE']),iSubHierarchy=idx(h,['JERARQUIA SUBLIBRO','JERARQUÍA SUBLIBRO']),iSub=idx(h,['ULTIMO NIVEL DE SL','ÚLTIMO NIVEL DE SL']),iBUCode=idx(h,['JERARQUIA UNIDAD DE NEGOCIO JDE','JERARQUÍA UNIDAD DE NEGOCIO JDE']),iBU=idx(h,['JERARQUIA UNIDAD DE NEGOCIO JDE EN','JERARQUÍA UNIDAD DE NEGOCIO JDE EN','UNIDAD DE NEGOCIO']),iPeriod=idx(h,['PERIODO','MES']);
@@ -338,16 +340,16 @@
         <div class="rcv481-balance"><b>${improved}</b><small>mejoraron</small><b class="bad">${worse}</b><small>empeoraron</small><b class="neutral">${unchanged}</b><small>sin cambio</small></div>
       </div>
       <div class="r50-compare-kpis">
-        <article><small>REAL · BASE</small><strong>${money(c.base.real)}</strong><span>${esc((S.compareBaseMonth?MONTH_LABELS[Number(S.compareBaseMonth)]+' ':'')+S.compareBase)}</span></article>
-        <article><small>REAL · COMPARAR</small><strong>${money(c.target.real)}</strong><span>${esc((S.compareTargetMonth?MONTH_LABELS[Number(S.compareTargetMonth)]+' ':'')+S.compareTarget)}</span></article>
+        <article><small>${esc((S.compareBaseMonth?MONTH_LABELS[Number(S.compareBaseMonth)]+' ':'')+S.compareBase)}</small><strong>${money(c.base.real)}</strong><span>REAL</span></article>
+        <article><small>${esc((S.compareTargetMonth?MONTH_LABELS[Number(S.compareTargetMonth)]+' ':'')+S.compareTarget)}</small><strong>${money(c.target.real)}</strong><span>REAL</span></article>
         <article class="${totalKind}"><small>${changeLabel}</small><strong>${c.real.delta>=0?'+':''}${money(c.real.delta)}</strong><span>${c.real.pct>=0?'+':''}${c.real.pct.toFixed(1)}%</span></article>
         <article><small>PRESUPUESTO BASE</small><strong>${money(c.base.budget)}</strong></article>
         <article><small>PRESUPUESTO COMPARAR</small><strong>${money(c.target.budget)}</strong></article>
         <article><small>DIF. PRESUPUESTO</small><strong>${c.budget.delta>=0?'+':''}${money(c.budget.delta)}</strong><span>${c.budget.pct>=0?'+':''}${c.budget.pct.toFixed(1)}%</span></article>
       </div>
       <article class="rcv34-card"><div class="rcv42-top-head"><div><h3>Desglose comparativo por cuenta contable</h3><p>Ordenado por la mayor diferencia entre los dos periodos.</p></div><span>${accounts.length} cuentas</span></div>
-        <div class="r50-compare-table"><div class="head"><span>Cuenta contable</span><span>Base</span><span>Comparar</span><span>Diferencia</span><span>Variación</span><span>Resultado</span></div>
-          ${accounts.map(x=>`<button class="row" data-r50-compare-account="${esc(x.name)}"><b>${esc(x.name)}</b><span>${money(x.a.real)}</span><span>${money(x.b.real)}</span><strong class="${x.trend.kind}">${x.delta>=0?'+':''}${money(x.delta)}</strong><span>${x.pct>=0?'+':''}${x.pct.toFixed(1)}%</span><em class="${x.trend.kind}">${x.trend.label}</em></button>`).join('')}
+        <div class="r50-compare-table"><div class="head"><span>Cuenta contable</span><span>${esc((S.compareBaseMonth?MONTH_LABELS[Number(S.compareBaseMonth)]+' ':'')+S.compareBase)}</span><span>${esc((S.compareTargetMonth?MONTH_LABELS[Number(S.compareTargetMonth)]+' ':'')+S.compareTarget)}</span><span>Diferencia</span><span>Variación</span><span>Resultado</span></div>
+          ${accounts.map(x=>{const semKind=x.trend.kind==='bad'?'bad':'good';return `<button class="row" data-r50-compare-account="${esc(x.name)}"><b>${esc(x.name)}</b><span>${money(x.a.real)}</span><span>${money(x.b.real)}</span><strong class="${x.trend.kind}">${x.delta>=0?'+':''}${money(x.delta)}</strong><span class="${semKind}">${x.pct>=0?'+':''}${x.pct.toFixed(1)}%</span><em class="r534-result-dot ${semKind}" title="${esc(x.trend.label)}" aria-label="${esc(x.trend.label)}"></em></button>`}).join('')}
         </div>
       </article>
     </section>`;
