@@ -31,11 +31,15 @@
     for(const [region,aliases] of REGION_ALIASES){
       if(aliases.some(a=>u.includes(a)))return region;
     }
-    // v54.6: abreviaturas reales encontradas en los dos archivos de Gastos.
+    // v54.7: abreviaturas reales encontradas en los dos archivos de Gastos.
     if(/(^|[ ._\-])(VHT|RVHT)([ ._\-]|$)/.test(u))return 'VILLAHERMOSA';
     if(/(^|[ ._\-])VH([ ._\-]|$)/.test(u) && !/(VH[\- ]CO|[\-]CO[\-])/.test(u))return 'VILLAHERMOSA';
     if(/\bVILLA\b/.test(u) && !/VILLAHERMOSA/.test(u))return 'VILLAHERMOSA';
     if(/\b(COATZA|RCV)\b/.test(u) && !/RVHT/.test(u))return 'COATZACOALCOS';
+    // COV es la abreviatura usada por el auxiliar O de ORIGEN2 para Coatzacoalcos.
+    if(/(^|[ ._\-])COV([ ._\-]|$)/.test(u))return 'COATZACOALCOS';
+    // ADMVA corresponde a la Gerencia Administrativa Sureste (alcance regional).
+    if(/^ADMVA$/.test(u))return 'REGIONAL';
     if(/(^|[ ._\-])TGZ([ ._\-]|$)/.test(u))return 'TUXTLA';
     // CATAB aparece en la jerarquía operativa del archivo como Cárdenas/Tabasco.
     if(/\bCATAB\b/.test(u))return 'CARDENAS';
@@ -77,7 +81,7 @@
     });
   }
   async function post(params){await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(params)});return true}
-  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.6</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.6</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.7</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.7</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
 <nav class="r49-bottom-nav" id="r49BottomNav">
   <button data-r49nav="menu"><span>⌂</span><b>Inicio</b></button>
   <button data-r49nav="gastos"><span>▤</span><b>Gastos</b></button>
@@ -275,10 +279,14 @@
         const buCode=norm(cellValue(rowXml,'E'));
         const bu=norm(cellValue(rowXml,'S')||cellValue(rowXml,'F'));
         const period=norm(cellValue(rowXml,'P')||cellValue(rowXml,'G'));
+        // ORIGEN2 incluye en O un auxiliar de región ya calculado por el propio libro
+        // (COMER VILLA, COMERCIAL COV, MANTTO. VHT, OP CATAB, ADMVA, etc.).
+        // Es la fuente más estable para los 88,047 registros útiles.
+        const regionAux=norm(cellValue(rowXml,'O'));
         const r1=num(cellValue(rowXml,'H')),b1=num(cellValue(rowXml,'I')),r2=num(cellValue(rowXml,'J')),b2=num(cellValue(rowXml,'K'));
         if(!account&&!hierarchy&&!sub&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2)continue;
-        const region=knownRegion(sub)||knownRegion(subHierarchy)||knownRegion([hierarchy,account,buCode,bu].join(' '))||knownRegion(baseRegion)||'SIN REGION',valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
-        rows.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy||sub,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,sourceSheet:'ORIGEN2'});
+        const region=knownRegion(regionAux)||knownRegion(sub)||knownRegion(subHierarchy)||knownRegion([hierarchy,account,buCode,bu].join(' '))||knownRegion(baseRegion)||'SIN REGION',valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
+        rows.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy||sub,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,regionAux,sourceSheet:'ORIGEN2'});
       }
     };
     await new Promise((resolve,reject)=>{
@@ -753,7 +761,7 @@
         const latest=h?.items?.[0];
         if(latest?.snapshotId && latest.snapshotId!==beforeId){confirmed=latest;break}
       }
-      if(!confirmed)throw new Error('La nube NO confirmó una publicación nueva. El portal evitó mostrar “publicado correctamente”. Revisa que el Apps Script v54.6 esté implementado como nueva versión y que config.js apunte a esa implementación.');
+      if(!confirmed)throw new Error('La nube NO confirmó una publicación nueva. El portal evitó mostrar “publicado correctamente”. Revisa que el Apps Script v54.7 esté implementado como nueva versión y que config.js apunte a esa implementación.');
       msg.textContent='Publicación confirmada en la nube · ID '+String(confirmed.snapshotId).slice(0,8)+' · Regiones: '+regs.join(', ');
       msg.className='rcv34-msg ok';
       S.adminSnapshot='';
