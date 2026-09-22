@@ -50,7 +50,7 @@
     });
   }
   async function post(params){await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(params)});return true}
-  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.0</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.0</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.1</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.1</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
 <nav class="r49-bottom-nav" id="r49BottomNav">
   <button data-r49nav="menu"><span>⌂</span><b>Inicio</b></button>
   <button data-r49nav="gastos"><span>▤</span><b>Gastos</b></button>
@@ -218,19 +218,46 @@
       const doc=new DOMParser().parseFromString(xml,'application/xml');
       doc.querySelectorAll('si').forEach(si=>shared.push([...si.querySelectorAll('t')].map(t=>t.textContent||'').join('')));
     }
-    const path='xl/worksheets/sheet2.xml', zf=zip.file(path);
-    if(!zf)throw new Error('No se encontró ORIGEN2 (sheet2.xml) dentro del XLSX.');
-    const csize=Number(zf?._data?.compressedSize||0); if(!csize)throw new Error('No fue posible localizar el bloque comprimido de ORIGEN2.');
-    const enc=new TextEncoder(), needle=enc.encode(path); let nameAt=-1;
-    outer: for(let i=0;i<=bytes.length-needle.length;i++){ if(bytes[i]!==needle[0])continue; for(let j=1;j<needle.length;j++)if(bytes[i+j]!==needle[j])continue outer; nameAt=i; const h=i-30; if(h>=0&&bytes[h]===0x50&&bytes[h+1]===0x4b&&bytes[h+2]===0x03&&bytes[h+3]===0x04)break; nameAt=-1; }
-    if(nameAt<0)throw new Error('No se encontró la entrada física de ORIGEN2 dentro del XLSX.');
-    const h=nameAt-30, dv=new DataView(ab), nlen=dv.getUint16(h+26,true), xlen=dv.getUint16(h+28,true), dataStart=h+30+nlen+xlen, dataEnd=dataStart+csize;
-    const decoder=new TextDecoder(), rows=[]; let carry='', doneRows=false, y1='2025',y2='2026',baseRegion='';
-    const cellValue=(body,col)=>{const re=new RegExp(`<c[^>]*\\br="${col}\\d+"[^>]*?(?:t="([^"]+)")?[^>]*>([\\s\\S]*?)<\\/c>`,'i'),m=body.match(re);if(!m)return'';const typ=m[1]||'',inner=m[2]||'';let v=(inner.match(/<v>([\s\S]*?)<\/v>/i)||[])[1]??'';if(typ==='s')v=shared[Number(v)]??v;else if(typ==='inlineStr')v=(inner.match(/<t[^>]*>([\s\S]*?)<\/t>/i)||[])[1]??'';return String(v).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"')};
-    const consume=txt=>{carry+=txt;let a;while((a=carry.search(/<row\b/i))>=0){if(a>0)carry=carry.slice(a);const e=carry.search(/<\/row>/i);if(e<0)break;const rowXml=carry.slice(0,e+6);carry=carry.slice(e+6);const rn=Number((rowXml.match(/<row[^>]*\\br="(\\d+)"/i)||[])[1]||0);if(rn===2)baseRegion=cleanRegion(cellValue(rowXml,'B')||'');if(rn===7){y1=String(cellValue(rowXml,'H')||'2025').match(/20\\d{2}/)?.[0]||'2025';y2=String(cellValue(rowXml,'J')||'2026').match(/20\\d{2}/)?.[0]||'2026'}if(rn<9)continue;if(rn>90000){doneRows=true;carry='';return}const account=norm(cellValue(rowXml,'A')),hierarchy=norm(cellValue(rowXml,'B')),sub=norm(cellValue(rowXml,'C')),subHierarchy=norm(cellValue(rowXml,'D')),buCode=norm(cellValue(rowXml,'E')),bu=norm(cellValue(rowXml,'F')),period=norm(cellValue(rowXml,'G'));const r1=num(cellValue(rowXml,'H')),b1=num(cellValue(rowXml,'I')),r2=num(cellValue(rowXml,'J')),b2=num(cellValue(rowXml,'K'));if(!account&&!hierarchy&&!sub&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2)continue;const region=regionFromSubledger(subHierarchy,baseRegion)||cleanRegion(baseRegion)||'SIN REGION',valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};rows.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,sourceSheet:'ORIGEN2'})}};
-    const infl=new fflate.Inflate((chunk,final)=>{if(!doneRows)consume(decoder.decode(chunk,{stream:!final}))});
-    const STEP=1024*1024;for(let pos=dataStart;pos<dataEnd&&!doneRows;pos+=STEP)infl.push(bytes.subarray(pos,Math.min(pos+STEP,dataEnd)),Math.min(pos+STEP,dataEnd)>=dataEnd);
-    if(!rows.length)throw new Error(`ORIGEN2 fue localizada pero no produjo registros. Lector v54.0 independiente activo.`);
+    const decoder=new TextDecoder(), rows=[]; let carry='', doneRows=false, y1='2025',y2='2026',baseRegion='', foundSheet=false;
+    const unescapeXml=v=>String(v??'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"');
+    const cellValue=(body,col)=>{
+      const re=new RegExp(`<c\\b([^>]*)\\br="${col}\\d+"([^>]*)>([\\s\\S]*?)<\\/c>`,'i'),m=body.match(re);if(!m)return'';
+      const attrs=(m[1]||'')+(m[2]||''),inner=m[3]||'',typ=(attrs.match(/\\bt="([^"]+)"/i)||[])[1]||'';
+      let v=(inner.match(/<v>([\s\S]*?)<\/v>/i)||[])[1]??'';
+      if(typ==='s')v=shared[Number(v)]??v;
+      else if(typ==='inlineStr')v=[...inner.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/gi)].map(x=>x[1]).join('');
+      return unescapeXml(v);
+    };
+    const consume=txt=>{
+      carry+=txt;let a;
+      while((a=carry.search(/<row\b/i))>=0){
+        if(a>0)carry=carry.slice(a);const e=carry.search(/<\/row>/i);if(e<0)break;
+        const rowXml=carry.slice(0,e+6);carry=carry.slice(e+6);const rn=Number((rowXml.match(/<row[^>]*\br="(\d+)"/i)||[])[1]||0);
+        if(rn===2)baseRegion=cleanRegion(cellValue(rowXml,'B')||'');
+        if(rn===7){y1=String(cellValue(rowXml,'H')||'2025').match(/20\d{2}/)?.[0]||'2025';y2=String(cellValue(rowXml,'J')||'2026').match(/20\d{2}/)?.[0]||'2026'}
+        if(rn<9)continue;if(rn>90000){doneRows=true;carry='';return}
+        const account=norm(cellValue(rowXml,'A')),hierarchy=norm(cellValue(rowXml,'B')),sub=norm(cellValue(rowXml,'C')),subHierarchy=norm(cellValue(rowXml,'D')),buCode=norm(cellValue(rowXml,'E')),bu=norm(cellValue(rowXml,'F')),period=norm(cellValue(rowXml,'G'));
+        const r1=num(cellValue(rowXml,'H')),b1=num(cellValue(rowXml,'I')),r2=num(cellValue(rowXml,'J')),b2=num(cellValue(rowXml,'K'));
+        if(!account&&!hierarchy&&!sub&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2)continue;
+        const region=regionFromSubledger(subHierarchy,baseRegion)||cleanRegion(baseRegion)||'SIN REGION',valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
+        rows.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,sourceSheet:'ORIGEN2'});
+      }
+    };
+    await new Promise((resolve,reject)=>{
+      try{
+        const uz=new fflate.Unzip(entry=>{
+          const n=String(entry.name||'').replace(/^\//,'');
+          if(n!=='xl/worksheets/sheet2.xml'){entry.ondata=()=>{};entry.start();return}
+          foundSheet=true;
+          entry.ondata=(err,chunk,final)=>{if(err){reject(err);return}if(!doneRows&&chunk?.length)consume(decoder.decode(chunk,{stream:!final}));if(final)resolve()};
+          entry.start();
+        });
+        uz.register(fflate.UnzipInflate);
+        const STEP=1024*1024;for(let pos=0;pos<bytes.length;pos+=STEP)uz.push(bytes.subarray(pos,Math.min(pos+STEP,bytes.length)),Math.min(pos+STEP,bytes.length)>=bytes.length);
+      }catch(e){reject(e)}
+    });
+    if(!foundSheet)throw new Error('No se encontró ORIGEN2 (sheet2.xml) dentro del XLSX.');
+    if(!rows.length)throw new Error(`ORIGEN2 fue localizada pero no produjo registros. Lector v54.1 · ZIP streaming + Shared Strings activo.`);
     return rows;
   }
   async function parseFile(file,module){
