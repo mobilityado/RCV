@@ -91,8 +91,28 @@
       document.head.appendChild(sc);
     });
   }
-  async function post(params){await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(params)});return true}
-  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.8</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.8</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
+  async function post(params){
+    // v54.9: envío POST real mediante formulario oculto. En algunos navegadores,
+    // fetch(..., mode:'no-cors') contra Apps Script puede quedar opaco tras la
+    // redirección de /exec y el portal no puede saber si doPost terminó.
+    // El formulario conserva el POST hasta Apps Script; después verificamos
+    // la creación del snapshot consultando v34_history por JSONP.
+    return new Promise((resolve,reject)=>{
+      const frameName='__reportia_post_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const iframe=document.createElement('iframe');
+      iframe.name=frameName;iframe.style.display='none';
+      const form=document.createElement('form');
+      form.method='POST';form.action=API_URL;form.target=frameName;form.style.display='none';
+      Object.entries(params||{}).forEach(([k,v])=>{const input=document.createElement('input');input.type='hidden';input.name=k;input.value=String(v??'');form.appendChild(input)});
+      let done=false;const cleanup=()=>{setTimeout(()=>{form.remove();iframe.remove()},250)};
+      const timer=setTimeout(()=>{if(done)return;done=true;cleanup();resolve(true)},90000);
+      iframe.onload=()=>{if(done)return;done=true;clearTimeout(timer);cleanup();resolve(true)};
+      iframe.onerror=()=>{if(done)return;done=true;clearTimeout(timer);cleanup();reject(new Error('No fue posible enviar la publicación a Apps Script.'))};
+      document.body.appendChild(iframe);document.body.appendChild(form);
+      form.submit();
+    })
+  }
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.9</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.9</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
 <nav class="r49-bottom-nav" id="r49BottomNav">
   <button data-r49nav="menu"><span>⌂</span><b>Inicio</b></button>
   <button data-r49nav="gastos"><span>▤</span><b>Gastos</b></button>
@@ -772,7 +792,7 @@
         const latest=h?.items?.[0];
         if(latest?.snapshotId && latest.snapshotId!==beforeId){confirmed=latest;break}
       }
-      if(!confirmed)throw new Error('La nube NO confirmó una publicación nueva. El portal evitó mostrar “publicado correctamente”. Revisa que el Apps Script v54.8 esté implementado como nueva versión y que config.js apunte a esa implementación.');
+      if(!confirmed)throw new Error('La nube NO confirmó una publicación nueva. El portal evitó mostrar “publicado correctamente”. Revisa que el Apps Script v54.9 esté implementado como nueva versión y que config.js apunte a esa implementación.');
       msg.textContent='Publicación confirmada en la nube · ID '+String(confirmed.snapshotId).slice(0,8)+' · Regiones: '+regs.join(', ');
       msg.className='rcv34-msg ok';
       S.adminSnapshot='';
