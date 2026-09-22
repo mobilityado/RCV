@@ -209,10 +209,11 @@
     const by=monthlyGroups(rs),states=by.map(([name,x])=>({m:monthOrder(name),st:totals(x,module).st})).filter(x=>x.m<99).sort((a,b)=>a.m-b.m);let streak=0,best=0;for(const x of states){if(x.st==='red'){streak++;best=Math.max(best,streak)}else streak=0}return best;
   }
   async function parseFile(file,module){
-    // v53.9: Gastos se lee por POSICIÓN FIJA desde ORIGEN2, sin validar textos
+    // v54.0: limita la lectura XLSX a 100,000 filas para evitar el rango fantasma XLCubed de 1,048,576 filas.
+    // Gastos se lee por POSICIÓN FIJA desde ORIGEN2, sin validar textos
     // de encabezado. Esto evita diferencias de acentos, celdas compartidas y el
     // !ref inflado que generan algunos archivos XLCubed.
-    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});let all=[];
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true,sheetRows:100000});let all=[];
     if(module==='gastos'){
       const gastosSheetName=wb.SheetNames.find(n=>upper(n)==='ORIGEN2');
       const ws=gastosSheetName?wb.Sheets[gastosSheetName]:null;
@@ -282,7 +283,7 @@
         all.push({region:region||'SIN REGIÓN',hierarchy,account,subledger:norm(iSub>=0?r[iSub]:subHierarchy),subledgerHierarchy:subHierarchy,businessUnitCode:norm(iBUCode>=0?r[iBUCode]:''),businessUnit:norm(iBU>=0?r[iBU]:''),period:norm(iPeriod>=0?r[iPeriod]:'')||defaultPeriod,year:latest,real:lv.real,budget:lv.budget,valuesByYear,sourceSheet:sn});
       }
     }
-    if(!all.length){const sh=(wb.SheetNames||[]).join(', ');throw new Error(module==='gastos'?`No se pudieron leer registros de Gastos. Hojas detectadas: ${sh||'ninguna'}. Lector v53.9 activo.`:'No se encontró una estructura reconocible en el archivo.');}
+    if(!all.length){const sh=(wb.SheetNames||[]).join(', ');throw new Error(module==='gastos'?`No se pudieron leer registros de Gastos. Hojas detectadas: ${sh||'ninguna'}. Lector v54.0 activo (sheetRows=100000).`:'No se encontró una estructura reconocible en el archivo.');}
     if(module!=='productividad'){
       const years=availableYears(all);
       for(const yr of years){
