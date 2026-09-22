@@ -209,7 +209,7 @@
     const by=monthlyGroups(rs),states=by.map(([name,x])=>({m:monthOrder(name),st:totals(x,module).st})).filter(x=>x.m<99).sort((a,b)=>a.m-b.m);let streak=0,best=0;for(const x of states){if(x.st==='red'){streak++;best=Math.max(best,streak)}else streak=0}return best;
   }
   async function parseFile(file,module){
-    // v53.7: no usamos sheetRows aquí. En los archivos XLCubed de Gastos el !ref
+    // v53.8: lector directo corregido para encabezados con acentos. No usamos sheetRows aquí. En los archivos XLCubed de Gastos el !ref
     // puede venir hasta la fila 1,048,576 aunque los datos reales sean mucho menores.
     // Para Gastos leemos ORIGEN2 directamente por celdas A:K y evitamos depender
     // del rango inflado de Excel/XLCubed.
@@ -218,7 +218,7 @@
       const ws=wb.Sheets['ORIGEN2'];
       const cell=(r,c)=>ws[XLSX.utils.encode_cell({r:r-1,c:c-1})]?.v ?? '';
       const hdr=Array.from({length:11},(_,i)=>upper(cell(8,i+1)));
-      const ok=hdr[0].includes('CUENTA CONTABLE') && hdr[1].includes('JERARQUIA CUENTA CONTABLE') && hdr[6].includes('PERIODO') && hdr[7].includes('REAL GESTION') && hdr[8].includes('PRESUPUESTO GESTION');
+      const ok=hdr[0].includes('CUENTA CONTABLE') && hdr[1].includes('CUENTA CONTABLE') && hdr[6].includes('PERIODO') && hdr[7].includes('REAL GESTION') && hdr[8].includes('PRESUPUESTO GESTION');
       if(ok){
         const y1=String(cell(7,8)||'2025').match(/20\d{2}/)?.[0]||'2025';
         const y2=String(cell(7,10)||'2026').match(/20\d{2}/)?.[0]||'2026';
