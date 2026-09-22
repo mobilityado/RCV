@@ -772,7 +772,7 @@
         const latest=h?.items?.[0];
         if(latest?.snapshotId && latest.snapshotId!==beforeId){confirmed=latest;break}
       }
-      if(!confirmed)throw new Error('La nube NO confirmó una publicación nueva. El portal evitó mostrar “publicado correctamente”. Revisa que el Apps Script v54.7 esté implementado como nueva versión y que config.js apunte a esa implementación.');
+      if(!confirmed)throw new Error('La nube NO confirmó una publicación nueva. El portal evitó mostrar “publicado correctamente”. Revisa que el Apps Script v54.8 esté implementado como nueva versión y que config.js apunte a esa implementación.');
       msg.textContent='Publicación confirmada en la nube · ID '+String(confirmed.snapshotId).slice(0,8)+' · Regiones: '+regs.join(', ');
       msg.className='rcv34-msg ok';
       S.adminSnapshot='';
