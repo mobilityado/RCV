@@ -1,0 +1,12 @@
+REPORT.IA RGI v55.2
+
+CORRECCION PUBLICACION EN NUBE
+- Sustituye el envio por formulario/iframe de v55.1 por POST directo con fetch no-cors.
+- La confirmacion sigue siendo segura: el portal solo muestra exito cuando v34_history devuelve un snapshot nuevo.
+- No modifica la deteccion de regiones ni el procesamiento de Gastos.
+
+IMPORTANTE
+1. Subir TODO el contenido de esta carpeta a GitHub.
+2. No es necesario cambiar config.js si la URL de Apps Script sigue siendo la misma.
+3. Apps Script debe conservar doPost con accion v34_upload y estar implementado como aplicacion web.
+4. Tras publicar GitHub, hacer Ctrl+Shift+R y comprobar que el portal muestre v55.2.
