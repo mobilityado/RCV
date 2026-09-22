@@ -1,0 +1,6 @@
+REPORT.IA RGI v55.5
+1) Reemplaza Código.gs con codigo-google-RGI-NUBE-v55_5.txt.
+2) Implementar > Gestionar implementaciones > Editar > Nueva versión > Implementar. Conserva el mismo ID/URL.
+3) Sube todos los archivos de esta carpeta a GitHub.
+4) Ctrl+Shift+R y verifica v55.5.
+5) Procesa Gastos y Publicar. Ahora se envía en bloques pequeños y luego se arma en Apps Script.
