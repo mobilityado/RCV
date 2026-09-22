@@ -50,7 +50,7 @@
     });
   }
   async function post(params){await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(params)});return true}
-  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v53.6</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v53.6</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v53.9</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v53.9</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
 <nav class="r49-bottom-nav" id="r49BottomNav">
   <button data-r49nav="menu"><span>⌂</span><b>Inicio</b></button>
   <button data-r49nav="gastos"><span>▤</span><b>Gastos</b></button>
@@ -209,33 +209,31 @@
     const by=monthlyGroups(rs),states=by.map(([name,x])=>({m:monthOrder(name),st:totals(x,module).st})).filter(x=>x.m<99).sort((a,b)=>a.m-b.m);let streak=0,best=0;for(const x of states){if(x.st==='red'){streak++;best=Math.max(best,streak)}else streak=0}return best;
   }
   async function parseFile(file,module){
-    // v53.8: lector directo corregido para encabezados con acentos. No usamos sheetRows aquí. En los archivos XLCubed de Gastos el !ref
-    // puede venir hasta la fila 1,048,576 aunque los datos reales sean mucho menores.
-    // Para Gastos leemos ORIGEN2 directamente por celdas A:K y evitamos depender
-    // del rango inflado de Excel/XLCubed.
-    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',raw:true,cellDates:true});let all=[];
-    if(module==='gastos' && wb.Sheets['ORIGEN2']){
-      const ws=wb.Sheets['ORIGEN2'];
-      const cell=(r,c)=>ws[XLSX.utils.encode_cell({r:r-1,c:c-1})]?.v ?? '';
-      const hdr=Array.from({length:11},(_,i)=>upper(cell(8,i+1)));
-      const ok=hdr[0].includes('CUENTA CONTABLE') && hdr[1].includes('CUENTA CONTABLE') && hdr[6].includes('PERIODO') && hdr[7].includes('REAL GESTION') && hdr[8].includes('PRESUPUESTO GESTION');
-      if(ok){
-        const y1=String(cell(7,8)||'2025').match(/20\d{2}/)?.[0]||'2025';
-        const y2=String(cell(7,10)||'2026').match(/20\d{2}/)?.[0]||'2026';
-        const baseRegion=cleanRegion(cell(2,2));
-        // XLCubed declara dataheight=88047. Permitimos margen y detenemos tras
-        // 250 filas consecutivas completamente vacías para soportar futuras cargas.
-        const ref=ws['!ref']?XLSX.utils.decode_range(ws['!ref']):{e:{r:90000}};
-        const hardEnd=Math.min((ref.e.r||90000)+1,120000);
+    // v53.9: Gastos se lee por POSICIÓN FIJA desde ORIGEN2, sin validar textos
+    // de encabezado. Esto evita diferencias de acentos, celdas compartidas y el
+    // !ref inflado que generan algunos archivos XLCubed.
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});let all=[];
+    if(module==='gastos'){
+      const gastosSheetName=wb.SheetNames.find(n=>upper(n)==='ORIGEN2');
+      const ws=gastosSheetName?wb.Sheets[gastosSheetName]:null;
+      if(ws){
+        // Sólo materializamos A7:K90000. Nunca se procesa la fila 1,048,576.
+        const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:'A7:K90000'});
+        const rowYear=arr[0]||[]; // fila Excel 7
+        const y1=String(rowYear[7]||'2025').match(/20\d{2}/)?.[0]||'2025';
+        const y2=String(rowYear[9]||'2026').match(/20\d{2}/)?.[0]||'2026';
+        const baseRegion=cleanRegion(ws['B2']?.v||'');
         let emptyRun=0;
-        for(let r=9;r<=hardEnd;r++){
-          const account=norm(cell(r,1)),hierarchy=norm(cell(r,2)),sub=norm(cell(r,3)),subHierarchy=norm(cell(r,4)),buCode=norm(cell(r,5)),bu=norm(cell(r,6)),period=norm(cell(r,7));
-          const r1=num(cell(r,8)),b1=num(cell(r,9)),r2=num(cell(r,10)),b2=num(cell(r,11));
-          if(!account&&!hierarchy&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2){if(++emptyRun>=250)break;continue;}
+        // arr[1] = fila Excel 8 (encabezados); datos empiezan en arr[2] = fila 9.
+        for(let i=2;i<arr.length;i++){
+          const r=arr[i]||[];
+          const account=norm(r[0]),hierarchy=norm(r[1]),sub=norm(r[2]),subHierarchy=norm(r[3]),buCode=norm(r[4]),bu=norm(r[5]),period=norm(r[6]);
+          const r1=num(r[7]),b1=num(r[8]),r2=num(r[9]),b2=num(r[10]);
+          if(!account&&!hierarchy&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2){if(++emptyRun>=500)break;continue;}
           emptyRun=0;
-          const region=regionFromSubledger(subHierarchy,baseRegion)||'SIN REGION';
+          const region=regionFromSubledger(subHierarchy,baseRegion)||cleanRegion(baseRegion)||'SIN REGION';
           const valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
-          all.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,sourceSheet:'ORIGEN2'});
+          all.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,sourceSheet:gastosSheetName});
         }
       }
     }
@@ -284,7 +282,7 @@
         all.push({region:region||'SIN REGIÓN',hierarchy,account,subledger:norm(iSub>=0?r[iSub]:subHierarchy),subledgerHierarchy:subHierarchy,businessUnitCode:norm(iBUCode>=0?r[iBUCode]:''),businessUnit:norm(iBU>=0?r[iBU]:''),period:norm(iPeriod>=0?r[iPeriod]:'')||defaultPeriod,year:latest,real:lv.real,budget:lv.budget,valuesByYear,sourceSheet:sn});
       }
     }
-    if(!all.length)throw new Error('No se encontró una estructura reconocible. Para Gastos se esperaba la hoja ORIGEN2 con encabezados en la fila 8 (Jerarquía Cuenta Contable, Periodo, REAL GESTION y PRESUPUESTO GESTION).');
+    if(!all.length){const sh=(wb.SheetNames||[]).join(', ');throw new Error(module==='gastos'?`No se pudieron leer registros de Gastos. Hojas detectadas: ${sh||'ninguna'}. Lector v53.9 activo.`:'No se encontró una estructura reconocible en el archivo.');}
     if(module!=='productividad'){
       const years=availableYears(all);
       for(const yr of years){
