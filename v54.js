@@ -8,7 +8,7 @@
   const upper=s=>norm(s).toUpperCase();
   const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:2}).format(Number(n)||0);
   const num=v=>{if(typeof v==='number')return Number.isFinite(v)?v:0;let s=String(v??'').trim().replace(/\$/g,'').replace(/\s/g,'');if(!s)return 0;if(s.includes(',')&&s.includes('.'))s=s.replace(/,/g,'');else if(s.includes(',')&&!s.includes('.')){const p=s.split(',');s=(p[p.length-1].length===2)?p.join('.'):p.join('');}else s=s.replace(/,/g,'');const n=Number(s);return Number.isFinite(n)?n:0};
-  const cleanRegion=s=>upper(s).replace(/^RCV\.?\s*REGION\s*/,'').replace(/^REGION\s*/,'').trim();
+  const cleanRegion=s=>upper(s).replace(/^RCV\.?\s+REGION(?:\s+|$)/,'').replace(/^REGION(?:\s+|$)/,'').trim();
   // La REGION operativa se obtiene de Jerarquía Sublibro. El encabezado
   // Des Área Gestión JDE queda como respaldo cuando el sublibro no permite
   // reconocer una región de forma inequívoca.
@@ -61,7 +61,18 @@
   }
   function repairRegionData(data){
     if(!data)return data;
-    const copy={...data,rows:(data.rows||[]).map(repairRegionRow)};
+    // v54.8: REGIONAL ya no se convierte accidentalmente en "AL".
+    // Además, ORIGEN2 trae algunas filas técnicas sin región y con importes 0;
+    // no representan movimientos y no deben crear una región "SIN REGION".
+    const rows=(data.rows||[]).map(repairRegionRow).filter(r=>{
+      const reg=cleanRegion(r.region);
+      if(reg!=='SIN REGION'&&reg!=='SIN REGIÓN')return true;
+      const vals=Object.values(r.valuesByYear||{});
+      const hasAmount=vals.some(v=>Math.abs(Number(v?.real)||0)>0.000001||Math.abs(Number(v?.budget)||0)>0.000001)
+        ||Math.abs(Number(r.real)||0)>0.000001||Math.abs(Number(r.budget)||0)>0.000001;
+      return hasAmount;
+    });
+    const copy={...data,rows};
     copy.regions=[...new Set(copy.rows.map(r=>cleanRegion(r.region)).filter(Boolean))];
     return copy;
   }
@@ -81,7 +92,7 @@
     });
   }
   async function post(params){await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(params)});return true}
-  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.7</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.7</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v54.8</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v54.8</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
 <nav class="r49-bottom-nav" id="r49BottomNav">
   <button data-r49nav="menu"><span>⌂</span><b>Inicio</b></button>
   <button data-r49nav="gastos"><span>▤</span><b>Gastos</b></button>
@@ -327,7 +338,7 @@
     }
     if(!all.length)throw new Error('No se encontró una estructura reconocible en el archivo.');
     if(module!=='productividad'){const years=availableYears(all);for(const yr of years){const ratios=all.map(r=>r.valuesByYear?.[yr]).filter(v=>v&&Math.abs(v.real)>1&&Math.abs(v.budget)>1).slice(0,1000).map(v=>Math.abs(v.budget)/Math.abs(v.real)).sort((a,b)=>a-b),median=ratios.length?ratios[Math.floor(ratios.length/2)]:1;if(median>1000)all.forEach(r=>{if(r.valuesByYear?.[yr])r.valuesByYear[yr].budget/=10000})}all.forEach(r=>{const y=latestYear([r]),v=r.valuesByYear?.[y];if(v){r.year=y;r.real=v.real;r.budget=v.budget}})}
-    return{module,filename:file.name,uploadedLocalAt:new Date().toISOString(),rows:all,regions:[...new Set(all.map(r=>r.region))],years:availableYears(all),period:periodLabel(filterPeriod(all))}
+    return repairRegionData({module,filename:file.name,uploadedLocalAt:new Date().toISOString(),rows:all,regions:[...new Set(all.map(r=>r.region))],years:availableYears(all),period:periodLabel(filterPeriod(all))})
   }
 
   function groupRows(rows,key){const m=new Map();rows.forEach(r=>{const k=typeof key==='function'?key(r):(r[key]||'SIN CLASIFICAR');if(!m.has(k))m.set(k,[]);m.get(k).push(r)});return m}
