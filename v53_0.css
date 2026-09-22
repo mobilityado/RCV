@@ -1049,3 +1049,14 @@ body{
 .r50-compare-table .row .r534-result-dot.bad{background:#ef4444;color:#ef4444}
 .r50-compare-table .row>span.good{color:#059669;font-weight:900}
 .r50-compare-table .row>span.bad{color:#dc2626;font-weight:900}
+
+/* v56.2 - selector visible en desglose comparativo + tipografia ampliada */
+.r562-compare-card .r561-breakdown-mode{margin:16px 0 18px!important;padding:14px 16px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc}
+.r562-compare-card .r561-breakdown-mode>span{font-size:14px!important;color:#334155!important}
+.r562-compare-card .r561-breakdown-mode .rcv34-btn{font-size:14px!important;padding:10px 14px!important;font-weight:800!important}
+.r562-compare-table .head span{font-size:14px!important;font-weight:800!important}
+.r562-compare-table .row{min-height:54px!important}
+.r562-compare-table .row b,.r562-compare-table .row span,.r562-compare-table .row strong{font-size:15px!important;line-height:1.35!important}
+.r562-compare-card .rcv42-top-head h3{font-size:24px!important}
+.r562-compare-card .rcv42-top-head p{font-size:15px!important}
+@media(max-width:900px){.r562-compare-table .head span{font-size:12px!important}.r562-compare-table .row b,.r562-compare-table .row span,.r562-compare-table .row strong{font-size:13px!important}}
