@@ -1,0 +1,9 @@
+REPORT.IA RGI v56.5
+- Orden del desglose: Cuenta contable / Gerencia.
+- Cuenta contable -> conceptos de todas las gerencias -> detallado.
+- Gerencia -> cuentas contables -> conceptos -> detallado.
+- RGI agregado como vista total de todas las regiones.
+- Cárdenas se integra en Villahermosa para la consulta regional.
+- En RGI el detallado muestra columna Región.
+- Etiquetas del detalle adaptadas al periodo/año seleccionado.
+- No se modifica Apps Script, publicación en nube ni autenticación.
