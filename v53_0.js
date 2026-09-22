@@ -209,7 +209,7 @@
     const by=monthlyGroups(rs),states=by.map(([name,x])=>({m:monthOrder(name),st:totals(x,module).st})).filter(x=>x.m<99).sort((a,b)=>a.m-b.m);let streak=0,best=0;for(const x of states){if(x.st==='red'){streak++;best=Math.max(best,streak)}else streak=0}return best;
   }
   async function parseFile(file,module){
-    // v54.0: limita la lectura XLSX a 100,000 filas para evitar el rango fantasma XLCubed de 1,048,576 filas.
+    // v54.1: limita la lectura XLSX a 100,000 filas para evitar el rango fantasma XLCubed de 1,048,576 filas.
     // Gastos se lee por POSICIÓN FIJA desde ORIGEN2, sin validar textos
     // de encabezado. Esto evita diferencias de acentos, celdas compartidas y el
     // !ref inflado que generan algunos archivos XLCubed.
@@ -218,22 +218,25 @@
       const gastosSheetName=wb.SheetNames.find(n=>upper(n)==='ORIGEN2');
       const ws=gastosSheetName?wb.Sheets[gastosSheetName]:null;
       if(ws){
-        // Sólo materializamos A7:K90000. Nunca se procesa la fila 1,048,576.
-        const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:'A7:K90000'});
-        const rowYear=arr[0]||[]; // fila Excel 7
-        const y1=String(rowYear[7]||'2025').match(/20\d{2}/)?.[0]||'2025';
-        const y2=String(rowYear[9]||'2026').match(/20\d{2}/)?.[0]||'2026';
-        const baseRegion=cleanRegion(ws['B2']?.v||'');
+        // v54.1: lectura CELDA A CELDA. No depende de sheet_to_json ni del !ref
+        // gigantesco creado por XLCubed. Los datos reales están en A:K desde fila 9.
+        const cell=(col,row)=>ws[`${col}${row}`]?.v ?? '';
+        const y1=String(cell('H',7)||'2025').match(/20\d{2}/)?.[0]||'2025';
+        const y2=String(cell('J',7)||'2026').match(/20\d{2}/)?.[0]||'2026';
+        const baseRegion=cleanRegion(cell('B',2)||'');
         let emptyRun=0;
-        // arr[1] = fila Excel 8 (encabezados); datos empiezan en arr[2] = fila 9.
-        for(let i=2;i<arr.length;i++){
-          const r=arr[i]||[];
-          const account=norm(r[0]),hierarchy=norm(r[1]),sub=norm(r[2]),subHierarchy=norm(r[3]),buCode=norm(r[4]),bu=norm(r[5]),period=norm(r[6]);
-          const r1=num(r[7]),b1=num(r[8]),r2=num(r[9]),b2=num(r[10]);
-          if(!account&&!hierarchy&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2){if(++emptyRun>=500)break;continue;}
+        for(let row=9;row<=100000;row++){
+          const account=norm(cell('A',row)), hierarchy=norm(cell('B',row));
+          const sub=norm(cell('C',row)), subHierarchy=norm(cell('D',row));
+          const buCode=norm(cell('E',row)), bu=norm(cell('F',row)), period=norm(cell('G',row));
+          const r1=num(cell('H',row)), b1=num(cell('I',row)), r2=num(cell('J',row)), b2=num(cell('K',row));
+          if(!account&&!hierarchy&&!sub&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2){
+            if(++emptyRun>=500) break;
+            continue;
+          }
           emptyRun=0;
           const region=regionFromSubledger(subHierarchy,baseRegion)||cleanRegion(baseRegion)||'SIN REGION';
-          const valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
+          const valuesByYear={}; valuesByYear[y1]={real:r1,budget:b1}; valuesByYear[y2]={real:r2,budget:b2};
           all.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,sourceSheet:gastosSheetName});
         }
       }
@@ -283,7 +286,7 @@
         all.push({region:region||'SIN REGIÓN',hierarchy,account,subledger:norm(iSub>=0?r[iSub]:subHierarchy),subledgerHierarchy:subHierarchy,businessUnitCode:norm(iBUCode>=0?r[iBUCode]:''),businessUnit:norm(iBU>=0?r[iBU]:''),period:norm(iPeriod>=0?r[iPeriod]:'')||defaultPeriod,year:latest,real:lv.real,budget:lv.budget,valuesByYear,sourceSheet:sn});
       }
     }
-    if(!all.length){const sh=(wb.SheetNames||[]).join(', ');throw new Error(module==='gastos'?`No se pudieron leer registros de Gastos. Hojas detectadas: ${sh||'ninguna'}. Lector v54.0 activo (sheetRows=100000).`:'No se encontró una estructura reconocible en el archivo.');}
+    if(!all.length){const sh=(wb.SheetNames||[]).join(', ');throw new Error(module==='gastos'?`No se pudieron leer registros de Gastos. Hojas detectadas: ${sh||'ninguna'}. Lector v54.1 activo · lectura directa de celdas A:K.`:'No se encontró una estructura reconocible en el archivo.');}
     if(module!=='productividad'){
       const years=availableYears(all);
       for(const yr of years){
