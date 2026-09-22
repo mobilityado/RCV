@@ -50,7 +50,7 @@
     });
   }
   async function post(params){await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:new URLSearchParams(params)});return true}
-  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v53.3</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v53.3</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v53.6</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v53.6</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
 <nav class="r49-bottom-nav" id="r49BottomNav">
   <button data-r49nav="menu"><span>⌂</span><b>Inicio</b></button>
   <button data-r49nav="gastos"><span>▤</span><b>Gastos</b></button>
@@ -209,12 +209,20 @@
     const by=monthlyGroups(rs),states=by.map(([name,x])=>({m:monthOrder(name),st:totals(x,module).st})).filter(x=>x.m<99).sort((a,b)=>a.m-b.m);let streak=0,best=0;for(const x of states){if(x.st==='red'){streak++;best=Math.max(best,streak)}else streak=0}return best;
   }
   async function parseFile(file,module){
-    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',raw:true,cellDates:true});let all=[];
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',raw:true,cellDates:true,sheetRows:90000});let all=[];
     for(const sn of wb.SheetNames){
       const ws=wb.Sheets[sn],ref=ws?.['!ref'];if(!ref)continue;
-      const rg=XLSX.utils.decode_range(ref);rg.e.r=Math.min(rg.e.r,199999);
+      const rg=XLSX.utils.decode_range(ref);rg.e.r=Math.min(rg.e.r,89999);
       const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:rg});if(!arr.length)continue;
-      const hr=findHeader(arr,module);if(hr<0)continue;
+      // RGI Gastos: ORIGEN2 siempre trae el encabezado funcional en la fila 8.
+      // Algunos archivos vienen de cubos/pivotes y su rango usado se extiende artificialmente;
+      // por eso detectamos explícitamente esa fila antes de aplicar la búsqueda genérica.
+      let hr=-1;
+      if(module==='gastos' && upper(sn)==='ORIGEN2'){
+        const r8=(arr[7]||[]).map(upper);
+        if(r8.some(x=>x.includes('JERARQUIA CUENTA CONTABLE')) && r8.some(x=>x.includes('REAL GESTION'))) hr=7;
+      }
+      if(hr<0)hr=findHeader(arr,module);if(hr<0)continue;
       const h=(arr[hr]||[]).map(norm),H=h.map(upper),baseRegion=inferRegion(arr);
       const iRegion=idx(h,['REGION','REGIÓN','AREA GESTION JDE']),iHier=idx(h,['JERARQUIA CUENTA CONTABLE','JERARQUÍA CUENTA CONTABLE']),iAccount=idx(h,['DES CUENTA CONTABLE','CUENTA CONTABLE','JERARQUIA CUENTA CONTABLE']),iSubHierarchy=idx(h,['JERARQUIA SUBLIBRO','JERARQUÍA SUBLIBRO']),iSub=idx(h,['ULTIMO NIVEL DE SL','ÚLTIMO NIVEL DE SL']),iBUCode=idx(h,['JERARQUIA UNIDAD DE NEGOCIO JDE','JERARQUÍA UNIDAD DE NEGOCIO JDE']),iBU=idx(h,['JERARQUIA UNIDAD DE NEGOCIO JDE EN','JERARQUÍA UNIDAD DE NEGOCIO JDE EN','UNIDAD DE NEGOCIO']),iPeriod=idx(h,['PERIODO','MES']);
       const realCols=H.map((x,i)=>x.includes('REAL GESTION')?i:-1).filter(i=>i>=0),budCols=H.map((x,i)=>x.includes('PRESUPUESTO GESTION')?i:-1).filter(i=>i>=0);
@@ -236,7 +244,7 @@
         if(!r.some(v=>norm(v)))continue;
         const subHierarchy=norm(iSubHierarchy>=0?r[iSubHierarchy]:'');
         const fallbackRegion=cleanRegion(iRegion>=0?r[iRegion]:baseRegion);
-        const region=(fallbackRegion&&fallbackRegion!=='ALL')?fallbackRegion:regionFromSubledger(subHierarchy,fallbackRegion);
+        const region=regionFromSubledger(subHierarchy,fallbackRegion);
         const hierarchy=norm(iHier>=0?r[iHier]:'SIN JERARQUÍA')||'SIN JERARQUÍA',account=norm(iAccount>=0?r[iAccount]:hierarchy)||hierarchy;
         const valuesByYear={};pairs.forEach(p=>valuesByYear[p.year]={real:num(p.real>=0?r[p.real]:0),budget:num(p.budget>=0?r[p.budget]:0)});
         const years=Object.keys(valuesByYear).sort(),latest=years[years.length-1],lv=valuesByYear[latest]||{real:0,budget:0};
@@ -244,7 +252,7 @@
         all.push({region:region||'SIN REGIÓN',hierarchy,account,subledger:norm(iSub>=0?r[iSub]:subHierarchy),subledgerHierarchy:subHierarchy,businessUnitCode:norm(iBUCode>=0?r[iBUCode]:''),businessUnit:norm(iBU>=0?r[iBU]:''),period:norm(iPeriod>=0?r[iPeriod]:'')||defaultPeriod,year:latest,real:lv.real,budget:lv.budget,valuesByYear,sourceSheet:sn});
       }
     }
-    if(!all.length)throw new Error('No se encontró una estructura reconocible en el archivo.');
+    if(!all.length)throw new Error('No se encontró una estructura reconocible. Para Gastos se esperaba la hoja ORIGEN2 con encabezados en la fila 8 (Jerarquía Cuenta Contable, Periodo, REAL GESTION y PRESUPUESTO GESTION).');
     if(module!=='productividad'){
       const years=availableYears(all);
       for(const yr of years){
