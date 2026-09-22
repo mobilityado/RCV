@@ -1,0 +1,20 @@
+REPORT.IA RGI v55.4 — corrección de publicación
+
+1) GITHUB / HOSTING
+   Sube TODO el contenido de esta carpeta reemplazando los archivos existentes.
+   index.html ahora carga v55_4.js.
+
+2) APPS SCRIPT
+   Abre codigo-google-RGI-NUBE-v55_4.txt, copia TODO y reemplaza Código.gs.
+   Guarda.
+   Implementar > Gestionar implementaciones > editar (lápiz) > Nueva versión > Implementar.
+   IMPORTANTE: conserva la misma Aplicación web / URL de implementación.
+
+3) PRUEBA
+   Cierra sesión y vuelve a entrar.
+   Gastos > seleccionar Excel > Procesar archivo > Publicar en nube.
+   v55.4 comprime el JSON antes del POST para evitar que una publicación grande falle por tamaño,
+   y después confirma que Apps Script creó un snapshot nuevo antes de mostrar éxito.
+
+4) CAMBIO VISUAL
+   El recuadro de Inicio ahora muestra 55.4 (ya no 53.0).
