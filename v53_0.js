@@ -209,8 +209,40 @@
     const by=monthlyGroups(rs),states=by.map(([name,x])=>({m:monthOrder(name),st:totals(x,module).st})).filter(x=>x.m<99).sort((a,b)=>a.m-b.m);let streak=0,best=0;for(const x of states){if(x.st==='red'){streak++;best=Math.max(best,streak)}else streak=0}return best;
   }
   async function parseFile(file,module){
-    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',raw:true,cellDates:true,sheetRows:90000});let all=[];
+    // v53.7: no usamos sheetRows aquí. En los archivos XLCubed de Gastos el !ref
+    // puede venir hasta la fila 1,048,576 aunque los datos reales sean mucho menores.
+    // Para Gastos leemos ORIGEN2 directamente por celdas A:K y evitamos depender
+    // del rango inflado de Excel/XLCubed.
+    const wb=XLSX.read(await file.arrayBuffer(),{type:'array',raw:true,cellDates:true});let all=[];
+    if(module==='gastos' && wb.Sheets['ORIGEN2']){
+      const ws=wb.Sheets['ORIGEN2'];
+      const cell=(r,c)=>ws[XLSX.utils.encode_cell({r:r-1,c:c-1})]?.v ?? '';
+      const hdr=Array.from({length:11},(_,i)=>upper(cell(8,i+1)));
+      const ok=hdr[0].includes('CUENTA CONTABLE') && hdr[1].includes('JERARQUIA CUENTA CONTABLE') && hdr[6].includes('PERIODO') && hdr[7].includes('REAL GESTION') && hdr[8].includes('PRESUPUESTO GESTION');
+      if(ok){
+        const y1=String(cell(7,8)||'2025').match(/20\d{2}/)?.[0]||'2025';
+        const y2=String(cell(7,10)||'2026').match(/20\d{2}/)?.[0]||'2026';
+        const baseRegion=cleanRegion(cell(2,2));
+        // XLCubed declara dataheight=88047. Permitimos margen y detenemos tras
+        // 250 filas consecutivas completamente vacías para soportar futuras cargas.
+        const ref=ws['!ref']?XLSX.utils.decode_range(ws['!ref']):{e:{r:90000}};
+        const hardEnd=Math.min((ref.e.r||90000)+1,120000);
+        let emptyRun=0;
+        for(let r=9;r<=hardEnd;r++){
+          const account=norm(cell(r,1)),hierarchy=norm(cell(r,2)),sub=norm(cell(r,3)),subHierarchy=norm(cell(r,4)),buCode=norm(cell(r,5)),bu=norm(cell(r,6)),period=norm(cell(r,7));
+          const r1=num(cell(r,8)),b1=num(cell(r,9)),r2=num(cell(r,10)),b2=num(cell(r,11));
+          if(!account&&!hierarchy&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2){if(++emptyRun>=250)break;continue;}
+          emptyRun=0;
+          const region=regionFromSubledger(subHierarchy,baseRegion)||'SIN REGION';
+          const valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
+          all.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,sourceSheet:'ORIGEN2'});
+        }
+      }
+    }
+    // Los demás módulos conservan el lector genérico. Si Gastos ya se leyó por
+    // la ruta directa, no volvemos a recorrer ORIGEN2.
     for(const sn of wb.SheetNames){
+      if(module==='gastos' && all.length)break;
       const ws=wb.Sheets[sn],ref=ws?.['!ref'];if(!ref)continue;
       const rg=XLSX.utils.decode_range(ref);rg.e.r=Math.min(rg.e.r,89999);
       const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:rg});if(!arr.length)continue;
