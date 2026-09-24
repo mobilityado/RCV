@@ -1,7 +1,0 @@
-REPORT.IA RGI v56.8 - Ajuste visual
-
-Cambio único:
-- En ORDEN DEL DESGLOSE, el botón seleccionado conserva fondo azul y ahora muestra el texto en blanco.
-- El botón no seleccionado conserva fondo blanco y texto azul.
-
-No se modificó la lógica de datos, nube, gerencias, comparativos ni seguimiento.
