@@ -1,6 +1,0 @@
-REPORT.IA RGI v57.1 · AJUSTE VISUAL
-
-Cambio único:
-- El texto e icono del botón “Publicar en nube” se muestran en blanco sobre el fondo azul, incluso cuando el botón está deshabilitado.
-
-No se modificó JavaScript ni la lógica de publicación, nube, GZIP, Gastos o Productividad.
