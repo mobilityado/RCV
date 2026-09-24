@@ -1,0 +1,73 @@
+/* REPORT.IA v58.6 · mejora visual exclusiva para móvil
+   No modifica lógica, datos, publicación, login ni escritorio. */
+@media (max-width: 900px), (hover: none) and (pointer: coarse) {
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  body{font-size:15px!important;padding-bottom:82px!important;overflow-x:hidden!important}
+  .rcv34-shell{display:block!important;min-width:0!important;width:100%!important}
+  .rcv34-side,.r483-nav-overlay{display:none!important}
+  .rcv34-main{margin-left:0!important;width:100%!important;max-width:none!important;min-width:0!important;padding-bottom:86px!important}
+  .rcv34-panel{width:100%!important;max-width:none!important;padding:14px 12px 24px!important;box-sizing:border-box!important}
+
+  /* Cabecera: más aire y lectura */
+  .rcv34-top{position:sticky!important;top:0!important;z-index:500!important;padding:12px!important;gap:10px!important;flex-wrap:wrap!important;background:rgba(255,255,255,.97)!important}
+  .rcv34-top h1{font-size:23px!important;line-height:1.1!important}
+  .rcv34-top p{font-size:12px!important;line-height:1.4!important}
+  .rcv482-top-actions{width:100%!important;display:flex!important;gap:7px!important;flex-wrap:wrap!important}
+  .rcv482-compare-top{min-height:42px!important;font-size:12px!important;padding:9px 12px!important}
+  .rcv34-region{min-height:40px!important;font-size:11px!important}
+
+  /* Inicio ejecutivo */
+  .r49-hero{padding:20px 18px!important;border-radius:18px!important;margin:8px 0 14px!important}
+  .r49-hero h2{font-size:26px!important;line-height:1.12!important}
+  .r49-hero p{font-size:13px!important;line-height:1.5!important}
+  .r530-command{padding:16px!important;border-radius:18px!important}
+  .r530-command-head h2{font-size:21px!important}
+  .r530-command-head p{font-size:12px!important;line-height:1.45!important}
+  .r530-command-grid{grid-template-columns:1fr!important;gap:12px!important}
+  .r530-command-grid>article{min-height:0!important}
+  .r530-pulse,.r530-today,.r530-pending{padding:15px!important}
+  .r530-actions{grid-template-columns:1fr!important;gap:10px!important}
+
+  /* Accesos: una tarjeta por fila para evitar texto diminuto */
+  .rcv34-menu-grid{grid-template-columns:1fr!important;gap:11px!important}
+  .rcv34-menu-card{min-height:104px!important;padding:16px!important;gap:13px!important;border-radius:16px!important}
+  .rcv34-menu-card .ico{width:52px!important;height:52px!important;font-size:27px!important}
+  .rcv34-menu-card h3{font-size:17px!important;line-height:1.2!important}
+  .rcv34-menu-card p{font-size:12px!important;line-height:1.45!important}
+  .r472-module-status{font-size:10px!important}
+
+  /* KPIs y tarjetas */
+  .rcv42-kpis,.rcv34-kpis,.rcv481-kpis{gap:10px!important}
+  .rcv42-kpis article,.rcv34-kpi,.rcv481-kpis article{flex:0 0 88%!important;min-height:112px!important;padding:15px!important}
+  .rcv34-card,.r46-panel{padding:15px!important;border-radius:16px!important}
+  .rcv34-card h3,.rcv42-top-head h3{font-size:18px!important}
+  .rcv34-card p,.rcv42-top-head p{font-size:13px!important;line-height:1.45!important}
+
+  /* Formularios y filtros cómodos al tacto */
+  select,input,textarea{font-size:16px!important;min-height:44px}
+  button{touch-action:manipulation}
+  .rcv34-btn,.rcv44-report-btn{min-height:44px!important;font-size:12px!important}
+  .rcv43-period-grid,.rcv481-period .rcv43-period-grid.is-compare{grid-template-columns:1fr!important;gap:10px!important}
+
+  /* Tablas: conservar columnas, pero permitir desplazamiento horizontal legible */
+  .rcv34-table-wrap,.r562-compare-table,.r570-productivity-tree{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+  .rcv34-table,.r562-compare-table>*,.r570-prod-head,.r570-prod-toggle{min-width:680px}
+
+  /* Navegación inferior móvil */
+  .r49-bottom-nav{display:grid!important;grid-template-columns:repeat(6,1fr)!important;min-height:74px!important;padding:7px 4px calc(7px + env(safe-area-inset-bottom))!important}
+  .r49-bottom-nav button{min-height:56px!important;padding:4px 2px!important}
+  .r49-bottom-nav button span{font-size:20px!important}
+  .r49-bottom-nav button b{font-size:8px!important;line-height:1.1!important}
+
+  /* Copiloto menos invasivo */
+  .copilot-toggle,#copilotFab,.copilot-fab,.copilot-launcher{max-width:52px!important;width:52px!important;min-width:52px!important;height:52px!important;border-radius:50%!important}
+  .copilot-toggle>span{display:none!important}
+}
+
+@media (max-width: 430px){
+  .rcv34-panel{padding:11px 9px 22px!important}
+  .rcv34-top{padding:10px!important}
+  .rcv34-top h1{font-size:21px!important}
+  .r49-hero h2{font-size:23px!important}
+  .rcv42-kpis article,.rcv34-kpi,.rcv481-kpis article{flex-basis:92%!important}
+}
