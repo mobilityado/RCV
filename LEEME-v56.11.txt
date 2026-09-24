@@ -1,8 +1,0 @@
-REPORT.IA RGI v56.11
-
-Corrección puntual de publicación en nube:
-- Mantiene Base64 URL-safe por bloques.
-- Apps Script crea el Blob GZIP con MIME application/gzip antes de Utilities.ungzip().
-- Se conserva la lógica de gerencias, comparativos y optimización de v56.10.
-
-IMPORTANTE: reemplazar Apps Script por codigo-google-RGI-NUBE-v56_11.txt y crear una NUEVA versión de la implementación web.
