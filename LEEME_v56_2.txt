@@ -1,8 +1,0 @@
-REPORT.IA RGI v56.2
-
-Cambios visuales/analíticos:
-- Selector visible dentro de Desglose comparativo.
-- Cuenta contable → Marca afectada → desglose.
-- Marca afectada → Cuenta contable → desglose.
-- Tipografía del desglose comparativo aumentada para presentación.
-- No se modifica Apps Script, publicación GZIP ni estructura de nube.
