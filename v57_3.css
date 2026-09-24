@@ -7,3 +7,8 @@
 .r574-productivity-table .row:hover{background:#f5f9ff}
 .r574-prod-title{margin:16px 0}
 @media(max-width:760px){.r574-prod-mode-head{align-items:stretch}.r574-prod-mode-head .rcv481-mode{width:100%}.r574-productivity-table{overflow-x:auto}.r574-productivity-table .head,.r574-productivity-table .row{min-width:760px}}
+
+/* v57.5 Productividad: Gerencia + Punto de venta */
+.r575-productivity-table .head,.r575-productivity-table .row{grid-template-columns:1.25fr 1.7fr .8fr .8fr .65fr .45fr!important}
+.r575-productivity-table .row>b{text-align:left;white-space:normal}
+@media(max-width:900px){.r575-productivity-table{overflow-x:auto}.r575-productivity-table .head,.r575-productivity-table .row{min-width:920px}}
