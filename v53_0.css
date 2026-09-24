@@ -1060,3 +1060,15 @@ body{
 .r562-compare-card .rcv42-top-head h3{font-size:24px!important}
 .r562-compare-card .rcv42-top-head p{font-size:15px!important}
 @media(max-width:900px){.r562-compare-table .head span{font-size:12px!important}.r562-compare-table .row b,.r562-compare-table .row span,.r562-compare-table .row strong{font-size:13px!important}}
+
+/* v56.8 - selector Orden del desglose: texto blanco en la opcion activa */
+.r561-breakdown-mode .rcv34-btn.primary,
+.r562-compare-card .r561-breakdown-mode .rcv34-btn.primary{
+  color:#fff!important;
+  background:linear-gradient(135deg,#07327a,#0047ab 60%,#0b63ce)!important;
+  border-color:#0047ab!important;
+}
+.r561-breakdown-mode .rcv34-btn:not(.primary){
+  color:#07327a!important;
+  background:#fff!important;
+}
