@@ -1,0 +1,7 @@
+REPORT.IA RGI v58.0 — COSTOS
+
+- Se agrega lector dedicado para el módulo Costos.
+- La fuente es ORIGEN2, columnas GERENCIA, Periodo, AGRUPADOR, CTA CONTABLE, CIA MARCA, CENTRO DE GESTION, 2025, PTTO. y 2026.
+- Conserva filtros de año/mes y comparativa de años del mismo motor de Gastos.
+- PTTO se asocia al año vigente/más reciente del archivo.
+- No se modifica el lector dedicado de Gastos ni el de Productividad.

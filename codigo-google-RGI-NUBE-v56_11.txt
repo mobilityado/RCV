@@ -845,8 +845,48 @@ function v55FinalizarUploadLigero(token,module,uploadId,total,regiones,archivo){
       sh.getRange(start+base,1,rows.length,10).setValues(rows);
     }
     SpreadsheetApp.flush();
+    // v58.1: avisar automáticamente a los usuarios DESPUÉS de confirmar el snapshot.
+    // La notificación es secundaria: si Firebase/notificaciones falla, la publicación NO se revierte ni se marca como error.
+    try{v581AvisarPublicacion(s,module,snapshotId,regs);}catch(_notifErr){}
     // Limpiar solo los bloques de esta carga después de que el snapshot ya quedó escrito.
     found.sort((a,b)=>b.row-a.row).forEach(x=>tsh.deleteRow(x.row));
     return{ok:true,snapshotId:snapshotId,fecha:fecha.toISOString(),chunks:n,mensaje:'Publicación creada correctamente.'};
   }catch(e){return{ok:false,mensaje:'Error al finalizar publicación: '+String(e)};}
+}
+
+
+/* =========================================================
+   REPORT.IA RGI v58.1 · AVISO AUTOMÁTICO DE PUBLICACIÓN
+   Se ejecuta únicamente después de crear correctamente el snapshot.
+   No interviene en la carga, compresión, reconstrucción ni lectura de datos.
+   ========================================================= */
+function v581NombreModulo(module){
+  const m=String(module||'').toLowerCase();
+  if(m==='gastos')return 'Gastos';
+  if(m==='costos')return 'Costos';
+  if(m==='productividad')return 'Productividad';
+  return String(module||'Información');
+}
+function v581EnviarPushUsuarios(payload){
+  try{
+    const ss=SpreadsheetApp.openById(ID_SHEET), vals=ss.getSheets()[0].getDataRange().getDisplayValues();
+    const admins=new Set(vals.slice(1).filter(r=>v34Norm(r[2])==='ADMINISTRADOR').map(r=>v34Norm(r[0])));
+    const list=v51TokensFiltro(r=>!admins.has(v34Norm(r[1])));
+    return v51EnviarLista(list,payload);
+  }catch(e){return{configurado:false,destinatarios:0,enviados:0,error:String(e)}}
+}
+function v581AvisarPublicacion(s,module,snapshotId,regionesText){
+  const nombre=v581NombreModulo(module);
+  if(['Gastos','Costos','Productividad'].indexOf(nombre)<0)return;
+  const texto='Se ha cargado la información actualizada de '+nombre+'.';
+  const regs=[...new Set(String(regionesText||'').split('|').map(v=>v34Region(v)).filter(v=>v&&v!=='TODAS LAS REGIONES'))];
+  const sh=v38AsegurarNotas();
+  // Un aviso interno por región para que cada usuario lo vea en su Centro de notificaciones.
+  regs.forEach(reg=>{
+    sh.appendRow([Utilities.getUuid(),new Date(),String(snapshotId||''),String(module||''),reg,'ACTUALIZACIÓN DE INFORMACIÓN',texto,s.usuario,s.tipo,'','PENDIENTE','PUBLICACION_AUTOMATICA','']);
+  });
+  // Push general a todos los dispositivos de usuarios registrados (no administradores).
+  // El envío no afecta el resultado de la publicación.
+  const push=v581EnviarPushUsuarios({title:'REPORT.IA RGI · '+nombre,body:texto,module:String(module||''),region:'',hierarchy:'ACTUALIZACIÓN DE INFORMACIÓN',messageId:String(snapshotId||'')});
+  try{const log=v51AsegurarPushLog();log.appendRow([new Date(),s.usuario,'USUARIOS',String(module||''),regs.join(' | '),'PUBLICACIÓN AUTOMÁTICA',Number(push.destinatarios||0),Number(push.enviados||0),String(push.error||''),String(snapshotId||'')]);}catch(_){}
 }
