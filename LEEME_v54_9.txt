@@ -1,7 +1,0 @@
-REPORT.IA RGI v54.9
-
-1. GitHub: sustituye los archivos del repositorio por esta carpeta.
-2. Apps Script: usa codigo-google-RGI-NUBE-v54_9.txt y actualiza la implementación web existente como Nueva versión.
-3. La URL de config.js conserva el ID de implementación AKfycbxUhENeMAGaVJx2Gs4yR_qncJJxHyq8NlFFSfa9qu7XBDgcDu4L9HasfrzZSQBOKgwp.
-4. Cambio principal: publicación por POST de formulario oculto + verificación del snapshot en v34_history; evita falsos negativos del fetch no-cors.
-5. Se conserva la corrección v54.8 que evita convertir REGIONAL en AL.
