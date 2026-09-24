@@ -1,8 +1,0 @@
-REPORT.IA RGI v57.7 — Corrección Productividad
-
-- Productividad ahora lee los importes desde la hoja ORIGEN2 del XLS.
-- Cuentas 4* = Ventas; cuentas 6* = Gastos.
-- Jerarquía: Gerencia -> Punto de venta -> Marca -> Cuenta contable.
-- El periodo mensual continúa tomándose de la fecha de carga.
-- No se modificó el lector ni la lógica del módulo Gastos.
-- No requiere cambiar Apps Script respecto a v55.9.
