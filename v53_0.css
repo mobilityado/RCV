@@ -1086,3 +1086,9 @@ body{
 #r34Publish *{
   color:#fff!important;
 }
+/* v57.2 Productividad Ventas vs Gastos */
+.r570-productivity-tree .r570-prod-head,.r570-productivity-tree .r570-prod-toggle{grid-template-columns:minmax(360px,1fr) 150px 150px 110px!important}
+.r570-productivity-tree .r570-prod-point{margin-left:18px}.r570-productivity-tree .r570-prod-brand{margin-left:36px}.r570-productivity-tree .r570-prod-account{margin-left:54px}
+.r570-productivity-tree .r570-prod-toggle.leaf{cursor:default}
+.r570-productivity-tree .good{color:#059669;font-weight:800}.r570-productivity-tree .bad{color:#dc2626;font-weight:800}
+#r34Publish.primary{color:#fff!important}#r34Publish.primary *{color:#fff!important}
