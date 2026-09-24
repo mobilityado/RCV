@@ -1,6 +1,0 @@
-REPORT.IA RGI v56.6
-- Cuando Región = RGI y se activa Comparar, cada lado incorpora Región + Año + Mes.
-- Permite comparar regiones diferentes y periodos diferentes.
-- Cárdenas continúa integrado dentro de Villahermosa.
-- La región seleccionada participa realmente en cálculos, tarjetas y desglose; no es solo una etiqueta.
-- No se modifica Apps Script ni el mecanismo de publicación en nube.
