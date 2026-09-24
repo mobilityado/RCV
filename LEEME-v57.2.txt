@@ -1,0 +1,9 @@
+REPORT.IA RGI v57.2 - PRODUCTIVIDAD VENTAS VS GASTOS
+
+Cambios SOLO para Productividad:
+- Nuevo lector para formato: Gerencias > Punto de venta > Marcas > Cuenta contable.
+- Productividad deja de usar comparativa de años como análisis principal.
+- Métricas: Ventas, Gastos y Gts/Vtas.
+- Semáforo: Gts/Vtas > 7% rojo; <= 7% verde.
+- Desglose expandible: Gerencia > Punto de venta > Marca > Cuenta contable.
+- Se conserva la lógica de Gastos, publicación en nube y backend.
