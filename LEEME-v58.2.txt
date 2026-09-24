@@ -1,0 +1,7 @@
+REPORT.IA RGI v58.2
+
+Corrige la notificación automática posterior a una publicación confirmada.
+El portal solicita explícitamente el envío después de recibir el snapshotId y muestra enviados/destinatarios.
+No modifica lectores, cálculos ni filtros de Gastos, Costos o Productividad.
+
+IMPORTANTE: reemplazar Apps Script con codigo-google-RGI-NUBE-v58_2.txt, guardar y crear NUEVA implementación. Luego subir los archivos web y hacer Ctrl+F5.
