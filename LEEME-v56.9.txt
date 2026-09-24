@@ -1,0 +1,9 @@
+REPORT.IA RGI v56.9 - OPTIMIZACION CAMBIO CUENTA / GERENCIA
+
+Cambio realizado:
+- Optimizado el comparativo para agrupar los periodos una sola vez.
+- Evita recorrer todos los movimientos por cada cuenta o gerencia al cambiar el orden del desglose.
+- Conserva la logica, gerencias, nube, comparativos y estilos de v56.8.
+- Conserva boton activo azul con texto blanco.
+
+Objetivo: que el cambio Cuenta contable <-> Gerencia sea mucho mas rapido.
