@@ -1,0 +1,17 @@
+REPORT.IA RGI v57.6 · PRODUCTIVIDAD MENSUAL
+
+CAMBIOS SOLO EN PRODUCTIVIDAD:
+- Corrige la lectura Ventas/Gastos del XLS pivote con recuperación por columnas numéricas adyacentes.
+- El periodo de Productividad se toma de la fecha de carga al portal (mes y año actuales), no del texto interno del XLS.
+- "Resumen mensual" muestra "Acumulado del mes".
+- Una nueva publicación de Productividad en el mismo mes/año sustituye la publicación anterior de ese mes.
+- Si se publica el mes siguiente, queda como un nuevo mes.
+- Gastos y Costos conservan su lógica actual.
+
+IMPORTANTE:
+1. Subir los archivos del ZIP a GitHub.
+2. Reemplazar el código de Apps Script por codigo-google-RGI-NUBE-v55_9.txt.
+3. Guardar e implementar como NUEVA VERSIÓN de la aplicación web.
+4. No cambiar la URL de config.js si se actualiza la implementación existente.
+5. Ctrl+F5 en el portal y verificar que muestre v57.6.
+6. Volver a procesar el XLS de Productividad antes de publicar.

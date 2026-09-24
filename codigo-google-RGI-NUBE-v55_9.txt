@@ -812,7 +812,7 @@ function v55GuardarChunk(token,module,uploadId,index,total,data){const s=exigirS
 function v55FinalizarUpload(token,module,uploadId,total){const s=exigirSesion(token);if(!v34EsAdmin(s))return{ok:false,mensaje:'Solo administrador.'};module=v34Modulo(module);const sh=v55TempSheet(),vals=sh.getDataRange().getValues();const found=[];for(let i=1;i<vals.length;i++)if(String(vals[i][0])===String(uploadId)&&String(vals[i][2])===module)found.push({row:i+1,index:Number(vals[i][3]),data:String(vals[i][5]||'')});found.sort((a,b)=>a.index-b.index);if(found.length!==Number(total))return{ok:false,mensaje:'Faltan bloques: '+found.length+'/'+total};const b64=found.map(x=>x.data).join('');let raw;try{raw=Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(b64), 'application/gzip')).getDataAsString('UTF-8')}catch(e){return{ok:false,mensaje:'Error al reconstruir GZIP: '+e}}const result=v34SubirModulo(token,module,raw,'','');for(let i=found.length-1;i>=0;i--)sh.deleteRow(found[i].row);SpreadsheetApp.flush();return result;}
 
 
-// REPORT.IA v55.9 - finalizador ligero y confirmable por GET/JSONP.
+// REPORT.IA v55.8 - finalizador ligero y confirmable por GET/JSONP.
 // Evita JSON.parse + JSON.stringify de decenas de MB en Apps Script.
 function v55FinalizarUploadLigero(token,module,uploadId,total,regiones,archivo){
   try{
@@ -829,10 +829,26 @@ function v55FinalizarUploadLigero(token,module,uploadId,total,regiones,archivo){
     for(let i=0;i<found.length;i++)if(found[i].index!==i+1)return{ok:false,mensaje:'Falta el bloque '+(i+1)+' de '+total+'.'};
     const b64=found.map(x=>x.data).join('');
     let raw='';
-    try{raw=Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(b64), 'application/gzip')).getDataAsString('UTF-8');}
+    // v56.11: Base64 URL-safe + MIME application/gzip explícito. Apps Script exige un tipo de contenido válido para Utilities.ungzip().
+    try{raw=Utilities.ungzip(Utilities.newBlob(Utilities.base64DecodeWebSafe(b64), 'application/gzip')).getDataAsString('UTF-8');}
     catch(e){return{ok:false,mensaje:'No fue posible reconstruir la publicación comprimida: '+String(e)};}
     if(!raw||raw.charAt(0)!=='{'||raw.indexOf('"rows"')<0)return{ok:false,mensaje:'La publicación reconstruida no tiene el formato esperado.'};
     const sh=v34AsegurarModulo(module); v34Prune(sh);
+    // v55.9: Productividad es un acumulado mensual. Si se vuelve a publicar durante
+    // el mismo mes/año, sustituye la publicación de ese mes. Gastos y Costos NO se tocan.
+    if(module==='productividad' && sh.getLastRow()>=2){
+      const nowKey=new Date(), tz=Session.getScriptTimeZone()||'America/Mexico_City';
+      const key=Utilities.formatDate(nowKey,tz,'yyyy-MM');
+      const dates=sh.getRange(2,2,sh.getLastRow()-1,1).getValues();
+      const rowsToDelete=[];
+      dates.forEach((r,i)=>{const d=r[0] instanceof Date?r[0]:new Date(r[0]);if(!isNaN(d.getTime())&&Utilities.formatDate(d,tz,'yyyy-MM')===key)rowsToDelete.push(i+2);});
+      // Elimina en bloques contiguos y de abajo hacia arriba para no desplazar índices.
+      if(rowsToDelete.length){
+        const ranges=[];let a=rowsToDelete[0],b=a;
+        for(let i=1;i<rowsToDelete.length;i++){const x=rowsToDelete[i];if(x===b+1)b=x;else{ranges.push([a,b]);a=b=x;}}ranges.push([a,b]);
+        ranges.reverse().forEach(r=>sh.deleteRows(r[0],r[1]-r[0]+1));
+      }
+    }
     const snapshotId=Utilities.getUuid(), fecha=new Date();
     const chunkSize=30000, n=Math.ceil(raw.length/chunkSize);
     const regs=String(regiones||''); const file=String(archivo||'');
