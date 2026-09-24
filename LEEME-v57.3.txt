@@ -1,0 +1,9 @@
+REPORT.IA RGI v57.3
+
+Cambio exclusivo de Productividad:
+- Se elimina el filtro VS/comparativa de años de Productividad.
+- Productividad usa un solo filtro de Año + Periodo (Acumulado del año o mes específico).
+- Ventas y Gastos se consultan siempre dentro del mismo periodo.
+- Gastos y Costos conservan su lógica de comparación sin cambios.
+- La jerarquía Productividad sigue: Gerencia > Punto de venta > Marca > Cuenta contable.
+- Indicadores: Ventas, Gastos, Gts/Vtas y Resultado.
