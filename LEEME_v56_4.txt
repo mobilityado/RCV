@@ -1,5 +1,0 @@
-REPORT.IA v56.4
-
-Parte de v56.2 estable.
-Cambio único funcional: conserva el código original de Marca como clave interna y usa un nombre descriptivo solo para mostrarlo en pantalla.
-No modifica Apps Script, nube, GZIP, login ni cálculos.
