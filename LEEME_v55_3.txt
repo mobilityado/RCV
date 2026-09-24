@@ -1,3 +1,0 @@
-REPORT.IA RGI v55.3
-
-Corrección: se conserva la reparación de nombres de región, pero se restaura el mecanismo de publicación POST por formulario con payload JSON sin compresión, igual al flujo que publicaba correctamente antes del cambio de regiones.
