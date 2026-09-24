@@ -1,9 +1,0 @@
-REPORT.IA v55.9
-
-Corrección puntual del error: "El objeto blob no puede contener un tipo de contenido nulo".
-Se asigna application/gzip al Blob antes de Utilities.ungzip tanto en carga directa como en finalización por bloques.
-
-1. Sustituir Código.gs por codigo-google-RGI-NUBE-v55_9.txt.
-2. Guardar y crear NUEVA VERSIÓN de la MISMA implementación web.
-3. Subir los archivos del portal a GitHub.
-4. Ctrl+Shift+R y comprobar v55.9.
