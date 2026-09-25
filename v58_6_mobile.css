@@ -71,3 +71,32 @@
   .r49-hero h2{font-size:23px!important}
   .rcv42-kpis article,.rcv34-kpi,.rcv481-kpis article{flex-basis:92%!important}
 }
+
+/* REPORT.IA v59.4 · dock flotante móvil siempre accesible */
+.r594-mobile-fab{display:none}
+@media (max-width:900px), (hover:none) and (pointer:coarse){
+  body{padding-bottom:154px!important}
+  .rcv34-main{padding-bottom:154px!important}
+  .r594-mobile-fab{
+    position:fixed!important;right:12px!important;bottom:calc(82px + env(safe-area-inset-bottom))!important;
+    z-index:1900!important;display:flex!important;flex-direction:column!important;gap:8px!important;
+    padding:7px!important;border:1px solid rgba(255,255,255,.72)!important;border-radius:20px!important;
+    background:rgba(255,255,255,.88)!important;box-shadow:0 12px 34px rgba(15,42,90,.24)!important;
+    backdrop-filter:blur(14px)!important;-webkit-backdrop-filter:blur(14px)!important
+  }
+  .r594-mobile-fab button{
+    width:54px!important;height:54px!important;min-height:54px!important;border:0!important;border-radius:15px!important;
+    background:linear-gradient(145deg,#0b4db5,#176fd1)!important;color:#fff!important;box-shadow:0 5px 13px rgba(11,77,181,.24)!important;
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:1px!important;
+    font-family:inherit!important;font-weight:800!important;cursor:pointer!important
+  }
+  .r594-mobile-fab button:active{transform:scale(.95)!important}
+  .r594-mobile-fab button span{font-size:20px!important;line-height:20px!important;font-weight:900!important}
+  .r594-mobile-fab button b{font-size:8px!important;line-height:10px!important;letter-spacing:.02em!important}
+  /* tarjetas móviles con un poco más de profundidad visual, sin alterar escritorio */
+  .rcv34-card,.r46-panel,.r530-command,.rcv34-menu-card{box-shadow:0 7px 22px rgba(20,55,100,.08)!important}
+}
+@media (max-width:430px){
+  .r594-mobile-fab{right:8px!important;bottom:calc(78px + env(safe-area-inset-bottom))!important;padding:6px!important;gap:6px!important}
+  .r594-mobile-fab button{width:50px!important;height:50px!important;min-height:50px!important;border-radius:14px!important}
+}
