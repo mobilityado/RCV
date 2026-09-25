@@ -1097,3 +1097,17 @@ body{
 .r573-productivity-grid{grid-template-columns:minmax(180px,1fr) minmax(240px,1.2fr) minmax(220px,1fr)!important;align-items:end}
 .r573-productivity-period .rcv43-period-title{margin-bottom:14px}
 @media(max-width:760px){.r573-productivity-grid{grid-template-columns:1fr!important}}
+
+/* v59.0 · Productividad tipo tabla dinámica: Gerencia > Punto de venta > Marca > Cuenta */
+.r590-productivity-tree{overflow-x:auto}
+.r590-productivity-tree .r570-prod-head,
+.r590-productivity-tree .r570-prod-toggle{display:grid!important;grid-template-columns:minmax(180px,1.25fr) minmax(220px,1.5fr) minmax(190px,1.35fr) minmax(220px,1.55fr) 145px 145px 105px!important;gap:10px;align-items:center;min-width:1220px}
+.r590-productivity-tree .r570-prod-head b,.r590-productivity-tree .r570-prod-head span{min-width:0}
+.r590-productivity-tree .r570-prod-toggle{padding:10px 14px!important;margin-left:0!important}
+.r590-productivity-tree .r570-prod-point,.r590-productivity-tree .r570-prod-brand,.r590-productivity-tree .r570-prod-account{margin-left:0!important}
+.r590-productivity-tree .r590-hcell{display:flex;align-items:center;min-width:0;gap:7px}.r590-productivity-tree .r590-hcell b{overflow-wrap:anywhere}
+.r590-productivity-tree .r590-num{text-align:right!important;font-variant-numeric:tabular-nums}
+.r590-productivity-tree .r570-prod-toggle.point{background:#fbfdff}.r590-productivity-tree .r570-prod-toggle.brand{background:#f8fbff}.r590-productivity-tree .r570-prod-toggle.account{background:#f5f9ff}
+.r590-productivity-tree .r570-prod-toggle.manager .r590-h0 b{font-weight:900}.r590-productivity-tree .r570-prod-toggle.point .r590-h1 b,.r590-productivity-tree .r570-prod-toggle.brand .r590-h2 b{font-weight:800}
+.r590-productivity-tree .r570-prod-accounts{border-left:0!important}
+@media(max-width:800px){.r590-productivity-tree .r570-prod-head,.r590-productivity-tree .r570-prod-toggle{min-width:1180px!important}}
