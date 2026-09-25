@@ -1,0 +1,1652 @@
+(() => {
+  'use strict';
+  const API_URL=String(window.REPORTIA_CONFIG?.API_URL||'').trim();
+  const $=id=>document.getElementById(id);
+  const MODULES={gastos:{label:'Gastos',icon:'▤'},costos:{label:'Costos',icon:'$'},productividad:{label:'Productividad',icon:'↗'},general:{label:'General',icon:'◎'}};
+  const S={session:null,current:'menu',module:null,local:null,cloud:null,cloudMeta:null,history:[],adminRegion:'',adminSnapshot:'',adminSource:'cloud',notificationTimer:null,periodYear:'',periodFrom:'',periodTo:'',compareYears:false,compareBase:'',compareTarget:'',compareBaseMonth:'',compareTargetMonth:'',compareBaseRegion:'',compareTargetRegion:'',pendingNotification:null,notifFilter:'all',notifSearch:'',productivityView:'general'};
+  const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+  const upper=s=>norm(s).toUpperCase();
+  const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',maximumFractionDigits:2}).format(Number(n)||0);
+  const num=v=>{if(typeof v==='number')return Number.isFinite(v)?v:0;let s=String(v??'').trim().replace(/\$/g,'').replace(/\s/g,'');if(!s)return 0;if(s.includes(',')&&s.includes('.'))s=s.replace(/,/g,'');else if(s.includes(',')&&!s.includes('.')){const p=s.split(',');s=(p[p.length-1].length===2)?p.join('.'):p.join('');}else s=s.replace(/,/g,'');const n=Number(s);return Number.isFinite(n)?n:0};
+  const cleanRegion=s=>upper(s).replace(/^RCV\.?\s+REGION(?:\s+|$)/,'').replace(/^REGION(?:\s+|$)/,'').trim();
+  // La REGION operativa se obtiene de Jerarquía Sublibro. El encabezado
+  // Des Área Gestión JDE queda como respaldo cuando el sublibro no permite
+  // reconocer una región de forma inequívoca.
+  const REGION_ALIASES=[
+    ['COATZACOALCOS',['COATZACOALCOS','COATZAC','COATZ']],
+    ['VILLAHERMOSA',['VILLAHERMOSA','VILLA HERMOSA']],
+    ['CARDENAS',['CARDENAS']],
+    ['TUXTLA',['TUXTLA GUTIERREZ','TUXTLA']],
+    ['TAPACHULA',['TAPACHULA']],
+    ['VERACRUZ',['VERACRUZ']],
+    ['OAXACA',['OAXACA']],
+    ['MERIDA',['MERIDA']],
+    ['CANCUN',['CANCUN']],
+    ['CAMPECHE',['CAMPECHE']],
+    ['CHETUMAL',['CHETUMAL']],
+    ['REGIONAL',['REGIONAL']]
+  ];
+  function knownRegion(value){
+    const u=upper(value);
+    for(const [region,aliases] of REGION_ALIASES){
+      if(aliases.some(a=>u.includes(a)))return region;
+    }
+    // v54.7: abreviaturas reales encontradas en los dos archivos de Gastos.
+    if(/(^|[ ._\-])(VHT|RVHT)([ ._\-]|$)/.test(u))return 'VILLAHERMOSA';
+    if(/(^|[ ._\-])VH([ ._\-]|$)/.test(u) && !/(VH[\- ]CO|[\-]CO[\-])/.test(u))return 'VILLAHERMOSA';
+    if(/\bVILLA\b/.test(u) && !/VILLAHERMOSA/.test(u))return 'VILLAHERMOSA';
+    if(/\b(COATZA|RCV)\b/.test(u) && !/RVHT/.test(u))return 'COATZACOALCOS';
+    // COV es la abreviatura usada por el auxiliar O de ORIGEN2 para Coatzacoalcos.
+    if(/(^|[ ._\-])COV([ ._\-]|$)/.test(u))return 'COATZACOALCOS';
+    // ADMVA corresponde a la Gerencia Administrativa Sureste (alcance regional).
+    if(/^ADMVA$/.test(u))return 'REGIONAL';
+    if(/(^|[ ._\-])TGZ([ ._\-]|$)/.test(u))return 'TUXTLA';
+    // CATAB aparece en la jerarquía operativa del archivo como Cárdenas/Tabasco.
+    if(/\bCATAB\b/.test(u))return 'CARDENAS';
+    // Jerarquías corporativas compartidas entre varias plazas no deben
+    // adjudicarse artificialmente a una ciudad.
+    if(/GCIA ADMINISTRATIVA SURESTE|B2C VH[\- ]CO[\- ]CH[\- ]RGC/.test(u))return 'REGIONAL';
+    return '';
+  }
+  function regionFromSubledger(value,fallback=''){
+    // Nunca devolver códigos numéricos (ej. 705) como región.
+    // Primero intenta la jerarquía/sublibro y después el respaldo del encabezado.
+    return knownRegion(value)||knownRegion(fallback)||'';
+  }
+  function repairRegionRow(r){
+    const x={...(r||{})};
+    const detected=knownRegion(x.region)||knownRegion(x.subledger)||knownRegion(x.subledgerHierarchy)||knownRegion([x.hierarchy,x.account,x.businessUnitCode,x.businessUnit].join(' '));
+    if(detected)x.region=detected;
+    return x;
+  }
+  function repairRegionData(data){
+    if(!data)return data;
+    // v54.8: REGIONAL ya no se convierte accidentalmente en "AL".
+    // Además, ORIGEN2 trae algunas filas técnicas sin región y con importes 0;
+    // no representan movimientos y no deben crear una región "SIN REGION".
+    const rows=(data.rows||[]).map(repairRegionRow).filter(r=>{
+      const reg=cleanRegion(r.region);
+      if(reg!=='SIN REGION'&&reg!=='SIN REGIÓN')return true;
+      const vals=Object.values(r.valuesByYear||{});
+      const hasAmount=vals.some(v=>Math.abs(Number(v?.real)||0)>0.000001||Math.abs(Number(v?.budget)||0)>0.000001)
+        ||Math.abs(Number(r.real)||0)>0.000001||Math.abs(Number(r.budget)||0)>0.000001;
+      return hasAmount;
+    });
+    const copy={...data,rows};
+    copy.regions=[...new Set(copy.rows.map(r=>cleanRegion(r.region)).filter(Boolean))];
+    return copy;
+  }
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  function jsonp(params){return new Promise((resolve,reject)=>{const cb='__rcv34_'+Date.now()+'_'+Math.random().toString(36).slice(2);const sc=document.createElement('script');const q=new URLSearchParams({...params,callback:cb});const timer=setTimeout(()=>{cleanup();reject(new Error('Tiempo de espera agotado.'));},60000);function cleanup(){clearTimeout(timer);try{delete window[cb]}catch(_){}sc.remove()}window[cb]=d=>{cleanup();resolve(d)};sc.onerror=()=>{cleanup();reject(new Error('No fue posible conectar con la nube.'))};sc.src=API_URL+(API_URL.includes('?')?'&':'?')+q;document.head.appendChild(sc)})}
+  function jsonpLong(params,timeoutMs=60000){
+    return new Promise((resolve,reject)=>{
+      const cb='__rcv493_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const sc=document.createElement('script');
+      const q=new URLSearchParams({...params,callback:cb});
+      const timer=setTimeout(()=>{cleanup();reject(new Error('La nube está tardando demasiado en responder. Intenta nuevamente.'));},timeoutMs);
+      function cleanup(){clearTimeout(timer);try{delete window[cb]}catch(_){}sc.remove()}
+      window[cb]=d=>{cleanup();resolve(d)};
+      sc.onerror=()=>{cleanup();reject(new Error('No fue posible conectar con la nube.'))};
+      sc.src=API_URL+(API_URL.includes('?')?'&':'?')+q;
+      document.head.appendChild(sc);
+    });
+  }
+  async function gzipBase64(text){
+    if(typeof CompressionStream!=='function')return null;
+    const cs=new CompressionStream('gzip');
+    const writer=cs.writable.getWriter();
+    writer.write(new TextEncoder().encode(String(text||'')));writer.close();
+    const bytes=new Uint8Array(await new Response(cs.readable).arrayBuffer());
+    let bin='';const STEP=0x8000;for(let i=0;i<bytes.length;i+=STEP)bin+=String.fromCharCode(...bytes.subarray(i,i+STEP));
+    return btoa(bin);
+  }
+  async function post(params){
+    // v55.6: transporte POST restaurado desde la versión que publicaba correctamente: POST real por formulario oculto + verificación prolongada del snapshot. En algunos navegadores,
+    // fetch(..., mode:'no-cors') contra Apps Script puede quedar opaco tras la
+    // redirección de /exec y el portal no puede saber si doPost terminó.
+    // El formulario conserva el POST hasta Apps Script; después verificamos
+    // la creación del snapshot consultando v34_history por JSONP.
+    return new Promise((resolve,reject)=>{
+      const frameName='__reportia_post_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const iframe=document.createElement('iframe');
+      iframe.name=frameName;iframe.style.display='none';
+      const form=document.createElement('form');
+      form.method='POST';form.action=API_URL;form.target=frameName;form.style.display='none';
+      Object.entries(params||{}).forEach(([k,v])=>{const input=document.createElement('input');input.type='hidden';input.name=k;input.value=String(v??'');form.appendChild(input)});
+      let done=false, submitted=false;const cleanup=()=>{setTimeout(()=>{form.remove();iframe.remove()},250)};
+      const timer=setTimeout(()=>{if(done)return;done=true;cleanup();resolve(true)},120000);
+      // El primer load del iframe puede ser about:blank. No lo tomamos como confirmación.
+      iframe.onload=()=>{if(!submitted||done)return;setTimeout(()=>{if(done)return;done=true;clearTimeout(timer);cleanup();resolve(true)},1500)};
+      iframe.onerror=()=>{if(done)return;done=true;clearTimeout(timer);cleanup();reject(new Error('No fue posible enviar la publicación a Apps Script.'))};
+      document.body.appendChild(iframe);document.body.appendChild(form);
+      submitted=true;form.submit();
+    })
+  }
+
+  function build(){if($('rcv34Root'))return;document.body.insertAdjacentHTML('beforeend',`<div id="rcv34Root"><div class="rcv34-shell"><aside class="rcv34-side"><div class="rcv34-brand r516-brand"><img src="logo-reportia.png?v=51.7" alt="REPORT.IA"><span>REPORT.IA<small>RGI · CONTROL REGIONAL v59.4</small></span></div><div class="rcv34-side-user"><strong id="r34User">—</strong><span id="r34Role">—</span></div><div class="rcv34-nav"><button data-r34="menu" class="active">⌂ Menú principal</button><button data-r34="gastos">▤ Gastos</button><button data-r34="costos">$ Costos</button><button data-r34="productividad">↗ Productividad</button><button data-r34="general">◎ General</button><button data-r34="notificaciones">✉ Notificaciones <span id="r34NotifBadge" class="rcv34-notif-badge">0</span></button><button data-r34="usuarios-admin" class="admin-only">👥 Usuarios</button><button data-r34="sesiones" class="admin-only">◷ Conexiones</button></div><button id="r51Profile" class="rcv34-logout r51-profile-btn">👤 Mi perfil</button><button id="r34Logout" class="rcv34-logout">↪ Cerrar sesión</button></aside><div id="r483NavOverlay" class="r483-nav-overlay"></div><main class="rcv34-main"><div class="rcv34-top"><button id="r483MobileMenu" class="r483-mobile-menu" aria-label="Abrir menú">☰</button><div><h1 id="r34Title">Centro de control regional</h1><p id="r34Subtitle">Selecciona un módulo para consultar la información. · Comparativa interanual disponible.</p></div><div class="rcv482-top-actions"><button id="r482CompareTop" class="rcv482-compare-top">⇄ COMPARAR AÑOS</button><span class="rcv482-version">v59.4</span><span class="rcv34-region" id="r34Region">—</span></div></div><section id="r34Panel" class="rcv34-panel active"></section></main>
+<nav class="r49-bottom-nav" id="r49BottomNav">
+  <button data-r49nav="menu"><span>⌂</span><b>Inicio</b></button>
+  <button data-r49nav="gastos"><span>▤</span><b>Gastos</b></button>
+  <button data-r49nav="costos"><span>$</span><b>Costos</b></button>
+  <button data-r49nav="productividad"><span>↗</span><b>Product.</b></button>
+  <button data-r49nav="general"><span>◎</span><b>General</b></button>
+  <button data-r49nav="notificaciones" class="r519-nav-notif"><span>🔔<i id="r519BottomBadge" class="r519-bottom-badge">0</i></span><b>Avisos</b></button>
+</nav>
+<div class="r594-mobile-fab" id="r594MobileFab" aria-label="Navegación rápida">
+  <button type="button" id="r594Back" aria-label="Retroceder"><span>←</span><b>Atrás</b></button>
+  <button type="button" id="r594Home" aria-label="Ir al inicio"><span>⌂</span><b>Inicio</b></button>
+  <button type="button" id="r594Top" aria-label="Subir al inicio de la página"><span>↑</span><b>Arriba</b></button>
+</div>
+</div></div><div id="r34Detail" class="rcv34-detail"><div class="rcv34-detail-card"><div class="rcv34-detail-head"><div><h3 id="r34DetailTitle">Detalle</h3><p id="r34DetailSub"></p></div><button class="rcv34-close" id="r34DetailClose">×</button></div><div id="r34DetailBody"></div></div></div>`);
+    document.querySelectorAll('[data-r34]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.r34)));document.querySelectorAll('[data-r49nav]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.r49nav)));const mobileMenu=$('r483MobileMenu'),overlay=$('r483NavOverlay'),shell=document.querySelector('.rcv34-shell');const closeMobileNav=()=>shell?.classList.remove('r483-nav-open');if(mobileMenu)mobileMenu.onclick=()=>shell?.classList.toggle('r483-nav-open');if(overlay)overlay.onclick=closeMobileNav;document.querySelectorAll('[data-r34]').forEach(b=>b.addEventListener('click',closeMobileNav));
+    $('r51Profile')?.addEventListener('click',()=>window.REPORTIA_AUTH?.openProfile?.());$('r34Logout').addEventListener('click',()=>document.getElementById('logoutBtn')?.click());$('r482CompareTop').onclick=()=>{S.compareYears=!S.compareYears;const raw=(S.adminSource==='local'?S.local:S.cloud)?.rows||[],yrs=availableYears(filterRegion({rows:raw}));if(yrs.length){S.compareTarget=yrs[yrs.length-1];S.compareBase=yrs[Math.max(0,yrs.length-2)]}if(S.compareYears&&S.periodFrom&&String(S.periodFrom)===String(S.periodTo)){S.compareBaseMonth=S.periodFrom;S.compareTargetMonth=S.periodFrom}renderCurrentSource()};$('r34DetailClose').onclick=()=>$('r34Detail').classList.remove('open');$('r34Detail').addEventListener('click',e=>{if(e.target===$('r34Detail'))$('r34Detail').classList.remove('open')});
+    // v59.4 · navegación rápida exclusiva para móvil. No altera datos ni navegación de escritorio.
+    const mobileBack=$('r594Back'), mobileHome=$('r594Home'), mobileTop=$('r594Top');
+    if(mobileBack) mobileBack.onclick=()=>{
+      const detail=$('r34Detail');
+      if(detail?.classList.contains('open')){
+        const innerBack=detail.querySelector('#r501BackSemaphore,[data-back],.r501-detail-toolbar button');
+        if(innerBack){innerBack.click();return}
+        detail.classList.remove('open');return;
+      }
+      if(S.current&&S.current!=='menu'){navigate('menu');return}
+      window.scrollTo({top:0,behavior:'smooth'});
+    };
+    if(mobileHome) mobileHome.onclick=()=>{if($('r34Detail')?.classList.contains('open'))$('r34Detail').classList.remove('open');navigate('menu');window.scrollTo({top:0,behavior:'smooth'})};
+    if(mobileTop) mobileTop.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function applyResponsiveMode(){
+    const mobile=window.matchMedia('(max-width: 820px)').matches;
+    document.documentElement.classList.toggle('r483-mobile',mobile);
+  }
+  applyResponsiveMode();window.addEventListener('resize',applyResponsiveMode);
+  function sessionRegion(s){if(upper(s.tipo)==='ADMINISTRADOR')return 'TODAS LAS REGIONES';return cleanRegion(s.region||s.tipo||'SIN REGIÓN')}
+  function navigate(view){S.current=view;document.querySelectorAll('[data-r34]').forEach(b=>b.classList.toggle('active',b.dataset.r34===view));document.querySelectorAll('[data-r49nav]').forEach(b=>b.classList.toggle('active',b.dataset.r49nav===view));if(view==='menu')return renderMenu();if(view==='sesiones')return renderSessions();if(view==='usuarios-admin')return renderAdminUsers();if(view==='notificaciones')return renderNotifications();return renderModule(view)}
+  async function renderMenu(){
+    S.module=null;$('r34Title').textContent='Inicio Ejecutivo';$('r34Subtitle').textContent=upper(S.session.tipo)==='ADMINISTRADOR'?'Acceso rápido a módulos y resumen de gestión regional.':'Acceso rápido a tus módulos y asuntos que requieren atención.';
+    const hero=`<section class="r49-hero"><div class="r49-hero-copy"><span class="r49-eyebrow">CENTRO DE INTELIGENCIA REGIONAL</span><h2>Control ejecutivo RGI</h2><p>Consulta Gastos, Costos y Productividad con navegación por Región → Cuenta contable → Impactos, comparativa interanual y seguimiento de semáforos.</p></div><div class="r49-hero-badge"><small>VERSIÓN</small><strong>56.6</strong><span>Diseño ejecutivo</span></div></section>`;
+    const cards=['gastos','costos','productividad','general'].map(k=>`<article class="rcv34-menu-card r472-module-card" data-open="${k}" data-module-card="${k}"><div class="r472-card-top"><div class="ico">${MODULES[k].icon}</div><span id="r472Status-${k}" class="r472-module-status neutral">${k==='general'?'CONSOLIDADO':'CONSULTANDO'}</span></div><h3>${MODULES[k].label}</h3><p>${k==='general'?'Vista consolidada regional.':'Consulta real, presupuesto, semáforo y detalle.'}</p><div class="status">ABRIR MÓDULO →</div></article>`).join('');
+    $('r34Panel').innerHTML=hero+`<section class="r530-command">
+      <div class="r530-command-head"><div><span>CENTRO EJECUTIVO · HOY</span><h2>Qué requiere tu atención</h2><p>REPORT.IA ordena pendientes, desviaciones y compromisos para que puedas actuar primero sobre lo importante.</p></div><button id="r530Refresh" class="r530-refresh">↻ Actualizar</button></div>
+      <div class="r530-command-grid">
+        <article class="r530-pulse"><div class="r530-pulse-ring" id="r530PulseRing"><strong id="r530Pulse">…</strong><small>/100</small></div><div><span>PULSO RGI</span><h3 id="r530PulseLabel">Calculando estado…</h3><p id="r530PulseReason">Integra módulos en rojo, incidencias abiertas, avisos y compromisos vencidos.</p><button id="r530PulseOpen" class="r530-link">Ver situación general →</button></div></article>
+        <article class="r530-today"><div class="r530-card-title"><span>⚡ PRIORIDAD DEL DÍA</span><b id="r530PriorityBadge" class="r530-priority neutral">ANALIZANDO</b></div><div id="r530TodayFocus"><p class="muted">Buscando la principal situación que requiere atención…</p></div></article>
+        <article class="r530-pending"><div class="r530-card-title"><span>✓ MIS PENDIENTES</span><button id="r530OpenNotifs">Ver avisos</button></div><div id="r530PendingList"><p class="muted">Cargando pendientes…</p></div></article>
+      </div>
+      <div class="r530-actions"><button id="r530AskCopilot" class="r530-ai"><span class="r530-ai-icon">✦</span><div><b>Copiloto Ejecutivo</b><small>Pregúntale: “¿Qué debo revisar hoy?”</small></div><strong>Consultar →</strong></button><div id="r530Positive" class="r530-positive"><span>✓</span><div><b>Reconocimiento del día</b><small>Calculando mejoras…</small></div></div></div>
+    </section>
+    <div class="r472-quick"><div class="r472-quick-head"><div><span>ACCESO RÁPIDO</span><h2>¿Qué quieres consultar?</h2></div><small>Selecciona un módulo</small></div><div class="rcv34-menu-grid r472-module-grid">${cards}</div></div><section class="r46-home"><div class="r46-home-head"><div><span>RESUMEN DE HOY</span><h2>Centro de gestión regional</h2><p>Última información publicada, pendientes y cambios recientes.</p></div><button id="r46RefreshHome">↻ Actualizar</button></div><div id="r46HomeKpis" class="r46-home-kpis"><article><small>INCIDENCIAS ABIERTAS</small><b>…</b></article><article><small>SIN LEER</small><b>…</b></article><article><small>VENCIDAS</small><b>…</b></article><article><small>REINCIDENTES</small><b>…</b></article></div><div class="r46-home-grid"><article class="r46-panel"><div class="r46-panel-head"><h3>⚠ Atención prioritaria</h3><span>TOP</span></div><div id="r46Priorities"><p class="muted">Cargando…</p></div></article><article class="r46-panel"><div class="r46-panel-head"><h3>↕ Qué cambió</h3><span>ÚLTIMA PUBLICACIÓN</span></div><div id="r46Changes"><p class="muted">Comparando publicaciones…</p></div></article></div><article class="r46-panel" id="r46HealthPanel"><div class="r46-panel-head"><h3>◎ Salud regional</h3><span>VISIÓN GENERAL</span></div><div id="r46Health"><p class="muted">Cargando regiones…</p></div></article></section>`;
+    document.querySelectorAll('[data-open]').forEach(x=>x.onclick=()=>navigate(x.dataset.open));$('r46RefreshHome').onclick=()=>renderMenu();
+    $('r530Refresh').onclick=()=>renderMenu();$('r530OpenNotifs').onclick=()=>navigate('notificaciones');$('r530PulseOpen').onclick=()=>navigate('general');
+    $('r530AskCopilot').onclick=()=>{const cp=$('copilot'),q=$('question');if(cp)cp.classList.add('open');if(q){q.value='¿Qué debo revisar hoy?';q.focus()}if(window.syncCopilotContext)window.syncCopilotContext()};
+    await loadExecutiveHome();
+  }
+  function status(module,real,budget){if(module==='productividad'){const ventas=Math.abs(Number(real)||0),gastos=Math.abs(Number(budget)||0);return ventas>0&&(gastos/ventas)<=0.07?'green':'red'}const ar=Math.abs(real),ab=Math.abs(budget);return ar<=ab?'green':'red'}
+  function periodLabel(rows){const ps=[...new Set(rows.map(r=>r.period).filter(Boolean))];return ps.length?`${ps[0]}${ps.length>1?' – '+ps[ps.length-1]:''}`:'Periodo del archivo'}
+  function totals(rows,module){const real=rows.reduce((a,r)=>a+(Number(r.real)||0),0),budget=rows.reduce((a,r)=>a+(Number(r.budget)||0),0);return{real,budget,diff:module==='productividad'?(real?Math.abs(budget)/Math.abs(real)*100:0):Math.abs(real)-Math.abs(budget),st:status(module,real,budget)}}
+  function findHeader(arr,module){let best=-1,score=-1;for(let i=0;i<Math.min(50,arr.length);i++){const rr=(arr[i]||[]).map(upper);const toks=module==='productividad'?['JERARQUIA','REAL','PRESUPUESTO']:['CUENTA','JERARQUIA','PERIODO','REAL','PRESUPUESTO'];const s=toks.reduce((n,t)=>n+(rr.some(x=>x.includes(t))?1:0),0);if(s>score){score=s;best=i}}return best}
+  function idx(headers,alts){const hs=headers.map(upper);for(const a of alts){let i=hs.findIndex(x=>x===a);if(i>=0)return i;i=hs.findIndex(x=>x.includes(a));if(i>=0)return i}return-1}
+  function inferRegion(arr){for(let i=0;i<Math.min(12,arr.length);i++){const row=arr[i]||[];for(let j=0;j<row.length;j++){if(upper(row[j]).includes('AREA GESTION JDE')||upper(row[j]).includes('ÁREA GESTIÓN JDE')){for(let k=j+1;k<row.length;k++)if(norm(row[k]))return cleanRegion(row[k]);}}}return''}
+  const MONTH_LABELS={1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
+  function inferYearForColumn(arr,hr,col){
+    if(col<0)return'';
+    for(let i=hr-1;i>=Math.max(0,hr-5);i--){const v=(arr[i]||[])[col];if(v instanceof Date&&!isNaN(v))return String(v.getFullYear());const n=Number(v);if(Number.isInteger(n)&&n>=2000&&n<=2100)return String(n);const m=String(v??'').match(/\b(20\d{2})\b/);if(m)return m[1]}
+    return'';
+  }
+  function inferFilePeriod(arr,hr){
+    for(let i=0;i<Math.min(hr,12);i++)for(const v of (arr[i]||[])){if(v instanceof Date&&!isNaN(v))return MONTH_LABELS[v.getMonth()+1]||''}
+    return'';
+  }
+  function rowYears(r){return r?.valuesByYear?Object.keys(r.valuesByYear).filter(Boolean):String(r?.year||'')?[String(r.year)]:[]}
+  function availableYears(rows){return [...new Set((rows||[]).flatMap(rowYears))].filter(y=>/^20\d{2}$/.test(String(y))).sort()}
+  function latestYear(rows){const ys=availableYears(rows);return ys.length?ys[ys.length-1]:''}
+  function filterPeriod(rows){
+    const y=String(S.periodYear||latestYear(rows)||''),from=Number(S.periodFrom||0),to=Number(S.periodTo||0),out=[];
+    for(const r of (rows||[])){
+      let q=r;
+      if(r?.valuesByYear){
+        const v=r.valuesByYear[y];if(!v)continue;
+        q={...r,year:y,real:Number(v.real)||0,budget:Number(v.budget)||0};
+      }else if(y&&String(r.year||'')&&String(r.year)!==y)continue;
+      const m=monthOrder(q.period);if(from&&m!==99&&m<from)continue;if(to&&m!==99&&m>to)continue;out.push(q);
+    }
+    return out;
+  }
+  function compareRows(rows,year,month=''){
+    const y=String(year||''),m=Number(month||0),out=[];
+    for(const r of (rows||[])){
+      let q=r;
+      if(r?.valuesByYear){
+        const v=r.valuesByYear[y];if(!v)continue;
+        q={...r,year:y,real:Number(v.real)||0,budget:Number(v.budget)||0};
+      }else if(y&&String(r.year||'')&&String(r.year)!==y)continue;
+      if(m&&monthOrder(q.period)!==m)continue;
+      out.push(q);
+    }
+    return out;
+  }
+  function yearRows(rows,year){return compareRows(rows,year,'')}
+  function yoyPct(a,b){a=Number(a)||0;b=Number(b)||0;if(!a)return b?100:0;return((b-a)/Math.abs(a))*100}
+  function yoyLabel(a,b){const p=yoyPct(a,b);return `${p>=0?'+':''}${p.toFixed(1)}%`}
+  function compareMetric(module,a,b){
+    const av=module==='productividad'?(Number(a)||0):Math.abs(Number(a)||0);
+    const bv=module==='productividad'?(Number(b)||0):Math.abs(Number(b)||0);
+    const delta=bv-av,pct=av?delta/Math.abs(av)*100:(bv?100:0);
+    return{base:av,target:bv,delta,pct};
+  }
+  function comparisonRegionEnabled(){return adminRegionLabel()==='RGI'}
+  function comparisonRegionOptions(rows){return visibleRegions(rows||[]).filter(r=>r!=='RGI')}
+  function comparisonSideRows(rows,side){
+    if(!comparisonRegionEnabled())return rows||[];
+    const reg=side==='base'?S.compareBaseRegion:S.compareTargetRegion;
+    return reg?rowsForRegion(rows||[],reg):(rows||[]);
+  }
+  function compareTotals(rows,module){
+    const a=totals(compareRows(comparisonSideRows(rows,'base'),S.compareBase,S.compareBaseMonth),module);
+    const b=totals(compareRows(comparisonSideRows(rows,'target'),S.compareTarget,S.compareTargetMonth),module);
+    const real=compareMetric(module,a.real,b.real),budget=compareMetric(module,a.budget,b.budget);
+    return {base:a,target:b,real,budget};
+  }
+  function comparePeriodLabel(){
+    const bm=Number(S.compareBaseMonth||0),tm=Number(S.compareTargetMonth||0);
+    const bl=bm?(MONTH_LABELS[bm]||'Mes'):'Acumulado';
+    const tl=tm?(MONTH_LABELS[tm]||'Mes'):'Acumulado';
+    const br=comparisonRegionEnabled()&&S.compareBaseRegion?S.compareBaseRegion+' · ':'';const tr=comparisonRegionEnabled()&&S.compareTargetRegion?S.compareTargetRegion+' · ':'';return `${br}${bl} ${S.compareBase||'—'} vs ${tr}${tl} ${S.compareTarget||'—'}`;
+  }
+  function periodControls(rows){
+    const years=availableYears(rows),months=[...new Set((rows||[]).map(r=>monthOrder(r.period)).filter(m=>m>=1&&m<=12))].sort((a,b)=>a-b);
+    if(!years.length&&!months.length)return'';
+    if(!S.compareTarget&&years.length)S.compareTarget=years[years.length-1];
+    if(!S.compareBase&&years.length)S.compareBase=years[Math.max(0,years.length-2)];
+    const selected=String(S.periodYear||latestYear(rows)||'');
+    const yearOpts=years.map(y=>`<option value="${esc(y)}" ${selected===y?'selected':''}>${esc(y)}</option>`).join('');
+    const compareOpts=(value)=>years.map(y=>`<option value="${esc(y)}" ${String(value)===String(y)?'selected':''}>${esc(y)}</option>`).join('');
+    const monthOpts=(value,label='Acumulado completo')=>`<option value="">${label}</option>`+months.map(m=>`<option value="${m}" ${String(value)===String(m)?'selected':''}>${MONTH_LABELS[m]}</option>`).join('');
+    const regionCompare=comparisonRegionEnabled();
+    const compareRegions=comparisonRegionOptions(rows);
+    if(regionCompare&&compareRegions.length){if(!S.compareBaseRegion||!compareRegions.includes(S.compareBaseRegion))S.compareBaseRegion=compareRegions[0];if(!S.compareTargetRegion||!compareRegions.includes(S.compareTargetRegion))S.compareTargetRegion=compareRegions[Math.min(1,compareRegions.length-1)]}
+    const regionOpts=(value)=>compareRegions.map(r=>`<option value="${esc(r)}" ${String(value)===String(r)?'selected':''}>${esc(r)}</option>`).join('');
+    const singleMonths=(value,allLabel)=>`<option value="">${allLabel}</option>`+months.map(m=>`<option value="${m}" ${String(value)===String(m)?'selected':''}>${MONTH_LABELS[m]}</option>`).join('');
+    // v57.4: Productividad conserva dos vistas: Reporte general y Resumen mensual.
+    if(S.module==='productividad'){
+      const prodMonth=String(S.periodFrom||''), monthly=S.productivityView==='monthly';
+      return `<article class="rcv34-card rcv43-period-card rcv481-period r49-filter-card r574-productivity-period ${monthly?'open':''}">
+        <div class="rcv43-period-title r574-prod-mode-head"><div><b>Vista de productividad</b><span>${monthly?'Consulta Ventas contra Gastos por mes o acumulado.':'Resumen ejecutivo y jerarquía completa de productividad.'}</span></div>
+          <div class="rcv481-mode"><button data-r574-prod-view="general" class="${!monthly?'active':''}">Reporte general</button><button data-r574-prod-view="monthly" class="${monthly?'active':''}">Resumen mensual</button></div>
+        </div>
+        ${monthly?`<div class="r49-filter-body" style="display:block"><div class="rcv43-period-grid r573-productivity-grid">
+          <label>Año<select id="r43Year">${yearOpts}</select></label>
+          <label>Mes / periodo<select id="r573ProdMonth">${singleMonths(prodMonth,'Acumulado del mes')}</select></label>
+          <div class="rcv43-period-hint"><b>${prodMonth?(MONTH_LABELS[Number(prodMonth)]||'Mes')+' '+selected:'Acumulado del mes · '+selected}</b><small>Ventas vs Gastos</small></div>
+        </div></div>`:''}
+      </article>`;
+    }
+    return `<article class="rcv34-card rcv43-period-card rcv481-period r49-filter-card">
+      <div class="r49-filter-mobile-head"><div><b>Filtros del análisis</b><span>${S.compareYears?comparePeriodLabel():selected}</span></div><button type="button" class="r49-filter-toggle">⌄</button></div>
+      <div class="r49-filter-body">
+        <div class="rcv43-period-title"><div><b>Análisis del periodo</b><span>${S.compareYears?comparisonRegionEnabled()?'Selecciona región, año y mes para cada lado de la comparación.':'Selecciona exactamente qué año y qué mes quieres enfrentar.':'Consulta un año completo o un rango de meses.'}</span></div>
+          <div class="rcv481-mode"><button data-r481-mode="compare" class="${S.compareYears?'active':''}">⇄ COMPARAR AÑOS / MESES</button><button data-r481-mode="single" class="${!S.compareYears?'active':''}">Año individual</button></div>
+        </div>
+        ${S.compareYears?`
+        <div class="r50-compare-selectors">
+          <div class="r50-compare-side base"><span>PERIODO BASE</span>${regionCompare?`<label>Región<select id="r566BaseRegion">${regionOpts(S.compareBaseRegion)}</select></label>`:''}<label>Año<select id="r481Base">${compareOpts(S.compareBase)}</select></label><label>Mes<select id="r50BaseMonth">${monthOpts(S.compareBaseMonth,'Acumulado del año')}</select></label></div>
+          <div class="r50-versus">VS</div>
+          <div class="r50-compare-side target"><span>PERIODO A COMPARAR</span>${regionCompare?`<label>Región<select id="r566TargetRegion">${regionOpts(S.compareTargetRegion)}</select></label>`:''}<label>Año<select id="r481Target">${compareOpts(S.compareTarget)}</select></label><label>Mes<select id="r50TargetMonth">${monthOpts(S.compareTargetMonth,'Acumulado del año')}</select></label></div>
+        </div>
+        <div class="r50-compare-hint"><b>${esc(comparePeriodLabel())}</b><span>Si eliges Junio en ambos lados, únicamente se compara Junio contra Junio; no se acumulan meses anteriores.</span></div>`
+        :`<div class="rcv43-period-grid"><label>Año<select id="r43Year">${yearOpts}</select></label><label>Desde<select id="r43From">${singleMonths(S.periodFrom,'Inicio')}</select></label><label>Hasta<select id="r43To">${singleMonths(S.periodTo,'Fin')}</select></label><div class="rcv43-period-hint"><b>${periodRangeLabel()}</b><small>Vista de un solo año</small></div></div>`}
+      </div>
+    </article>`;
+  }
+  function periodRangeLabel(){const f=Number(S.periodFrom||0),t=Number(S.periodTo||0);if(S.module==='productividad'&&S.productivityView==='monthly'&&!f&&!t)return S.periodYear?`Año ${S.periodYear} · acumulado del mes`:'Año más reciente · acumulado del mes';if(!f&&!t)return S.periodYear?`Año ${S.periodYear} · acumulado completo`:'Año más reciente · acumulado completo';if(f&&t&&f===t)return `${MONTH_LABELS[f]||''}${S.periodYear?' '+S.periodYear:''}`;return `${f?MONTH_LABELS[f]:'Inicio'} – ${t?MONTH_LABELS[t]:'Fin'}${S.periodYear?' · '+S.periodYear:''}`}
+  function bindPeriodControls(){
+    const y=$('r43Year'),f=$('r43From'),t=$('r43To'),prodMonth=$('r573ProdMonth'),base=$('r481Base'),target=$('r481Target'),bm=$('r50BaseMonth'),tm=$('r50TargetMonth'),br=$('r566BaseRegion'),tr=$('r566TargetRegion');
+    const rerender=()=>{
+      S.periodYear=y?y.value:S.periodYear;
+      if(prodMonth){S.periodFrom=prodMonth.value;S.periodTo=prodMonth.value;}else{S.periodFrom=f?f.value:S.periodFrom;S.periodTo=t?t.value:S.periodTo;}
+      if(base)S.compareBase=base.value;if(target)S.compareTarget=target.value;if(bm)S.compareBaseMonth=bm.value;if(tm)S.compareTargetMonth=tm.value;if(br)S.compareBaseRegion=cleanRegion(br.value);if(tr)S.compareTargetRegion=cleanRegion(tr.value);
+      renderCurrentSource()
+    };
+    if(y)y.onchange=rerender;if(f)f.onchange=rerender;if(t)t.onchange=rerender;if(prodMonth)prodMonth.onchange=rerender;if(base)base.onchange=rerender;if(target)target.onchange=rerender;if(bm)bm.onchange=rerender;if(tm)tm.onchange=rerender;if(br)br.onchange=rerender;if(tr)tr.onchange=rerender;
+    const ft=document.querySelector('.r49-filter-toggle'),fc=document.querySelector('.r49-filter-card');if(ft&&fc)ft.onclick=()=>fc.classList.toggle('open');
+    document.querySelectorAll('[data-r574-prod-view]').forEach(b=>b.onclick=()=>{
+      S.productivityView=b.dataset.r574ProdView==='monthly'?'monthly':'general';
+      if(S.productivityView==='general'){S.periodFrom='';S.periodTo='';}
+      renderCurrentSource();
+    });
+    document.querySelectorAll('[data-r481-mode]').forEach(b=>b.onclick=()=>{
+      S.compareYears=b.dataset.r481Mode==='compare';
+      const raw=(S.adminSource==='local'?S.local:S.cloud)?.rows||[],yrs=availableYears(filterRegion({rows:raw}));
+      if(yrs.length){S.compareTarget=yrs[yrs.length-1];S.compareBase=yrs[Math.max(0,yrs.length-2)]}
+      if(S.compareYears&&S.periodFrom&&String(S.periodFrom)===String(S.periodTo)){S.compareBaseMonth=S.periodFrom;S.compareTargetMonth=S.periodFrom}
+      renderCurrentSource()
+    });
+  }
+  function monthComparison(regionRows,module){
+    const m=Number(S.periodFrom||0),to=Number(S.periodTo||0);if(!m||m!==to||m<=1)return'';
+    const cur=totals(filterPeriod(regionRows),module),prev=totals(regionRows.filter(r=>monthOrder(r.period)===m-1&&(!S.periodYear||!r.year||String(r.year)===String(S.periodYear))),module);
+    if(!prev.real)return'';const change=((Math.abs(cur.real)-Math.abs(prev.real))/Math.abs(prev.real))*100;const better=module==='productividad'?change>=0:change<=0;
+    return `<span class="rcv43-month-compare ${better?'better':'worse'}">${change>=0?'▲':'▼'} ${Math.abs(change).toFixed(1)}% vs ${MONTH_LABELS[m-1]}</span>`;
+  }
+  function redStreak(rs,module){
+    const by=monthlyGroups(rs),states=by.map(([name,x])=>({m:monthOrder(name),st:totals(x,module).st})).filter(x=>x.m<99).sort((a,b)=>a.m-b.m);let streak=0,best=0;for(const x of states){if(x.st==='red'){streak++;best=Math.max(best,streak)}else streak=0}return best;
+  }
+  async function parseGastosXLCubed(file){
+    if(!window.JSZip||!window.fflate)throw new Error('Faltan los componentes JSZip/fflate para leer Gastos.');
+    const ab=await file.arrayBuffer(), bytes=new Uint8Array(ab), zip=await JSZip.loadAsync(ab);
+    const ssFile=zip.file('xl/sharedStrings.xml');
+    const shared=[];
+    if(ssFile){
+      const xml=await ssFile.async('string');
+      const doc=new DOMParser().parseFromString(xml,'application/xml');
+      doc.querySelectorAll('si').forEach(si=>shared.push([...si.querySelectorAll('t')].map(t=>t.textContent||'').join('')));
+    }
+    const decoder=new TextDecoder(), rows=[]; let carry='', doneRows=false, y1='2025',y2='2026',baseRegion='', foundSheet=false;
+    const unescapeXml=v=>String(v??'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#39;/g,"'").replace(/&quot;/g,'"');
+    const cellValue=(body,col)=>{
+      const re=new RegExp(`<c\\b([^>]*)\\br="${col}\\d+"([^>]*)>([\\s\\S]*?)<\\/c>`,'i'),m=body.match(re);if(!m)return'';
+      const attrs=(m[1]||'')+(m[2]||''),inner=m[3]||'',typ=(attrs.match(/\\bt="([^"]+)"/i)||[])[1]||'';
+      let v=(inner.match(/<v>([\s\S]*?)<\/v>/i)||[])[1]??'';
+      if(typ==='s')v=shared[Number(v)]??v;
+      else if(typ==='inlineStr')v=[...inner.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/gi)].map(x=>x[1]).join('');
+      return unescapeXml(v);
+    };
+    const consume=txt=>{
+      carry+=txt;let a;
+      while((a=carry.search(/<row\b/i))>=0){
+        if(a>0)carry=carry.slice(a);const e=carry.search(/<\/row>/i);if(e<0)break;
+        const rowXml=carry.slice(0,e+6);carry=carry.slice(e+6);const rn=Number((rowXml.match(/<row[^>]*\br="(\d+)"/i)||[])[1]||0);
+        if(rn===2)baseRegion=cleanRegion(cellValue(rowXml,'B')||'');
+        if(rn===7){y1=String(cellValue(rowXml,'H')||'2025').match(/20\d{2}/)?.[0]||'2025';y2=String(cellValue(rowXml,'J')||'2026').match(/20\d{2}/)?.[0]||'2026'}
+        if(rn<9)continue;if(rn>90000){doneRows=true;carry='';return}
+        // v54.3: ORIGEN2 trae columnas auxiliares O:T con valores de texto ya
+        // calculados por Excel. Se prefieren porque evitan depender de los índices
+        // de sharedStrings de XLCubed. T contiene el Último Nivel de SL completo
+        // (p. ej. "2000042.GCIA. COMERCIAL VILLAHERMOSA"), que permite detectar
+        // la región fila por fila de forma confiable.
+        const account=norm(cellValue(rowXml,'R')||cellValue(rowXml,'A'));
+        const hierarchy=norm(cellValue(rowXml,'Q')||cellValue(rowXml,'B'));
+        const sub=norm(cellValue(rowXml,'T')||cellValue(rowXml,'C'));
+        const subHierarchy=norm(cellValue(rowXml,'D'));
+        const buCode=norm(cellValue(rowXml,'E'));
+        const bu=norm(cellValue(rowXml,'S')||cellValue(rowXml,'F'));
+        const period=norm(cellValue(rowXml,'P')||cellValue(rowXml,'G'));
+        // ORIGEN2 incluye en O un auxiliar de región ya calculado por el propio libro
+        // (COMER VILLA, COMERCIAL COV, MANTTO. VHT, OP CATAB, ADMVA, etc.).
+        // Es la fuente más estable para los 88,047 registros útiles.
+        const regionAux=norm(cellValue(rowXml,'O'));
+        const r1=num(cellValue(rowXml,'H')),b1=num(cellValue(rowXml,'I')),r2=num(cellValue(rowXml,'J')),b2=num(cellValue(rowXml,'K'));
+        if(!account&&!hierarchy&&!sub&&!subHierarchy&&!period&&!r1&&!b1&&!r2&&!b2)continue;
+        const region=knownRegion(regionAux)||knownRegion(sub)||knownRegion(subHierarchy)||knownRegion([hierarchy,account,buCode,bu].join(' '))||knownRegion(baseRegion)||'SIN REGION',valuesByYear={};valuesByYear[y1]={real:r1,budget:b1};valuesByYear[y2]={real:r2,budget:b2};
+        rows.push({region,hierarchy:hierarchy||'SIN JERARQUIA',account:account||hierarchy||'SIN CUENTA',subledger:sub||subHierarchy,subledgerHierarchy:subHierarchy||sub,manager:regionAux||subHierarchy||sub,businessUnitCode:buCode,businessUnit:bu,period,year:y2,real:r2,budget:b2,valuesByYear,regionAux,sourceSheet:'ORIGEN2'});
+      }
+    };
+    await new Promise((resolve,reject)=>{
+      try{
+        const uz=new fflate.Unzip(entry=>{
+          const n=String(entry.name||'').replace(/^\//,'');
+          if(n!=='xl/worksheets/sheet2.xml'){entry.ondata=()=>{};entry.start();return}
+          foundSheet=true;
+          entry.ondata=(err,chunk,final)=>{if(err){reject(err);return}if(!doneRows&&chunk?.length)consume(decoder.decode(chunk,{stream:!final}));if(final)resolve()};
+          entry.start();
+        });
+        uz.register(fflate.UnzipInflate);
+        const STEP=1024*1024;for(let pos=0;pos<bytes.length;pos+=STEP)uz.push(bytes.subarray(pos,Math.min(pos+STEP,bytes.length)),Math.min(pos+STEP,bytes.length)>=bytes.length);
+      }catch(e){reject(e)}
+    });
+    if(!foundSheet)throw new Error('No se encontró ORIGEN2 (sheet2.xml) dentro del XLSX.');
+    if(!rows.length)throw new Error(`ORIGEN2 fue localizada pero no produjo registros. Lector v54.2 · ZIP streaming + Shared Strings activo.`);
+    return rows;
+  }
+
+  // v57.7: lector dedicado a Productividad desde ORIGEN2.
+  // El reporte visible "PRODUC X PV" es una tabla dinámica; los importes reales están en ORIGEN2.
+  // Regla del archivo: cuentas 4* = Ventas y cuentas 6* = Gastos. Se conserva la jerarquía
+  // Gerencia -> Punto de venta -> Marca -> Cuenta contable sin tocar el lector de Gastos.
+  function parseProductividadVentasGastosWorkbook(wb,fileName){
+    const all=[];
+    const uploadNow=new Date(), uploadMonth=uploadNow.getMonth()+1;
+    const per=MONTH_LABELS[uploadMonth]||'', yr=String(uploadNow.getFullYear());
+    const cleanGerencia=v=>norm(v).replace(/^PV\s+GCIA\.?\s*/i,'').replace(/^GCIA\.?\s*/i,'').trim();
+    for(const sn of wb.SheetNames){
+      const ws=wb.Sheets[sn],ref=ws?.['!ref'];if(!ref)continue;
+      const rg=XLSX.utils.decode_range(ref);rg.e.r=Math.min(rg.e.r,89999);
+      const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:rg});if(!arr.length)continue;
+      let hr=-1;
+      for(let i=0;i<Math.min(80,arr.length);i++){
+        const H=(arr[i]||[]).map(upper);
+        const hasAccount=H.some(x=>x.includes('JERARQUIA CUENTA CONTABLE'));
+        const hasPoint=H.some(x=>x.includes('ULTIMO NIVEL DE SL'));
+        const hasManager=H.some(x=>x.includes('JERARQUIA SUBLIBRO'));
+        const hasBrand=H.some(x=>x.includes('JERARQUIA UNIDAD DE NEGOCIO'));
+        const hasReal=H.some(x=>x.includes('REAL GESTION'));
+        if(hasAccount&&hasPoint&&hasManager&&hasBrand&&hasReal){hr=i;break}
+      }
+      if(hr<0)continue;
+      const H=(arr[hr]||[]).map(upper);
+      const col=needle=>H.findIndex(x=>x.includes(needle));
+      const iCta=col('JERARQUIA CUENTA CONTABLE'),iPV=col('ULTIMO NIVEL DE SL'),iGer=col('JERARQUIA SUBLIBRO'),iMarca=col('JERARQUIA UNIDAD DE NEGOCIO'),iReal=col('REAL GESTION');
+      if([iCta,iPV,iGer,iMarca,iReal].some(i=>i<0))continue;
+      for(const r of arr.slice(hr+1)){
+        const cta=norm(r[iCta]);if(!cta||/^TOTAL/i.test(cta))continue;
+        const tipo=cta.charAt(0);if(tipo!=='4'&&tipo!=='6')continue;
+        const valor=num(r[iReal]);
+        // Una fila de ORIGEN2 representa una sola métrica. Las 4* alimentan Ventas;
+        // las 6* alimentan Gastos. Al agrupar punto/marca, el portal suma ambos lados.
+        const ventas=tipo==='4'?valor:0, gastos=tipo==='6'?valor:0;
+        const pv=norm(r[iPV])||'SIN PUNTO DE VENTA';
+        const gerRaw=norm(r[iGer])||'SIN GERENCIA', ger=cleanGerencia(gerRaw)||gerRaw;
+        const marca=norm(r[iMarca])||'SIN MARCA';
+        const reg=knownRegion(gerRaw)||knownRegion(ger)||knownRegion(pv)||'REGIONAL';
+        const valuesByYear={[yr]:{real:ventas,budget:gastos}};
+        all.push({region:reg,hierarchy:cta,account:cta,subledgerHierarchy:ger,subledger:ger,businessUnit:pv,center:pv,brandName:marca,period:per,year:yr,real:ventas,budget:gastos,valuesByYear,sourceSheet:sn,productivitySalesExpenses:true,productivityOrigin2:true});
+      }
+      // ORIGEN2 es la fuente detallada correcta. Evita leer después la tabla dinámica resumida.
+      if(all.length)break;
+    }
+    return all;
+  }
+
+  // v57.0: lector dedicado al reporte pivote de Productividad (GERENCIA -> CTA CONTABLE -> detalle).
+  function parseProductividadPivotWorkbook(wb,fileName){
+    const all=[];
+    for(const sn of wb.SheetNames){
+      const ws=wb.Sheets[sn],ref=ws?.['!ref'];if(!ref)continue;
+      const rg=XLSX.utils.decode_range(ref);rg.e.r=Math.min(rg.e.r,89999);
+      const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:rg});if(!arr.length)continue;
+      let hr=-1;
+      for(let i=0;i<Math.min(80,arr.length);i++){
+        const H=(arr[i]||[]).map(upper);
+        if(H.some(x=>x==='GERENCIA'||x.includes('GERENCIA')) && H.some(x=>x.includes('CTA CONTABLE')||x.includes('CUENTA CONTABLE'))){hr=i;break}
+      }
+      if(hr<0)continue;
+      const h=(arr[hr]||[]).map(norm),H=h.map(upper);
+      const iGer=H.findIndex(x=>x==='GERENCIA'||x.includes('GERENCIA'));
+      const iCta=H.findIndex(x=>x.includes('CTA CONTABLE')||x.includes('CUENTA CONTABLE'));
+      const iMarca=H.findIndex(x=>x.includes('CIA MARCA')||x==='MARCA'||x.includes('MARCA'));
+      const iCentro=H.findIndex(x=>x.includes('CENTRO DE GESTION')||x.includes('CENTRO DE GESTIÓN')||x.includes('CENTRO GESTION'));
+      const iPtto=H.findIndex(x=>x==='PTTO'||x==='PTTO.'||x.includes('PRESUP'));
+      const yearCols=[];H.forEach((x,i)=>{const m=x.match(/\b(20\d{2})\b/);if(m)yearCols.push({year:m[1],i})});
+      if(iGer<0||iCta<0||!yearCols.length)continue;
+      let currentGer='';
+      for(const r of arr.slice(hr+1)){
+        if(!r.some(v=>norm(v)))continue;
+        const rawGer=norm(r[iGer]),rawCta=norm(r[iCta]);
+        if(/^TOTAL GENERAL$/i.test(rawGer)||/^TOTAL GENERAL$/i.test(rawCta))continue;
+        if(rawGer && !/^TOTAL\s/i.test(rawGer))currentGer=rawGer;
+        // Las filas padre/totales del pivote sirven para mostrar la jerarquía, pero no se suman otra vez.
+        if(!rawCta || /^TOTAL\s/i.test(rawCta))continue;
+        const ger=currentGer||rawGer||'SIN GERENCIA';
+        const valuesByYear={};
+        yearCols.forEach(y=>valuesByYear[y.year]={real:num(r[y.i]),budget:iPtto>=0?num(r[iPtto]):0});
+        const years=Object.keys(valuesByYear).sort(),latest=years[years.length-1],lv=valuesByYear[latest]||{real:0,budget:0};
+        const reg=knownRegion(ger)||knownRegion([r[iCentro],r[iMarca]].join(' '))||'REGIONAL';
+        all.push({region:reg,hierarchy:rawCta,account:rawCta,subledgerHierarchy:ger,subledger:ger,
+          brandName:iMarca>=0?norm(r[iMarca]):'',center:iCentro>=0?norm(r[iCentro]):'',period:inferFilePeriod(arr,hr),
+          year:latest,real:lv.real,budget:lv.budget,valuesByYear,sourceSheet:sn,productivityPivot:true});
+      }
+    }
+    return all;
+  }
+
+
+
+  // v58.1: lector dedicado a COSTOS.
+  // Usa la tabla auxiliar de ORIGEN2 (GERENCIA, Periodo, AGRUPADOR, CTA CONTABLE,
+  // CIA MARCA, CENTRO DE GESTION, 2025, PTTO., 2026), que es la fuente de la
+  // tabla pivote mostrada en COSTO MANTTO / COSTOS OPERATIVOS.
+  // Se mantiene aislado de Gastos y Productividad.
+  function parseCostosWorkbook(wb,fileName){
+    const all=[];
+    const preferred=['ORIGEN2',...wb.SheetNames.filter(n=>upper(n)!=='ORIGEN2')];
+    for(const sn of preferred){
+      const ws=wb.Sheets[sn],ref=ws?.['!ref'];if(!ref)continue;
+      const rg=XLSX.utils.decode_range(ref);rg.e.r=Math.min(rg.e.r,99999);
+      const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:rg});if(!arr.length)continue;
+      let hr=-1;
+      for(let i=0;i<Math.min(60,arr.length);i++){
+        const H=(arr[i]||[]).map(upper);
+        const hasGer=H.some(x=>x==='GERENCIA');
+        const hasCta=H.some(x=>x.includes('CTA CONTABLE')||x.includes('CUENTA CONTABLE'));
+        const hasPtto=H.some(x=>x.includes('PTTO')||x.includes('PRESUP'));
+        const hasYear=H.some(x=>/\b20\d{2}\b/.test(x));
+        if(hasGer&&hasCta&&hasPtto&&hasYear){hr=i;break}
+      }
+      if(hr<0)continue;
+      const H=(arr[hr]||[]).map(upper);
+      const col=(tests)=>H.findIndex(x=>tests.some(t=>typeof t==='string'?x===t:t.test(x)));
+      const iGer=col(['GERENCIA']), iPer=col(['PERIODO']), iAgr=col(['AGRUPADOR']);
+      const iCta=col([/CTA CONTABLE/,/CUENTA CONTABLE/]), iMarca=col([/CIA MARCA/,/^MARCA$/]), iCentro=col([/CENTRO DE GESTION/,/CENTRO DE GESTIÓN/]);
+      const iPtto=col([/PTTO/,/PRESUP/]);
+      const yearCols=[];H.forEach((x,i)=>{const m=x.match(/\b(20\d{2})\b/);if(m)yearCols.push({year:m[1],i})});
+      if(iGer<0||iCta<0||iPtto<0||yearCols.length<1)continue;
+      const latestYearCol=yearCols.slice().sort((a,b)=>Number(a.year)-Number(b.year)).at(-1);
+      for(const r of arr.slice(hr+1)){
+        const ger=norm(r[iGer]),cta=norm(r[iCta]);
+        if(!ger||!cta||/^TOTAL\b/i.test(ger)||/^TOTAL\b/i.test(cta))continue;
+        const period=norm(iPer>=0?r[iPer]:'')||inferFilePeriod(arr,hr);
+        const agr=norm(iAgr>=0?r[iAgr]:'')||cta;
+        const marca=norm(iMarca>=0?r[iMarca]:'');
+        const centro=norm(iCentro>=0?r[iCentro]:'');
+        const valuesByYear={};
+        yearCols.forEach(y=>{
+          // El PTTO del archivo corresponde al año vigente/más reciente (2026 en el archivo ejemplo).
+          valuesByYear[y.year]={real:num(r[y.i]),budget:y.year===latestYearCol.year?num(r[iPtto]):0};
+        });
+        const latest=latestYearCol.year,lv=valuesByYear[latest]||{real:0,budget:0};
+        const reg=knownRegion(ger)||knownRegion(centro)||knownRegion(marca)||'REGIONAL';
+        all.push({region:reg,hierarchy:cta,account:cta,subledgerHierarchy:ger,subledger:centro||ger,
+          businessUnitCode:marca,businessUnit:marca,brandName:marca,center:centro,area:agr,
+          period,year:latest,real:lv.real,budget:lv.budget,valuesByYear,sourceSheet:sn,costsPivot:true});
+      }
+      if(all.length)break;
+    }
+    return all;
+  }
+
+  async function parseFile(file,module){
+    let all=[];
+    if(module==='gastos'){
+      all=await parseGastosXLCubed(file);
+    }else{
+      const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true,sheetRows:100000});
+      if(module==='costos'){
+        const costRows=parseCostosWorkbook(wb,file.name);
+        if(costRows.length)all=costRows;
+      }
+      if(module==='productividad'){
+        const vgRows=parseProductividadVentasGastosWorkbook(wb,file.name);
+        if(vgRows.length)all=vgRows;
+        else {const pivotRows=parseProductividadPivotWorkbook(wb,file.name);if(pivotRows.length)all=pivotRows;}
+      }
+      if(!all.length)for(const sn of wb.SheetNames){
+        const ws=wb.Sheets[sn],ref=ws?.['!ref'];if(!ref)continue;
+        const rg=XLSX.utils.decode_range(ref);rg.e.r=Math.min(rg.e.r,89999);
+        const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,range:rg});if(!arr.length)continue;
+        let hr=findHeader(arr,module);if(hr<0)continue;
+        const h=(arr[hr]||[]).map(norm),H=h.map(upper),baseRegion=inferRegion(arr);
+        const iRegion=idx(h,['REGION','REGIÓN','AREA GESTION JDE']),iHier=idx(h,['JERARQUIA CUENTA CONTABLE','JERARQUÍA CUENTA CONTABLE']),iAccount=idx(h,['DES CUENTA CONTABLE','CUENTA CONTABLE','JERARQUIA CUENTA CONTABLE']),iSubHierarchy=idx(h,['JERARQUIA SUBLIBRO','JERARQUÍA SUBLIBRO']),iSub=idx(h,['ULTIMO NIVEL DE SL','ÚLTIMO NIVEL DE SL']),iBUCode=idx(h,['JERARQUIA UNIDAD DE NEGOCIO JDE','JERARQUÍA UNIDAD DE NEGOCIO JDE']),iBU=idx(h,['JERARQUIA UNIDAD DE NEGOCIO JDE EN','JERARQUÍA UNIDAD DE NEGOCIO JDE EN','UNIDAD DE NEGOCIO']),iPeriod=idx(h,['PERIODO','MES']);
+        const realCols=H.map((x,i)=>x.includes('REAL GESTION')?i:-1).filter(i=>i>=0),budCols=H.map((x,i)=>x.includes('PRESUPUESTO GESTION')?i:-1).filter(i=>i>=0),pairs=[];
+        if(module==='productividad'){const rc=realCols[0]??-1,bc=budCols[0]??-1,yr=inferYearForColumn(arr,hr,rc)||inferYearForColumn(arr,hr,bc)||String(new Date().getFullYear());if(rc>=0)pairs.push({year:yr,real:rc,budget:bc})}else realCols.forEach((rc,ix)=>{const nextReal=realCols[ix+1]??99999;let bc=budCols.find(c=>c>rc&&c<nextReal);if(bc==null)bc=budCols[ix]??-1;const yr=inferYearForColumn(arr,hr,rc)||inferYearForColumn(arr,hr,bc)||String(2025+ix);pairs.push({year:yr,real:rc,budget:bc})});
+        if(!pairs.length)continue;const defaultPeriod=inferFilePeriod(arr,hr);
+        for(const r of arr.slice(hr+1)){if(!r.some(v=>norm(v)))continue;const subHierarchy=norm(iSubHierarchy>=0?r[iSubHierarchy]:''),fallbackRegion=cleanRegion(iRegion>=0?r[iRegion]:baseRegion),region=regionFromSubledger(subHierarchy,fallbackRegion),hierarchy=norm(iHier>=0?r[iHier]:'SIN JERARQUÍA')||'SIN JERARQUÍA',account=norm(iAccount>=0?r[iAccount]:hierarchy)||hierarchy,valuesByYear={};pairs.forEach(p=>valuesByYear[p.year]={real:num(p.real>=0?r[p.real]:0),budget:num(p.budget>=0?r[p.budget]:0)});const years=Object.keys(valuesByYear).sort(),latest=years[years.length-1],lv=valuesByYear[latest]||{real:0,budget:0};if(!region&&Object.values(valuesByYear).every(v=>!v.real&&!v.budget))continue;all.push({region:region||'SIN REGIÓN',hierarchy,account,subledger:norm(iSub>=0?r[iSub]:subHierarchy),subledgerHierarchy:subHierarchy,businessUnitCode:norm(iBUCode>=0?r[iBUCode]:''),businessUnit:norm(iBU>=0?r[iBU]:''),period:norm(iPeriod>=0?r[iPeriod]:'')||defaultPeriod,year:latest,real:lv.real,budget:lv.budget,valuesByYear,sourceSheet:sn})}
+      }
+    }
+    if(!all.length)throw new Error('No se encontró una estructura reconocible en el archivo.');
+    if(module!=='productividad'){const years=availableYears(all);for(const yr of years){const ratios=all.map(r=>r.valuesByYear?.[yr]).filter(v=>v&&Math.abs(v.real)>1&&Math.abs(v.budget)>1).slice(0,1000).map(v=>Math.abs(v.budget)/Math.abs(v.real)).sort((a,b)=>a-b),median=ratios.length?ratios[Math.floor(ratios.length/2)]:1;if(median>1000)all.forEach(r=>{if(r.valuesByYear?.[yr])r.valuesByYear[yr].budget/=10000})}all.forEach(r=>{const y=latestYear([r]),v=r.valuesByYear?.[y];if(v){r.year=y;r.real=v.real;r.budget=v.budget}})}
+    return repairRegionData({module,filename:file.name,uploadedLocalAt:new Date().toISOString(),rows:all,regions:[...new Set(all.map(r=>r.region))],years:availableYears(all),period:periodLabel(filterPeriod(all))})
+  }
+
+  function groupRows(rows,key){const m=new Map();rows.forEach(r=>{const k=typeof key==='function'?key(r):(r[key]||'SIN CLASIFICAR');if(!m.has(k))m.set(k,[]);m.get(k).push(r)});return m}
+  function managerName(r){
+    // v56.7: GERENCIA = columna D "Jerarquía Sublibro" del Excel.
+    // Para publicaciones antiguas, si ese campo llegó numérico/vacío, se reconstruye
+    // desde "Último Nivel de SL" quitando únicamente el prefijo numérico.
+    const clean=v=>norm(v).replace(/^\d+(?:\.\d+)*\.?\s*/,'').trim();
+    const isNumeric=v=>/^\d+(?:\.\d+)*$/.test(norm(v));
+    let g=norm(r?.manager||r?.regionAux||r?.subledgerHierarchy||'');
+    if(!g||isNumeric(g)){
+      const fromSub=clean(r?.subledger||'');
+      if(fromSub&&!isNumeric(fromSub))g=fromSub;
+    }
+    if(!g||isNumeric(g))g='SIN GERENCIA';
+    // Operativamente Cárdenas se consolida con Villahermosa.
+    g=g.replace(/CARDENAS/gi,'VILLAHERMOSA');
+    return norm(g)||'SIN GERENCIA';
+  }
+  // v56.4: la clave original de marca se conserva para agrupar/filtrar.
+  // Esta función SOLO decide la etiqueta visible, evitando romper el desglose.
+  function brandDisplayName(key,rows=[]){
+    const k=norm(key);
+    const clean=v=>norm(v).replace(/^\d+(?:\.\d+)*\.?\s*/,'').trim();
+    const numeric=v=>/^\d+(?:\.\d+)*$/.test(norm(v));
+    const candidates=[];
+    (rows||[]).slice(0,250).forEach(r=>{
+      [r.brandName,r.brand,r.businessUnit,r.businessUnitCode,r.area,r.subledgerHierarchy,r.subledger].forEach(v=>{
+        const raw=norm(v),c=clean(v);
+        if(!raw||raw===k||numeric(raw)||!c||c===k||numeric(c))return;
+        candidates.push(c);
+      });
+    });
+    if(!candidates.length)return k||'SIN MARCA';
+    const freq=new Map();candidates.forEach(v=>freq.set(v,(freq.get(v)||0)+1));
+    return [...freq].sort((a,b)=>(freq.get(b)-freq.get(a))||(b.length-a.length))[0]||k;
+  }
+  function areaName(r){const raw=norm(r.area||r.businessUnit||r.businessUnitCode||'SIN ÁREA');const clean=raw.replace(/^\d+(?:\.\d+)+\./,'').replace(/^\d+\./,'').trim();return clean||'SIN ÁREA'}
+  function centerName(r){return norm(r.center||r.subledger||'SIN CENTRO')||'SIN CENTRO'}
+  function unitName(r){return areaName(r)}
+  function rowsForRegion(rows,region){const reg=cleanRegion(region||'');if(!reg||reg==='RGI')return rows||[];if(reg==='VILLAHERMOSA')return (rows||[]).filter(r=>['VILLAHERMOSA','CARDENAS'].includes(cleanRegion(r.region)));return (rows||[]).filter(r=>cleanRegion(r.region)===reg)}
+  function visibleRegions(rows){const regs=[...new Set((rows||[]).map(r=>cleanRegion(r.region)).filter(Boolean))].filter(r=>r!=='CARDENAS').sort((a,b)=>a.localeCompare(b,'es'));return ['RGI',...regs]}
+  function filterRegion(data){if(!data?.rows)return[];if(upper(S.session.tipo)==='ADMINISTRADOR')return rowsForRegion(data.rows,S.adminRegion);return rowsForRegion(data.rows,sessionRegion(S.session))}
+  function adminRegionLabel(){return upper(S.session.tipo)==='ADMINISTRADOR'?(S.adminRegion||'RGI'):sessionRegion(S.session)}
+  function populateRegionFilter(data,source='cloud'){const sel=$(source==='local'?'r34LocalRegionFilter':'r34CloudRegionFilter');if(!sel||upper(S.session.tipo)!=='ADMINISTRADOR')return;const regions=visibleRegions(data?.rows||[]),keep=S.adminRegion||'RGI';sel.innerHTML='<option value="">Selecciona una región</option>'+regions.map(r=>`<option value="${esc(r)}">${r==='RGI'?'RGI · TODAS LAS REGIONES':esc(r)}</option>`).join('');S.adminRegion=regions.includes(keep)?keep:'RGI';sel.value=S.adminRegion;sel.onchange=()=>{S.adminRegion=cleanRegion(sel.value);renderCurrentSource()}}
+  function publicationCard(meta){return `<div class="rcv34-card rcv34-publication-card"><h3>Publicación oficial en la nube</h3><p>Actualizada: ${esc(meta?.fecha||'—')} · Por: ${esc(meta?.usuario||'—')} ${meta?.snapshotId?'· ID '+esc(meta.snapshotId.slice(0,8)):''}</p></div>`}
+  function sema(st){return `<span class="rcv34-semaforo rcv34-${st}"><i class="rcv34-dot"></i>${st==='green'?'VERDE · BIEN':'ROJO · REQUIERE ACCIÓN'}</span>`}
+  function pctLabel(rows,module){const t=totals(rows,module);if(module==='productividad'){const den=Math.abs(t.real);if(!den)return '—';return `${(Math.abs(t.budget)/den*100).toFixed(1)}%`}const den=Math.abs(t.budget);if(!den)return '—';const p=(Math.abs(t.real)/den)*100;return `${p.toFixed(1)}%`}
+  function deviationValue(rows,module){const t=totals(rows,module);return module==='productividad'?Math.max(0,t.budget-t.real):Math.max(0,Math.abs(t.real)-Math.abs(t.budget))}
+  function monthOrder(v){const u=upper(v),map={ENE:1,ENERO:1,FEB:2,FEBRERO:2,MAR:3,MARZO:3,ABR:4,ABRIL:4,MAY:5,MAYO:5,JUN:6,JUNIO:6,JUL:7,JULIO:7,AGO:8,AGOSTO:8,SEP:9,SEPT:9,SEPTIEMBRE:9,OCT:10,OCTUBRE:10,NOV:11,NOVIEMBRE:11,DIC:12,DICIEMBRE:12};for(const k in map)if(u===k||u.startsWith(k))return map[k];return 99}
+  function monthlyGroups(rows){const g=groupRows(rows,'period');return [...g].filter(([k])=>norm(k)).sort((a,b)=>monthOrder(a[0])-monthOrder(b[0]))}
+  function drawTrendChart(c,rows,module){const items=monthlyGroups(rows).map(([name,rs])=>({name,...totals(rs,module)}));const f=fitCanvas(c,260);if(!f||!items.length)return;const{x,w,h}=f,p={l:55,r:20,t:22,b:48},cw=w-p.l-p.r,ch=h-p.t-p.b;const mx=Math.max(...items.flatMap(i=>[Math.abs(i.real),Math.abs(i.budget)]),1);x.font='10px Segoe UI';x.strokeStyle='#e5eaf1';x.fillStyle='#667085';for(let i=0;i<=4;i++){const y=p.t+ch*i/4;x.beginPath();x.moveTo(p.l,y);x.lineTo(w-p.r,y);x.stroke();x.fillText(new Intl.NumberFormat('es-MX',{notation:'compact',maximumFractionDigits:1}).format(mx*(1-i/4)),4,y+3)}const point=(i,v)=>[p.l+(items.length===1?cw/2:cw*i/(items.length-1)),p.t+ch-(Math.abs(v)/mx*ch)];[['real','#2563eb'],['budget','#14b8a6']].forEach(([key,color])=>{x.beginPath();x.strokeStyle=color;x.lineWidth=2.5;items.forEach((it,i)=>{const[a,b]=point(i,it[key]);i?x.lineTo(a,b):x.moveTo(a,b)});x.stroke();items.forEach((it,i)=>{const[a,b]=point(i,it[key]);x.fillStyle=color;x.beginPath();x.arc(a,b,3,0,Math.PI*2);x.fill()})});items.forEach((it,i)=>{const[a]=point(i,0);x.fillStyle='#475467';x.textAlign='center';x.fillText(it.name,a,h-15)});x.fillStyle='#2563eb';x.fillRect(w-170,8,10,10);x.fillStyle='#475467';x.textAlign='left';x.fillText('Real',w-155,17);x.fillStyle='#14b8a6';x.fillRect(w-105,8,10,10);x.fillStyle='#475467';x.fillText('Presupuesto',w-90,17)}
+  function rankBy(groups,module,limit=10){
+    return [...(groups||new Map())]
+      .map(([name,rs])=>{
+        const t=totals(rs,module);
+        return {name,rs,t,value:Math.abs(Number(t.real)||0)};
+      })
+      .sort((a,b)=>b.value-a.value)
+      .slice(0,limit);
+  }
+
+  function rankingBlock(groups,module,title,subtitle,kind=''){
+    let top=[];
+    try{top=rankBy(groups,module,10)}catch(e){console.warn('rankingBlock',e);top=[]}
+    const attr=kind?`data-r501-top="${esc(kind)}"`:'';
+    return `<article class="rcv48-rank r501-rank-card" ${attr}>
+      <div class="rcv42-top-head">
+        <div><h3>${esc(title)}</h3><p>${esc(subtitle)}</p></div>
+        <button class="r501-open-top" ${attr}>VER TODO ↗</button>
+      </div>
+      <div class="rcv48-rank-list">
+        ${top.map((x,i)=>`<button class="r501-top-row" data-r501-top-item="${esc(kind)}" data-r501-name="${esc(x.name)}">
+          <i>${i+1}</i>
+          <span><b>${esc(x.name)}</b><small>Real ${money(x.t.real)} · Presupuesto ${money(x.t.budget)}</small></span>
+          ${sema(x.t.st)}
+        </button>`).join('')||'<div class="rcv34-empty">Sin datos para el filtro actual.</div>'}
+      </div>
+    </article>`;
+  }
+
+  function topDeviationBlock(groups,module){
+    let top=[];
+    try{top=[...(groups||new Map())].map(([name,rs])=>({name,rs,dev:deviationValue(rs,module),t:totals(rs,module)})).filter(x=>x.dev>0).sort((a,b)=>b.dev-a.dev).slice(0,10)}catch(e){console.warn('topDeviationBlock',e)}
+    return `<article class="rcv42-top-card r501-deviation-card"><div class="rcv42-top-head"><div><h3>Top 10 desviaciones</h3><p>Prioriza las cuentas que requieren atención.</p></div><button class="r501-open-top" data-r501-top="deviations">VER TODO ↗</button></div><div class="rcv42-top-list">${top.map((x,i)=>`<button class="r501-deviation-item" data-r501-top-item="deviations" data-r501-name="${esc(x.name)}"><b>${i+1}</b><span><strong>${esc(x.name)}</strong><small>Exceso<br>${money(x.dev)}</small></span></button>`).join('')||'<div class="rcv34-empty">Sin desviaciones críticas.</div>'}</div></article>`;
+  }
+  function openManager(data,module,manager,meta,source='cloud'){
+    const all=filterPeriod(filterRegion(data)),rows=all.filter(r=>managerName(r)===manager),t=totals(rows,module),areas=groupRows(rows,areaName),bad=[...areas].filter(([,rs])=>totals(rs,module).st==='red').length,good=areas.size-bad;
+    $('r34DetailTitle').textContent=manager;$('r34DetailSub').textContent=`${MODULES[module].label} · ${adminRegionLabel()} · Gerencia → Áreas / departamentos`;
+    const cards=[...areas].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module),centers=new Set(rs.map(centerName)).size;return `<article class="rcv48-area-card ${z.st==='red'?'is-red':'is-green'}" data-r48-area="${esc(name)}"><div><strong>${esc(name)}</strong><small>${centers} centro(s) / subárea(s) · ${rs.length.toLocaleString()} movimientos</small></div>${sema(z.st)}<div class="amounts"><span>Real<b>${money(z.real)}</b></span><span>Presupuesto<b>${money(z.budget)}</b></span></div></article>`}).join('');
+    $('r34DetailBody').innerHTML=`<div class="rcv48-breadcrumb"><b>${esc(adminRegionLabel())}</b><i>›</i><b>${esc(manager)}</b><i>›</i><span>Áreas / departamentos</span></div><div class="rcv34-kpis"><article class="rcv34-kpi"><small>REAL</small><strong>${money(t.real)}</strong></article><article class="rcv34-kpi"><small>PRESUPUESTO</small><strong>${money(t.budget)}</strong></article><article class="rcv34-kpi"><small>VARIACIÓN</small><strong>${money(t.diff)}</strong></article><article class="rcv34-kpi"><small>ÁREAS</small><strong>${areas.size}</strong><span>${bad} rojas · ${good} verdes</span></article></div><div class="rcv48-manager-grid">${rankingBlock(areas,module,'Top 10 por departamento / área','Mayor importe real dentro de esta gerencia.')}</div><article class="rcv34-card"><h3>Áreas que componen la gerencia</h3><p>Selecciona un área para ver cuentas, centros, movimientos y semáforo.</p><div class="rcv48-area-grid">${cards}</div></article>`;
+    $('r34Detail').classList.add('open');
+    $('r34DetailBody').querySelectorAll('[data-r48-area]').forEach(el=>el.onclick=()=>openUnit({...data,rows,_manager:manager},module,el.dataset.r48Area,meta,source));
+  }
+  function regionChooser(data,module,source){const regions=visibleRegions(data?.rows||[]);return `<article class="rcv34-card rcv34-region-step"><div class="rcv34-step-title"><span>1</span><div><h3>Selecciona la región</h3><p>Después se mostrarán las cuentas contables detectadas en esa región y sus respectivos semáforos.</p></div></div><div class="rcv34-region-grid">${regions.map(reg=>{const rs=rowsForRegion(data.rows||[],reg),t=totals(rs,module);return `<button class="rcv34-region-card" data-pick-region="${esc(reg)}"><strong>${esc(reg)}</strong><span>${rs.length.toLocaleString()} registros</span><small>Real ${money(t.real)} · Presupuesto ${money(t.budget)}</small>${sema(t.st)}</button>`}).join('')||'<div class="rcv34-empty">No se detectaron regiones en este archivo.</div>'}</div></article>`}
+  function accountName(r){return norm(r.hierarchy||r.account||'SIN CUENTA CONTABLE')||'SIN CUENTA CONTABLE'}
+  function accountDetailName(r){return norm(r.account||r.hierarchy||'SIN CONCEPTO')||'SIN CONCEPTO'}
+  function evolutionTag(module,a,b){
+    if(a.st==='red'&&b.st==='green')return{label:'MEJORÓ SEMÁFORO',kind:'good'};
+    if(a.st==='green'&&b.st==='red')return{label:'EMPEORÓ SEMÁFORO',kind:'bad'};
+    const cm=compareMetric(module,a.real,b.real);
+    if(Math.abs(cm.delta)<0.005)return{label:'SIN CAMBIO',kind:'neutral'};
+    if(module==='productividad')return cm.delta>0?{label:'MEJORA',kind:'good'}:{label:'PÉRDIDA / CAÍDA',kind:'bad'};
+    return cm.delta<0?{label:'AHORRO / MEJORA',kind:'good'}:{label:'MAYOR GASTO',kind:'bad'};
+  }
+  function compareExecutiveBlock(regionRows,module){
+    if(!S.compareYears)return'';
+    const aRows=compareRows(comparisonSideRows(regionRows,'base'),S.compareBase,S.compareBaseMonth),bRows=compareRows(comparisonSideRows(regionRows,'target'),S.compareTarget,S.compareTargetMonth),c=compareTotals(regionRows,module),mode=breakdownMode();
+    const keyFn=mode==='brand'?managerName:accountName;
+    // v56.9 rendimiento: agrupar cada periodo UNA sola vez. Antes se recorrían
+    // todos los movimientos nuevamente por cada cuenta/gerencia (O(n × grupos)),
+    // lo que podía tardar decenas de segundos al alternar el orden del desglose.
+    const aGroups=groupRows(aRows,keyFn), bGroups=groupRows(bRows,keyFn);
+    const names=[...new Set([...aGroups.keys(),...bGroups.keys()])];
+    const items=names.map(name=>{
+      const a=totals(aGroups.get(name)||[],module),b=totals(bGroups.get(name)||[],module),metric=compareMetric(module,a.real,b.real),trend=evolutionTag(module,a,b);
+      return{name,a,b,delta:metric.delta,pct:metric.pct,trend}
+    }).sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta));
+    const improved=items.filter(x=>x.trend.kind==='good').length,worse=items.filter(x=>x.trend.kind==='bad').length,unchanged=items.length-improved-worse;
+    const changeLabel=module==='productividad'?(c.real.delta>=0?'MEJORA TOTAL':'PÉRDIDA TOTAL'):(c.real.delta<=0?'AHORRO TOTAL':'MAYOR GASTO TOTAL');
+    const totalKind=module==='productividad'?(c.real.delta>=0?'good':'bad'):(c.real.delta<=0?'good':'bad');
+    const firstLabel=mode==='brand'?'Gerencia':'Cuenta contable', countLabel=mode==='brand'?'gerencias':'cuentas';
+    return `<section class="rcv481-compare r50-compare r562-compare">
+      <div class="rcv481-title"><div><span>COMPARATIVA EXACTA ENTRE PERIODOS</span><h2>${esc(comparePeriodLabel())}</h2><p>Los valores corresponden exclusivamente a los meses seleccionados cuando eliges un mes específico.</p></div>
+        <div class="rcv481-balance"><b>${improved}</b><small>mejoraron</small><b class="bad">${worse}</b><small>empeoraron</small><b class="neutral">${unchanged}</b><small>sin cambio</small></div>
+      </div>
+      <div class="r50-compare-kpis">
+        <article><small>${esc((S.compareBaseMonth?MONTH_LABELS[Number(S.compareBaseMonth)]+' ':'')+S.compareBase)}</small><strong>${money(c.base.real)}</strong><span>REAL</span></article>
+        <article><small>${esc((S.compareTargetMonth?MONTH_LABELS[Number(S.compareTargetMonth)]+' ':'')+S.compareTarget)}</small><strong>${money(c.target.real)}</strong><span>REAL</span></article>
+        <article class="${totalKind}"><small>${changeLabel}</small><strong>${c.real.delta>=0?'+':''}${money(c.real.delta)}</strong><span>${c.real.pct>=0?'+':''}${c.real.pct.toFixed(1)}%</span></article>
+        <article><small>PRESUPUESTO BASE</small><strong>${money(c.base.budget)}</strong></article>
+        <article><small>PRESUPUESTO COMPARAR</small><strong>${money(c.target.budget)}</strong></article>
+        <article><small>DIF. PRESUPUESTO</small><strong>${c.budget.delta>=0?'+':''}${money(c.budget.delta)}</strong><span>${c.budget.pct>=0?'+':''}${c.budget.pct.toFixed(1)}%</span></article>
+      </div>
+      <article class="rcv34-card r562-compare-card">
+        <div class="rcv42-top-head"><div><h3>Desglose comparativo por ${mode==='brand'?'gerencia':'cuenta contable'}</h3><p>Elige el orden de navegación. Después haz clic en una fila para continuar al siguiente nivel.</p></div><span>${items.length} ${countLabel}</span></div>
+        ${breakdownModeSelector()}
+        <div class="r50-compare-table r562-compare-table"><div class="head"><span>${firstLabel}</span><span>${esc((S.compareBaseMonth?MONTH_LABELS[Number(S.compareBaseMonth)]+' ':'')+S.compareBase)}</span><span>${esc((S.compareTargetMonth?MONTH_LABELS[Number(S.compareTargetMonth)]+' ':'')+S.compareTarget)}</span><span>Diferencia (+/-)</span><span>Variación (+/-)</span><span>Resultado</span></div>
+          ${items.map(x=>{const semKind=x.trend.kind==='bad'?'bad':'good',attr=mode==='brand'?`data-r562-compare-brand="${esc(x.name)}"`:`data-r50-compare-account="${esc(x.name)}"`,label=mode==='brand'?managerName({subledgerHierarchy:x.name}):x.name;return `<button class="row" ${attr}><b>${esc(label)}</b><span>${money(x.a.real)}</span><span>${money(x.b.real)}</span><strong class="${x.trend.kind}">${x.delta>=0?'+':''}${money(x.delta)}</strong><span class="${semKind}">${x.pct>=0?'+':''}${x.pct.toFixed(1)}%</span><em class="r534-result-dot ${semKind}" title="${esc(x.trend.label)}" aria-label="${esc(x.trend.label)}"></em></button>`}).join('')}
+        </div>
+      </article>
+    </section>`;
+  }
+  function accountCompareMini(regionRows,module,account){
+    if(!S.compareYears)return'';
+    const ar=compareRows(comparisonSideRows(regionRows,'base'),S.compareBase,S.compareBaseMonth).filter(r=>accountName(r)===account),br=compareRows(comparisonSideRows(regionRows,'target'),S.compareTarget,S.compareTargetMonth).filter(r=>accountName(r)===account);
+    const a=totals(ar,module),b=totals(br,module),metric=compareMetric(module,a.real,b.real),trend=evolutionTag(module,a,b);
+    return `<article class="rcv34-card r50-account-compare"><div class="rcv42-top-head"><div><h3>Comparativa de esta cuenta</h3><p>${esc(comparePeriodLabel())}</p></div><em class="${trend.kind}">${trend.label}</em></div>
+      <div class="r50-account-compare-grid"><div><small>Base</small><b>${money(a.real)}</b>${sema(a.st)}</div><div><small>Comparar</small><b>${money(b.real)}</b>${sema(b.st)}</div><div><small>Diferencia (+/-)</small><b>${metric.delta>=0?'+':''}${money(metric.delta)}</b><span>${metric.pct>=0?'+':''}${metric.pct.toFixed(1)}%</span></div></div>
+    </article>`;
+  }
+  function openTopModal(data,module,type,meta={},source='cloud'){
+    const baseRows=filterRegion(data),rows=S.compareYears?compareRows(comparisonSideRows(baseRows,'target'),S.compareTarget,S.compareTargetMonth):filterPeriod(baseRows);
+    let groups,title,subtitle,items;
+    if(type==='regions'){
+      const allRows=S.compareYears?compareRows(data?.rows||[],S.compareTarget,S.compareTargetMonth):filterPeriod(data?.rows||[]);
+      groups=groupRows(allRows,r=>cleanRegion(r.region));title='Top de regiones';subtitle=`${MODULES[module].label} · ${S.compareYears?comparePeriodLabel():periodRangeLabel()}`;
+      items=rankBy(groups,module,10);
+    }else if(type==='deviations'){
+      groups=groupRows(rows,accountName);title='Top 10 desviaciones';subtitle=`${adminRegionLabel()} · cuentas que requieren atención`;
+      items=[...groups].map(([name,rs])=>({name,rs,t:totals(rs,module),dev:deviationValue(rs,module)})).filter(x=>x.dev>0).sort((a,b)=>b.dev-a.dev).slice(0,10);
+    }else{
+      groups=groupRows(rows,accountName);title='Top 10 cuentas contables';subtitle=`${adminRegionLabel()} · mayor importe Real`;
+      items=rankBy(groups,module,10);
+    }
+    $('r34DetailTitle').textContent=title;$('r34DetailSub').textContent=subtitle;
+    $('r34DetailBody').innerHTML=`<div class="r501-top-modal"><div class="r501-top-summary"><strong>${items.length}</strong><span>elementos incluidos en este Top</span></div><div class="r501-top-full-list">${items.map((x,i)=>{
+      const z=x.t||totals(x.rs,module),extra=type==='deviations'?`<span class="bad">Exceso <b>${money(x.dev||0)}</b></span>`:`<span>Variación <b>${money(z.diff)}</b></span>`;
+      return `<button class="r501-top-full-row" data-r501-modal-type="${esc(type)}" data-r501-modal-name="${esc(x.name)}"><i>${i+1}</i><div><strong>${esc(x.name)}</strong><small>Real ${money(z.real)} · Presupuesto ${money(z.budget)}</small></div>${extra}${sema(z.st)}</button>`;
+    }).join('')}</div></div>`;
+    $('r34Detail').classList.add('open');
+    document.querySelectorAll('[data-r501-modal-name]').forEach(b=>b.onclick=()=>{
+      const type=b.dataset.r501ModalType,name=b.dataset.r501ModalName;
+      if(type==='regions'){S.adminRegion=cleanRegion(name);$('r34Detail').classList.remove('open');renderCurrentSource()}
+      else openAccount(data,module,name,meta,source)
+    });
+  }
+  function bindTopActions(data,module,meta,source){
+    document.querySelectorAll('[data-r501-top]').forEach(el=>{
+      el.onclick=e=>{e.stopPropagation();openTopModal(data,module,el.dataset.r501Top,meta,source)}
+    });
+    document.querySelectorAll('[data-r501-top-item]').forEach(el=>el.onclick=e=>{
+      e.stopPropagation();
+      const type=el.dataset.r501TopItem,name=el.dataset.r501Name;
+      if(type==='regions'){S.adminRegion=cleanRegion(name);renderCurrentSource()}
+      else openAccount(data,module,name,meta,source)
+    });
+  }
+  function periodMetricLabels(){
+    if(S.module==='productividad')return ['VENTAS','GASTOS'];
+    if(S.compareYears){const bm=Number(S.compareBaseMonth||0),tm=Number(S.compareTargetMonth||0);return [`${bm?(MONTH_LABELS[bm]||'')+' ':''}${S.compareBase||'BASE'}`,`${tm?(MONTH_LABELS[tm]||'')+' ':''}${S.compareTarget||'COMPARAR'}`]}
+    const y=S.periodYear||'REAL';return [String(y),'PRESUPUESTO'];
+  }
+  function openAccount(data,module,account,meta,source='cloud'){
+    const regionRows=filterRegion(data),viewRows=S.compareYears?compareRows(comparisonSideRows(regionRows,'target'),S.compareTarget,S.compareTargetMonth):filterPeriod(regionRows),rows=viewRows.filter(r=>accountName(r)===account),t=totals(rows,module);
+    const concepts=groupRows(rows,accountDetailName),centers=new Set(rows.map(centerName).filter(Boolean)),areas=new Set(rows.map(areaName).filter(Boolean)),managers=new Set(rows.map(managerName).filter(Boolean));
+    const key=`CUENTA CONTABLE: ${account}`, rowState=r=>status(module,r.real,r.budget), labels=periodMetricLabels();
+    $('r34DetailTitle').textContent=account;$('r34DetailSub').textContent=`${MODULES[module].label} · ${adminRegionLabel()} · Cuenta contable → Conceptos`;
+    const renderSummary=()=>{
+      const cards=[...concepts].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module);return `<button class="r50-impact-card r501-impact-click ${z.st==='red'?'is-red':'is-green'}" data-r565-concept="${esc(name)}"><div class="top"><div><strong>${esc(name)}</strong><small>${new Set(rs.map(managerName)).size} gerencia(s) · ${rs.length.toLocaleString()} movimientos</small></div>${sema(z.st)}</div><div class="amounts"><span>${esc(labels[0])}<b>${money(z.real)}</b></span><span>${esc(labels[1])}<b>${money(z.budget)}</b></span><span>Diferencia (+/-)<b>${money(z.diff)}</b></span></div><em>VER DETALLADO →</em></button>`}).join('');
+      const conversation=source==='cloud'&&meta?.snapshotId?threadBlock(module,meta.snapshotId,adminRegionLabel(),key,[...managers]):'';
+      $('r34DetailBody').innerHTML=`<div class="rcv48-breadcrumb"><b>${esc(adminRegionLabel())}</b><i>›</i><b>Cuenta contable</b><i>›</i><span>${esc(account)}</span></div><div class="r501-account-head"><div class="rcv34-kpis"><article class="rcv34-kpi"><small>${esc(labels[0])}</small><strong>${money(t.real)}</strong></article><article class="rcv34-kpi"><small>${esc(labels[1])}</small><strong>${money(t.budget)}</strong></article><article class="rcv34-kpi"><small>VARIACIÓN (+/-)</small><strong>${money(t.diff)}</strong></article><article class="rcv34-kpi"><small>CONCEPTOS</small><strong>${concepts.size}</strong><span>${managers.size} gerencias · ${areas.size} áreas</span></article></div></div>${accountCompareMini(regionRows,module,account)}<article class="rcv34-card"><div class="rcv42-top-head"><div><h3>Conceptos que integran la cuenta</h3><p>Se muestran juntos los conceptos de todas las gerencias afectadas de la región. Selecciona un concepto para abrir el detallado.</p></div><span>${concepts.size} conceptos</span></div><div class="r50-impact-grid">${cards||'<div class="rcv34-empty">Sin conceptos identificados.</div>'}</div></article>${conversation}`;
+      document.querySelectorAll('[data-r565-concept]').forEach(b=>b.onclick=()=>renderDetail(b.dataset.r565Concept));
+      if(conversation){const getTarget=()=>$('r51TargetManager')?.value||S.session.gerencia||'';loadThread(module,meta.snapshotId,adminRegionLabel(),key,getTarget());if($('r51TargetManager'))$('r51TargetManager').onchange=()=>loadThread(module,meta.snapshotId,adminRegionLabel(),key,getTarget());if($('r34SendNote'))$('r34SendNote').onclick=()=>sendNote(module,meta.snapshotId,adminRegionLabel(),key,getTarget())}
+    };
+    const renderDetail=(concept='')=>{const detailRows=concept?rows.filter(r=>accountDetailName(r)===concept):rows,dt=totals(detailRows,module);const makeRows=list=>list.map(r=>`<tr data-detail-state="${rowState(r)}"><td>${esc(r.account)}</td>${adminRegionLabel()==='RGI'?`<td>${esc(cleanRegion(r.region))}</td>`:''}<td>${esc(managerName(r))}</td><td>${esc(areaName(r))}</td><td>${esc(centerName(r))}</td><td>${esc(r.period)}</td><td>${money(r.real)}</td><td>${money(r.budget)}</td><td>${money(module==='productividad'?r.real-r.budget:Math.abs(r.real)-Math.abs(r.budget))}</td><td>${sema(rowState(r))}</td></tr>`).join('');$('r34DetailBody').innerHTML=`<div class="r501-detail-toolbar"><button id="r501BackSemaphore" class="rcv34-btn">← Volver a conceptos</button><div><b>${esc(account)}</b><span>${esc(concept||'Todos los conceptos')}</span></div></div><div class="rcv34-kpis"><article class="rcv34-kpi"><small>${esc(labels[0])}</small><strong>${money(dt.real)}</strong></article><article class="rcv34-kpi"><small>${esc(labels[1])}</small><strong>${money(dt.budget)}</strong></article><article class="rcv34-kpi"><small>VARIACIÓN (+/-)</small><strong>${money(dt.diff)}</strong></article><article class="rcv34-kpi"><small>MOVIMIENTOS</small><strong>${detailRows.length}</strong></article></div><article class="rcv34-card"><div class="rcv41-detail-head"><div><h3>Movimientos detallados</h3><p id="r41DetailCount">${detailRows.length.toLocaleString()} movimientos.</p></div><input id="r42DetailSearch" class="rcv42-search" placeholder="Buscar concepto, gerencia, área, centro…"></div><div class="rcv34-table-wrap"><table class="rcv34-table"><thead><tr><th>Cuenta / concepto</th>${adminRegionLabel()==='RGI'?'<th>Región</th>':''}<th>Gerencia</th><th>Área</th><th>Centro / afectación</th><th>Mes</th><th>${esc(labels[0])}</th><th>${esc(labels[1])}</th><th>Diferencia (+/-)</th><th>Estado</th></tr></thead><tbody id="r41DetailRows">${makeRows(detailRows)}</tbody></table></div></article>`;$('r501BackSemaphore').onclick=renderSummary;if($('r42DetailSearch'))$('r42DetailSearch').oninput=()=>{const q=upper($('r42DetailSearch').value||'');document.querySelectorAll('#r41DetailRows tr').forEach(tr=>tr.classList.toggle('rcv34-hidden',!!q&&!upper(tr.textContent).includes(q)))}};
+    $('r34Detail').classList.add('open');renderSummary();
+  }
+  function r503ContextChips(module,source){
+    const period=S.compareYears?comparePeriodLabel():periodRangeLabel();
+    const src=source==='local'?'PROCESADO EN REAL':'NUBE PUBLICADA';
+    return `<div class="r503-context-chips">
+      <span><b>REGIÓN</b>${esc(adminRegionLabel())}</span>
+      <span><b>PERIODO</b>${esc(period)}</span>
+      <span><b>FUENTE</b>${esc(src)}</span>
+      ${S.compareYears?'<span class="compare"><b>MODO</b>COMPARATIVA ACTIVA</span>':''}
+    </div>`;
+  }
+  function r503TogglePresentation(){
+    document.body.classList.toggle('rcv-presentation');
+  }
+  function breakdownMode(){return S.breakdownMode==='brand'?'brand':'account'}
+  function breakdownModeSelector(){const m=breakdownMode();return `<div class="r561-breakdown-mode" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px"><span style="font-size:12px;font-weight:800;color:#64748b;margin-right:4px">ORDEN DEL DESGLOSE</span><button class="rcv34-btn ${m==='account'?'primary':''}" data-r561-mode="account">Cuenta contable</button><button class="rcv34-btn ${m==='brand'?'primary':''}" data-r561-mode="brand">Gerencia</button></div>`}
+  function openBrand(data,module,brand,meta,source='cloud'){
+    const regionRows=filterRegion(data), labels=periodMetricLabels();
+    // v58.8 Gastos: la gerencia consolidada viene del auxiliar O de ORIGEN2.
+    // En comparativa mostramos sus cuentas como lista, igual que el desglose principal.
+    if(module==='gastos'&&S.compareYears){
+      const aAll=compareRows(comparisonSideRows(regionRows,'base'),S.compareBase,S.compareBaseMonth).filter(r=>managerName(r)===brand);
+      const bAll=compareRows(comparisonSideRows(regionRows,'target'),S.compareTarget,S.compareTargetMonth).filter(r=>managerName(r)===brand);
+      const aGroups=groupRows(aAll,accountName), bGroups=groupRows(bAll,accountName);
+      const names=[...new Set([...aGroups.keys(),...bGroups.keys()])];
+      const items=names.map(name=>{const a=totals(aGroups.get(name)||[],module),b=totals(bGroups.get(name)||[],module),m=compareMetric(module,a.real,b.real),trend=evolutionTag(module,a,b);return{name,a,b,delta:m.delta,pct:m.pct,trend}}).sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta));
+      const allRows=[...aAll,...bAll],tA=totals(aAll,module),tB=totals(bAll,module),tm=compareMetric(module,tA.real,tB.real);
+      $('r34DetailTitle').textContent=brand;
+      $('r34DetailSub').textContent=`${MODULES[module].label} · ${adminRegionLabel()} · Gerencia → Cuenta contable → Conceptos`;
+      $('r34DetailBody').innerHTML=`<div class="rcv48-breadcrumb"><b>${esc(adminRegionLabel())}</b><i>›</i><b>Gerencia</b><i>›</i><span>${esc(brand)}</span></div>
+        <div class="rcv34-kpis"><article class="rcv34-kpi"><small>${esc((S.compareBaseMonth?MONTH_LABELS[Number(S.compareBaseMonth)]+' ':'')+S.compareBase)}</small><strong>${money(tA.real)}</strong></article><article class="rcv34-kpi"><small>${esc((S.compareTargetMonth?MONTH_LABELS[Number(S.compareTargetMonth)]+' ':'')+S.compareTarget)}</small><strong>${money(tB.real)}</strong></article><article class="rcv34-kpi"><small>VARIACIÓN (+/-)</small><strong>${tm.delta>=0?'+':''}${money(tm.delta)}</strong></article><article class="rcv34-kpi"><small>CUENTAS CONTABLES</small><strong>${items.length}</strong></article></div>
+        <article class="rcv34-card"><div class="rcv42-top-head"><div><h3>Cuentas contables afectadas</h3><p>Selecciona una cuenta para ver todo lo que la afecta y después abrir su desglose detallado.</p></div><span>${items.length} cuentas</span></div>
+        <div class="r50-compare-table r562-compare-table"><div class="head"><span>Cuenta contable</span><span>${esc((S.compareBaseMonth?MONTH_LABELS[Number(S.compareBaseMonth)]+' ':'')+S.compareBase)}</span><span>${esc((S.compareTargetMonth?MONTH_LABELS[Number(S.compareTargetMonth)]+' ':'')+S.compareTarget)}</span><span>Diferencia (+/-)</span><span>Variación (+/-)</span><span>Resultado</span></div>
+        ${items.map(x=>{const semKind=x.trend.kind==='bad'?'bad':'good';return `<button class="row" data-r588-manager-account="${esc(x.name)}"><b>${esc(x.name)}</b><span>${money(x.a.real)}</span><span>${money(x.b.real)}</span><strong class="${x.trend.kind}">${x.delta>=0?'+':''}${money(x.delta)}</strong><span class="${semKind}">${x.pct>=0?'+':''}${x.pct.toFixed(1)}%</span><em class="r534-result-dot ${semKind}" title="${esc(x.trend.label)}"></em></button>`}).join('')||'<div class="rcv34-empty">Sin cuentas identificadas.</div>'}</div></article>`;
+      $('r34Detail').classList.add('open');
+      document.querySelectorAll('[data-r588-manager-account]').forEach(b=>b.onclick=()=>openAccount(data,module,b.dataset.r588ManagerAccount,meta,source));
+      return;
+    }
+    const viewRows=S.compareYears?compareRows(comparisonSideRows(regionRows,'target'),S.compareTarget,S.compareTargetMonth):filterPeriod(regionRows),rows=viewRows.filter(r=>managerName(r)===brand),t=totals(rows,module),accounts=groupRows(rows,accountName);
+    const brandLabel=brand;$('r34DetailTitle').textContent=brandLabel;$('r34DetailSub').textContent=`${MODULES[module].label} · ${adminRegionLabel()} · Gerencia → Cuenta contable → Conceptos`;
+    const cards=[...accounts].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module);return `<button class="r50-impact-card r501-impact-click ${z.st==='red'?'is-red':'is-green'}" data-r561-brand-account="${esc(name)}"><div class="top"><div><strong>${esc(name)}</strong><small>${new Set(rs.map(accountDetailName)).size} concepto(s) · ${rs.length.toLocaleString()} movimientos</small></div>${sema(z.st)}</div><div class="amounts"><span>${esc(labels[0])}<b>${money(z.real)}</b></span><span>${esc(labels[1])}<b>${money(z.budget)}</b></span><span>Diferencia (+/-)<b>${money(z.diff)}</b></span></div><em>VER CONCEPTOS →</em></button>`}).join('');
+    $('r34DetailBody').innerHTML=`<div class="rcv48-breadcrumb"><b>${esc(adminRegionLabel())}</b><i>›</i><b>Gerencia</b><i>›</i><span>${esc(brandLabel)}</span></div><div class="r501-account-head"><div class="rcv34-kpis"><article class="rcv34-kpi"><small>${esc(labels[0])}</small><strong>${money(t.real)}</strong></article><article class="rcv34-kpi"><small>${esc(labels[1])}</small><strong>${money(t.budget)}</strong></article><article class="rcv34-kpi"><small>VARIACIÓN (+/-)</small><strong>${money(t.diff)}</strong></article><article class="rcv34-kpi"><small>CUENTAS CONTABLES</small><strong>${accounts.size}</strong></article></div></div><article class="rcv34-card"><div class="rcv42-top-head"><div><h3>Cuentas contables afectadas</h3><p>Selecciona una cuenta; después verás sus conceptos y podrás abrir el detallado.</p></div><span>${accounts.size} cuentas</span></div><div class="r50-impact-grid">${cards||'<div class="rcv34-empty">Sin cuentas identificadas.</div>'}</div></article>`;
+    $('r34Detail').classList.add('open');document.querySelectorAll('[data-r561-brand-account]').forEach(b=>b.onclick=()=>openAccount(data,module,b.dataset.r561BrandAccount,meta,source));
+  }
+  function bindBreakdownMode(){document.querySelectorAll('[data-r561-mode]').forEach(b=>b.onclick=()=>{S.breakdownMode=b.dataset.r561Mode;renderCurrentSource()})}
+
+  function productivityHierarchyBlock(rows){
+    const managers=groupRows(rows,managerName);
+    const groups=[...managers].sort((a,b)=>Math.abs(totals(b[1],'productividad').real)-Math.abs(totals(a[1],'productividad').real));
+    const ratio=rs=>{const t=totals(rs,'productividad');return Math.abs(t.real)>0?Math.abs(t.budget)/Math.abs(t.real)*100:0};
+    const row=(id,label,rs,level,children='',expandable=true)=>{
+      const t=totals(rs,'productividad'),pct=ratio(rs),st=pct>7?'red':'green';
+      const cells={manager:['', '', '', ''],point:['', '', '', ''],brand:['', '', '', ''],account:['', '', '', '']};
+      const idx={manager:0,point:1,brand:2,account:3}[level]; cells[level][idx]=label||'SIN CLASIFICAR';
+      const first=cells[level].map((v,i)=>`<span class="r590-hcell r590-h${i}">${i===idx&&expandable?`<i class="r570-plus">+</i>`:''}<b>${esc(v)}</b></span>`).join('');
+      return `<div class="r570-prod-${level}"><button type="button" class="r570-prod-toggle ${level}${expandable?'':' leaf'}" ${expandable?`data-r570-toggle="${id}"`:''}>${first}<span class="r590-num">${money(t.real)}</span><span class="r590-num">${money(t.budget)}</span><span class="r590-num ${st==='green'?'good':'bad'}">${pct.toFixed(1)}%</span></button>${expandable?`<div id="${id}" class="r570-prod-accounts rcv34-hidden">${children}</div>`:''}</div>`;
+    };
+    const body=groups.map(([ger,gr],gi)=>{
+      const pvs=groupRows(gr,r=>norm(r.center||r.businessUnit)||'SIN PUNTO DE VENTA');
+      const pvHtml=[...pvs].map(([pv,pr],pi)=>{
+        const marcas=groupRows(pr,r=>norm(r.brandName)||'SIN MARCA');
+        const marcaHtml=[...marcas].map(([marca,mr],mi)=>{
+          const cuentas=groupRows(mr,accountName);
+          const cuentaHtml=[...cuentas].map(([cta,cr],ci)=>row(`pc-${gi}-${pi}-${mi}-${ci}`,cta,cr,'account','',false)).join('');
+          return row(`pm-${gi}-${pi}-${mi}`,marca,mr,'brand',cuentaHtml,true);
+        }).join('');
+        return row(`pp-${gi}-${pi}`,pv,pr,'point',marcaHtml,true);
+      }).join('');
+      return row(`pg-${gi}`,ger,gr,'manager',pvHtml,true);
+    }).join('');
+    return `<article class="rcv34-card r570-productivity-tree r590-productivity-tree"><div class="rcv42-top-head"><div><span class="r503-section-kicker">PRODUCTIVIDAD</span><h3>Rentabilidad por punto de venta</h3><p>Despliega con + la estructura Gerencia → Punto de venta → Marca → Cuenta contable. Cada nivel muestra sus Ventas, Gastos y Gts/Vtas totalizados.</p></div><span>${groups.length} gerencias</span></div><div class="r570-prod-head"><b>Gerencia</b><b>Punto de venta</b><b>Marca</b><b>Cuenta contable</b><span>Ventas</span><span>Gastos</span><span>Gts/Vtas</span></div>${body||'<div class="rcv34-empty">Sin información de productividad.</div>'}</article>`;
+  }
+
+  function bindProductivityHierarchy(){document.querySelectorAll('[data-r570-toggle]').forEach(b=>b.onclick=()=>{const id=b.dataset.r570Toggle,el=$(id);if(!el)return;const opening=el.classList.contains('rcv34-hidden');el.classList.toggle('rcv34-hidden',!opening);const plus=b.querySelector('.r570-plus');if(plus)plus.textContent=opening?'−':'+'})}
+
+  // v57.5: Resumen mensual de Productividad replica la lectura operativa del Excel:
+  // Gerencia -> Punto de venta -> Marca -> Cuenta contable, siempre Ventas vs Gastos.
+  function productivityMonthlyBlock(rows){
+    const ratio=rs=>{const t=totals(rs,'productividad');return Math.abs(t.real)>0?Math.abs(t.budget)/Math.abs(t.real)*100:0};
+    const groups=new Map();
+    (rows||[]).forEach(r=>{
+      const ger=managerName(r), pv=norm(r.center||r.businessUnit)||'SIN PUNTO DE VENTA', key=ger+'|||'+pv;
+      if(!groups.has(key))groups.set(key,{ger,pv,rows:[]}); groups.get(key).rows.push(r);
+    });
+    const items=[...groups.values()].map(x=>{x.t=totals(x.rows,'productividad');x.ratio=ratio(x.rows);return x}).sort((a,b)=>Math.abs(b.t.real)-Math.abs(a.t.real));
+    return `<section class="r574-prod-monthly"><div class="rcv481-title r574-prod-title"><div><span>RESUMEN DE PRODUCTIVIDAD</span><h2>${esc(periodRangeLabel())}</h2><p>Ventas contra Gastos del periodo seleccionado.</p></div></div>
+      <article class="rcv34-card r562-compare-card"><div class="rcv42-top-head"><div><h3>Rentabilidad por punto de venta</h3><p>Selecciona una gerencia / punto de venta para consultar sus marcas. Después selecciona una marca para ver sus cuentas y el detalle de Ventas vs Gastos.</p></div><span>${items.length} puntos de venta</span></div>
+      <div class="r50-compare-table r562-compare-table r574-productivity-table r575-productivity-table"><div class="head"><span>Gerencia</span><span>Punto de venta</span><span>Ventas</span><span>Gastos</span><span>Gts/Vtas</span><span>Resultado</span></div>
+      ${items.map((x,i)=>{const st=status('productividad',x.t.real,x.t.budget);return `<button class="row" data-r575-pv="${i}"><b>${esc(x.ger)}</b><b>${esc(x.pv)}</b><span>${money(x.t.real)}</span><span>${money(x.t.budget)}</span><strong class="${st==='red'?'bad':'good'}">${x.ratio.toFixed(1)}%</strong><em class="r534-result-dot ${st==='red'?'bad':'good'}" title="${st==='red'?'Mayor a 7%':'Dentro del objetivo'}"></em></button>`}).join('')}
+      </div></article></section>`;
+  }
+  function openProductivityPoint(rows,index){
+    const groups=new Map();
+    (rows||[]).forEach(r=>{const ger=managerName(r),pv=norm(r.center||r.businessUnit)||'SIN PUNTO DE VENTA',key=ger+'|||'+pv;if(!groups.has(key))groups.set(key,{ger,pv,rows:[]});groups.get(key).rows.push(r)});
+    const items=[...groups.values()].map(x=>{x.t=totals(x.rows,'productividad');return x}).sort((a,b)=>Math.abs(b.t.real)-Math.abs(a.t.real));
+    const x=items[Number(index)]; if(!x)return;
+    const visiblePointRows=x.rows.filter(r=>Math.abs(Number(r.real)||0)>0.000001||Math.abs(Number(r.budget)||0)>0.000001);
+    const marcas=groupRows(visiblePointRows,r=>norm(r.brandName)||'SIN MARCA');
+    $('r34DetailTitle').textContent=x.ger;
+    $('r34DetailSub').textContent=`Productividad · ${x.pv} · Marcas`;
+    const cards=[...marcas].map(([name,rs])=>{const t=totals(rs,'productividad'),pct=Math.abs(t.real)>0?Math.abs(t.budget)/Math.abs(t.real)*100:0,st=status('productividad',t.real,t.budget);return `<button class="r50-impact-card r501-impact-click ${st==='red'?'is-red':'is-green'}" data-r575-brand="${esc(name)}"><div class="top"><div><strong>${esc(name)}</strong><small>${new Set(rs.map(accountName)).size} cuenta(s) · ${rs.length.toLocaleString()} movimientos</small></div>${sema(st)}</div><div class="amounts"><span>Ventas<b>${money(t.real)}</b></span><span>Gastos<b>${money(t.budget)}</b></span><span>Gts/Vtas<b>${pct.toFixed(1)}%</b></span></div><em>VER DETALLE →</em></button>`}).join('');
+    $('r34DetailBody').innerHTML=`<div class="rcv48-breadcrumb"><b>${esc(x.ger)}</b><i>›</i><span>${esc(x.pv)}</span></div><article class="rcv34-card"><div class="rcv42-top-head"><div><h3>Marcas del punto de venta</h3><p>Selecciona una marca para consultar sus cuentas contables y Ventas vs Gastos.</p></div><span>${marcas.size} marcas</span></div><div class="r575-detail-note" style="margin:0 0 14px;padding:12px 14px;border:1px solid #dbe6f5;border-radius:12px;background:#f7faff;color:#53657f;font-size:13px"><b style="color:#173b73">Lectura del reporte:</b> se ocultan únicamente movimientos sin importe (Ventas $0.00 y Gastos $0.00). Las marcas con movimiento sólo en Ventas o sólo en Gastos se conservan, y el total del punto de venta combina todas las marcas.</div><div class="r50-impact-grid">${cards||'<div class="rcv34-empty">Sin marcas identificadas.</div>'}</div></article>`;
+    $('r34Detail').classList.add('open');
+    document.querySelectorAll('[data-r575-brand]').forEach(b=>b.onclick=()=>openProductivityBrand(x,b.dataset.r575Brand));
+  }
+  function openProductivityBrand(point,brand){
+    const rows=point.rows.filter(r=>(norm(r.brandName)||'SIN MARCA')===brand).filter(r=>Math.abs(Number(r.real)||0)>0.000001||Math.abs(Number(r.budget)||0)>0.000001), t=totals(rows,'productividad'), accounts=groupRows(rows,accountName), pct=Math.abs(t.real)>0?Math.abs(t.budget)/Math.abs(t.real)*100:0;
+    $('r34DetailTitle').textContent=brand;
+    $('r34DetailSub').textContent=`${point.ger} · ${point.pv} · Ventas vs Gastos`;
+    const body=[...accounts].map(([name,rs])=>{const z=totals(rs,'productividad'),p=Math.abs(z.real)>0?Math.abs(z.budget)/Math.abs(z.real)*100:0,st=status('productividad',z.real,z.budget);return `<div class="r50-impact-card ${st==='red'?'is-red':'is-green'}"><div class="top"><div><strong>${esc(name)}</strong><small>${rs.length.toLocaleString()} movimiento(s)</small></div>${sema(st)}</div><div class="amounts"><span>Ventas<b>${money(z.real)}</b></span><span>Gastos<b>${money(z.budget)}</b></span><span>Gts/Vtas<b>${p.toFixed(1)}%</b></span></div></div>`}).join('');
+    $('r34DetailBody').innerHTML=`<div class="rcv48-breadcrumb"><b>${esc(point.ger)}</b><i>›</i><b>${esc(point.pv)}</b><i>›</i><span>${esc(brand)}</span></div><div class="rcv34-kpis"><article class="rcv34-kpi"><small>VENTAS</small><strong>${money(t.real)}</strong></article><article class="rcv34-kpi"><small>GASTOS</small><strong>${money(t.budget)}</strong></article><article class="rcv34-kpi"><small>GTS/VTAS</small><strong>${pct.toFixed(1)}%</strong></article><article class="rcv34-kpi"><small>CUENTAS</small><strong>${accounts.size}</strong></article></div><article class="rcv34-card"><div class="rcv42-top-head"><div><h3>Detalle de la marca</h3><p>Cuentas contables con su comparativa de Ventas contra Gastos.</p></div><span>${accounts.size} cuentas</span></div><div class="r50-impact-grid">${body||'<div class="rcv34-empty">Sin cuentas identificadas.</div>'}</div></article>`;
+  }
+  function renderData(data,module,meta={},source='cloud'){
+    try{
+    const host=$('r34Data')||$('r34Panel'),admin=upper(S.session.tipo)==='ADMINISTRADOR';
+    if(admin&&!S.adminRegion){host.insertAdjacentHTML('beforeend',regionChooser(data,module,source));host.querySelectorAll('[data-pick-region]').forEach(b=>b.onclick=()=>{S.adminRegion=cleanRegion(b.dataset.pickRegion);const sel=$(source==='local'?'r34LocalRegionFilter':'r34CloudRegionFilter');if(sel)sel.value=S.adminRegion;renderCurrentSource()});return}
+    const regionRows=filterRegion(data),years=availableYears(regionRows);
+    if(!S.periodYear){const ly=latestYear(regionRows);if(ly)S.periodYear=ly}
+    if(S.compareYears){if(!S.compareTarget&&years.length)S.compareTarget=years[years.length-1];if(!S.compareBase&&years.length)S.compareBase=years[Math.max(0,years.length-2)];S.periodYear=S.compareTarget}
+    const rows=S.compareYears?compareRows(comparisonSideRows(regionRows,'target'),S.compareTarget,S.compareTargetMonth):filterPeriod(regionRows);
+    if(!rows.length){host.insertAdjacentHTML('beforeend',`<div class="rcv34-empty">No hay información disponible para ${esc(adminRegionLabel())} en el periodo seleccionado.</div>`);return}
+    if($('r482CompareTop')){$('r482CompareTop').classList.toggle('active',!!S.compareYears);$('r482CompareTop').style.display=module==='productividad'?'none':'';}
+    if(module==='productividad'&&S.productivityView==='monthly'){
+      host.insertAdjacentHTML('beforeend',r503ContextChips(module,source)+periodControls(regionRows)+productivityMonthlyBlock(rows));
+      bindPeriodControls();
+      host.querySelectorAll('[data-r575-pv]').forEach(el=>el.onclick=()=>openProductivityPoint(rows,el.dataset.r575Pv));
+      return;
+    }
+    const t=totals(rows,module),accounts=groupRows(rows,accountName),brands=groupRows(rows,managerName),mode=breakdownMode(),activeGroups=mode==='brand'?brands:accounts,bad=[...activeGroups].filter(([,rs])=>totals(rs,module).st==='red').length,good=activeGroups.size-bad,compliance=pctLabel(rows,module);
+    const activeLabel=S.compareYears?`${S.compareTargetMonth?MONTH_LABELS[Number(S.compareTargetMonth)]+' ':''}${S.compareTarget}`:periodRangeLabel();
+    const head=`<div class="rcv34-breadcrumb"><span>Región</span><b>${esc(adminRegionLabel())}</b><i>›</i><strong>${mode==='brand'?'Gerencias':'Cuentas contables'}</strong></div>
+      <div class="rcv42-kpis"><article><small>${module==='productividad'?'VENTAS':'REAL'}</small><strong>${money(t.real)}</strong><span>${esc(activeLabel)}</span></article><article><small>${module==='productividad'?'GASTOS':'PRESUPUESTO'}</small><strong>${money(t.budget)}</strong><span>Periodo seleccionado</span></article><article><small>${module==='productividad'?'GTS/VTAS':'VARIACIÓN'}</small><strong>${module==='productividad'?compliance:money(t.diff)}</strong></article><article><small>${module==='productividad'?'RENTABILIDAD':'USO DE PRESUPUESTO'}</small><strong>${compliance}</strong><span>${bad} ${mode==='brand'?'gerencias':'cuentas'} rojas · ${good} verdes</span></article><article class="${bad?'alert':''}"><small>${mode==='brand'?'GERENCIAS ROJAS':'CUENTAS ROJAS'}</small><strong>${bad}</strong><span>de ${activeGroups.size} ${mode==='brand'?'gerencias':'cuentas'}</span></article></div>`;
+    const chart=`<div class="rcv42-chart-grid"><article class="rcv34-card rcv34-chart-card"><h3>${module==='productividad'?'Ventas vs gastos por cuenta':'Real vs presupuesto por cuenta'}</h3><p>Principales cuentas contables de ${esc(adminRegionLabel())}.</p><canvas id="r34CompareChart"></canvas></article><article class="rcv34-card rcv34-chart-card"><h3>Evolución mensual</h3><p>${module==='productividad'?'Comportamiento de Ventas contra Gastos.':'Comportamiento del Real contra Presupuesto.'}</p><canvas id="r42TrendChart"></canvas></article><article class="rcv34-card rcv34-chart-card"><h3>Estado de cuentas</h3><p>Distribución rojo / verde.</p><canvas id="r34StatusChart"></canvas><div class="rcv34-chart-legend"><span><i class="green"></i>${good} verdes</span><span><i class="red"></i>${bad} rojas</span></div></article></div>`;
+    const accountItems=[...accounts].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module),affected=new Set(rs.map(managerName).filter(Boolean)).size,concepts=new Set(rs.map(accountDetailName).filter(Boolean)).size;return `<article class="rcv34-break-item r50-account-card ${z.st==='red'?'is-red':'is-green'}" data-r50-account="${esc(name)}" data-unit-state="${z.st}"><div class="rcv34-break-top"><div><strong>${esc(name)}</strong><small>${affected} gerencia(s) afectadas · ${concepts} concepto(s) · ${rs.length.toLocaleString()} movimientos</small>${redStreak(rs,module)>=2?`<em class="rcv43-reincide">↻ ${redStreak(rs,module)} meses en rojo</em>`:''}</div>${sema(z.st)}</div><div class="amounts"><span>${module==='productividad'?'Ventas':'Real'}<b>${money(z.real)}</b></span><span>${module==='productividad'?'Gastos':'Presupuesto'}<b>${money(z.budget)}</b></span><span>${module==='productividad'?'Gts/Vtas':'Diferencia (+/-)'}<b>${module==='productividad'?pctLabel(rs,module):money(z.diff)}</b></span></div></article>`}).join('');
+    const brandItems=[...brands].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module),accts=new Set(rs.map(accountName).filter(Boolean)).size,concepts=new Set(rs.map(accountDetailName).filter(Boolean)).size,label=managerName({subledgerHierarchy:name});return `<article class="rcv34-break-item r50-account-card ${z.st==='red'?'is-red':'is-green'}" data-r561-brand="${esc(name)}" data-unit-state="${z.st}"><div class="rcv34-break-top"><div><strong>${esc(label)}</strong><small>${accts} cuenta(s) contables · ${concepts} concepto(s) · ${rs.length.toLocaleString()} movimientos</small></div>${sema(z.st)}</div><div class="amounts"><span>${module==='productividad'?'Ventas':'Real'}<b>${money(z.real)}</b></span><span>${module==='productividad'?'Gastos':'Presupuesto'}<b>${money(z.budget)}</b></span><span>${module==='productividad'?'Gts/Vtas':'Diferencia (+/-)'}<b>${module==='productividad'?pctLabel(rs,module):money(z.diff)}</b></span></div></article>`}).join('');
+    const breakdownItems=mode==='brand'?brandItems:accountItems;
+    const noteBtn=source==='cloud'&&meta?.snapshotId?`<button id="r34RegionNote" class="rcv34-btn">✉ Aviso general a ${esc(adminRegionLabel())}</button>`:'';
+    host.insertAdjacentHTML('beforeend',r503ContextChips(module,source)+periodControls(regionRows)+compareExecutiveBlock(regionRows,module)+(module==='productividad'?'':executiveReportBar(rows,module,meta,source))+head+
+      (module==='productividad'?productivityHierarchyBlock(rows):'')+
+      `<div class="rcv48-ranking-grid r501-main-tops">${rankingBlock(accounts,module,'Top 10 cuentas contables','Cuentas con mayor importe Real.','accounts')}${rankingBlock(groupRows((S.compareYears?compareRows(data?.rows||[],S.compareTarget,S.compareTargetMonth):filterPeriod(data?.rows||[])),r=>cleanRegion(r.region)),module,'Top 10 regiones','Regiones con mayor importe Real.','regions')}</div>${topDeviationBlock(accounts,module)}`+
+      (module==='productividad'?executiveReportBar(rows,module,meta,source):'')+
+      chart+
+      `<article class="rcv34-card"><div class="rcv34-card-head"><div><span class="r503-section-kicker">ANÁLISIS CONTABLE</span><h3>${mode==='brand'?'Gerencias de la región':'Cuentas contables de la región'}</h3><p>${mode==='brand'?'Selecciona una gerencia para ver las cuentas contables afectadas, después sus conceptos y el detallado.':'Selecciona una cuenta para ver directamente los conceptos de todas las gerencias afectadas y después el detallado.'}</p></div>${noteBtn}</div>
+        ${breakdownModeSelector()}
+        <div class="r473-unit-filter"><div><span>${mode==='brand'?'FILTRAR GERENCIAS':'FILTRAR CUENTAS'}</span><strong id="r473UnitCount">${activeGroups.size} de ${activeGroups.size} visibles</strong></div><div class="r473-filter-buttons"><button class="active" data-r473-filter="all">Todas <b>${activeGroups.size}</b></button><button class="red" data-r473-filter="red">Rojas <b>${bad}</b></button><button class="green" data-r473-filter="green">Verdes <b>${good}</b></button></div></div>
+        <div class="rcv34-breakdown r50-account-grid" id="r473UnitGrid">${breakdownItems}</div><div id="r473UnitEmpty" class="r473-empty rcv34-hidden">No hay ${mode==='brand'?'gerencias':'cuentas'} con el estado seleccionado.</div>
+      </article>`);
+    bindPeriodControls();bindBreakdownMode();bindUnitStateFilter(activeGroups.size);if(module==='productividad')bindProductivityHierarchy();bindExecutiveReport(rows,module,meta,source);drawCharts(accounts,module);drawTrendChart($('r42TrendChart'),rows,module);bindTopActions(data,module,meta,source);
+    host.querySelectorAll('[data-r50-account]').forEach(el=>el.onclick=()=>openAccount(data,module,el.dataset.r50Account,meta,source));host.querySelectorAll('[data-r561-brand]').forEach(el=>el.onclick=()=>openBrand(data,module,el.dataset.r561Brand,meta,source));
+    host.querySelectorAll('[data-r50-compare-account]').forEach(el=>el.onclick=()=>openAccount(data,module,el.dataset.r50CompareAccount,meta,source));host.querySelectorAll('[data-r562-compare-brand]').forEach(el=>el.onclick=()=>openBrand(data,module,el.dataset.r562CompareBrand,meta,source));
+    if($('r34RegionNote'))$('r34RegionNote').onclick=()=>openRegionNotification(module,meta);
+    }catch(e){
+      console.error('renderData',e);
+      const host=$('r34Data')||$('r34Panel');
+      if(host)host.insertAdjacentHTML('beforeend',`<div class="r502-render-error"><b>No se pudo completar el tablero.</b><span>${esc(e.message||'Error de visualización')}</span><button id="r502Retry" class="rcv34-btn">↻ Reintentar tablero</button></div>`);
+      const rb=$('r502Retry');if(rb)rb.onclick=()=>renderCurrentSource();
+    }
+  }
+  function bindUnitStateFilter(total){
+    const buttons=[...document.querySelectorAll('[data-r473-filter]')],cards=[...document.querySelectorAll('[data-unit-state]')],count=$('r473UnitCount'),empty=$('r473UnitEmpty');
+    const apply=state=>{
+      let shown=0;cards.forEach(card=>{const ok=state==='all'||card.dataset.unitState===state;card.classList.toggle('r473-hidden',!ok);if(ok)shown++});
+      buttons.forEach(b=>b.classList.toggle('active',b.dataset.r473Filter===state));
+      if(count)count.textContent=`${shown} de ${total} visibles`;
+      if(empty)empty.classList.toggle('rcv34-hidden',shown>0);
+    };
+    buttons.forEach(b=>b.onclick=()=>apply(b.dataset.r473Filter));
+    apply('all');
+  }
+  function drawCharts(groups,module){requestAnimationFrame(()=>{drawCompareChart($('r34CompareChart'),[...groups].map(([name,rs])=>({name,...totals(rs,module)})).sort((a,b)=>Math.abs(b.real)-Math.abs(a.real)).slice(0,8));drawStatusChart($('r34StatusChart'),[...groups].map(([,rs])=>totals(rs,module).st));})}
+  function fitCanvas(c,h=270){if(!c)return null;const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1)),w=Math.max(300,c.clientWidth||600);c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);return{x,w,h}}
+  function drawCompareChart(c,items){const f=fitCanvas(c,285);if(!f)return;const{x,w,h}=f,p={l:52,r:18,t:18,b:75},cw=w-p.l-p.r,ch=h-p.t-p.b;const vals=items.flatMap(i=>[Math.abs(i.real),Math.abs(i.budget)]),mx=Math.max(...vals,1);x.font='10px Segoe UI';x.fillStyle='#667085';x.strokeStyle='#e5eaf1';for(let i=0;i<=4;i++){const y=p.t+ch*i/4;x.beginPath();x.moveTo(p.l,y);x.lineTo(w-p.r,y);x.stroke();const v=mx*(1-i/4);x.fillText(new Intl.NumberFormat('es-MX',{notation:'compact',maximumFractionDigits:1}).format(v),4,y+3)}const slot=cw/Math.max(items.length,1),bw=Math.min(22,slot*.28);items.forEach((it,i)=>{const cx=p.l+slot*i+slot/2,hr=Math.abs(it.real)/mx*ch,hb=Math.abs(it.budget)/mx*ch;x.fillStyle='#2563eb';x.fillRect(cx-bw-2,p.t+ch-hr,bw,hr);x.fillStyle='#14b8a6';x.fillRect(cx+2,p.t+ch-hb,bw,hb);x.save();x.translate(cx,h-10);x.rotate(-.55);x.fillStyle='#475467';x.textAlign='right';x.fillText(it.name.slice(0,30),0,0);x.restore()});x.fillStyle='#2563eb';x.fillRect(w-170,8,10,10);x.fillStyle='#475467';x.fillText('Real',w-155,17);x.fillStyle='#14b8a6';x.fillRect(w-105,8,10,10);x.fillStyle='#475467';x.fillText('Presupuesto',w-90,17)}
+  function drawStatusChart(c,states){const f=fitCanvas(c,220);if(!f)return;const{x,w,h}=f,red=states.filter(s=>s==='red').length,green=states.length-red,total=Math.max(states.length,1),cx=w/2,cy=h/2,r=Math.min(w,h)*.32,th=28;x.lineWidth=th;x.lineCap='butt';let start=-Math.PI/2;[[green,'#10b981'],[red,'#ef4444']].forEach(([v,color])=>{const a=v/total*Math.PI*2;x.beginPath();x.strokeStyle=color;x.arc(cx,cy,r,start,start+a);x.stroke();start+=a});x.fillStyle='#172033';x.textAlign='center';x.font='700 26px Segoe UI';x.fillText(String(states.length),cx,cy+3);x.font='11px Segoe UI';x.fillStyle='#667085';x.fillText('unidades',cx,cy+22)}
+  function threadBlock(module,snapshotId,region,key,gerencias=[]){if(!snapshotId)return'';const admin=upper(S.session.tipo)==='ADMINISTRADOR';const gs=(gerencias||[]).filter(Boolean);const target=admin?`<label class="r51-target"><span>GERENCIA DESTINO</span><select id="r51TargetManager">${gs.length?gs.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join(''):'<option value="">Selecciona una gerencia</option>'}</select><small>Solo los usuarios asignados a esta gerencia recibirán la notificación.</small></label>`:`<div class="r51-target-fixed"><span>GERENCIA</span><b>${esc(S.session.gerencia||'Tu gerencia')}</b></div>`;return `<div class="rcv34-thread"><div class="rcv34-thread-head"><div><strong>Seguimiento / notificaciones por gerencia</strong><p>${admin?'Selecciona la gerencia responsable. El aviso llegará únicamente a sus usuarios registrados.':'Aquí ves los mensajes dirigidos a tu gerencia y puedes responderlos.'}</p></div><div class="rcv42-thread-meta"><span id="r42ThreadStatus" class="rcv42-status pending">PENDIENTE</span><span id="r34ThreadCount" class="rcv34-thread-count">…</span></div></div>${target}<div id="r42StatusControls" class="rcv42-status-controls ${admin?'':'rcv34-hidden'}"><button data-r42-status="PENDIENTE">Pendiente</button><button data-r42-status="EN SEGUIMIENTO">En seguimiento</button><button data-r42-status="ATENDIDA">Atendida</button></div><div id="r46Commitment" class="r46-commit"><div><small>RESPONSABLE</small><b id="r46Responsible">Sin asignar</b></div><div><small>FECHA COMPROMISO</small><b id="r46Due">Sin fecha</b></div><span id="r46DueStatus"></span>${admin?'<button id="r46EditCommitment" type="button">Asignar / editar</button>':''}</div><div class="r47-smart"><div class="r47-smart-summary"><small>RESUMEN AUTOMÁTICO</small><p id="r47Summary">Analizando seguimiento…</p></div><div class="r47-smart-progress"><small>AVANCE DEL PLAN</small><div class="r47-track"><i id="r47Bar" style="width:0%"></i></div><div class="r47-progress-row"><strong id="r47Progress">0%</strong><div>${[0,25,50,75,100].map(v=>`<button type="button" data-r47-progress="${v}">${v}%</button>`).join('')}</div></div></div><div class="r47-smart-timeline"><div><small>LÍNEA DE TIEMPO</small><button id="r47TimelineRefresh" type="button">↻</button></div><section id="r47Timeline"><p class="muted">Cargando…</p></section></div></div><div id="r34ThreadList" class="rcv34-thread-list"><div class="rcv34-thread-empty">Cargando mensajes…</div></div><div class="rcv34-thread-compose"><textarea id="r34NoteText" placeholder="${admin?'Escribe una notificación o comentario…':'Escribe tu respuesta al administrador…'}"></textarea><div><span id="r34NoteMsg" class="rcv34-msg"></span><button id="r34SendNote" class="rcv34-btn primary">${admin?'Enviar a gerencia':'Responder'}</button></div></div></div>`}
+  function openUnit(data,module,unit,meta,source='cloud'){
+    const rows=filterPeriod(filterRegion(data)).filter(r=>unitName(r)===unit),t=totals(rows,module),acctGroups=groupRows(rows,'hierarchy');
+    $('r34DetailTitle').textContent=unit;$('r34DetailSub').textContent=`${MODULES[module].label} · ${adminRegionLabel()} · ${data.period||''}`;
+    const acctCards=[...acctGroups].sort((a,b)=>Math.abs(totals(b[1],module).real)-Math.abs(totals(a[1],module).real)).map(([name,rs])=>{const z=totals(rs,module);return `<article class="rcv34-subhier ${z.st==='red'?'is-red':'is-green'}"><div><strong>${esc(name)}</strong>${sema(z.st)}</div><span>Real <b>${money(z.real)}</b></span><span>Presupuesto <b>${money(z.budget)}</b></span></article>`}).join('');
+    const rowState=r=>status(module,r.real,r.budget);
+    const makeRows=list=>list.map(r=>`<tr data-detail-state="${rowState(r)}"><td>${esc(r.hierarchy)}</td><td>${esc(r.account)}</td><td>${esc(managerName(r))}</td><td>${esc(centerName(r))}</td><td>${esc(r.period)}</td><td>${money(r.real)}</td><td>${money(r.budget)}</td><td>${sema(rowState(r))}</td></tr>`).join('');
+    const redRows=rows.filter(r=>rowState(r)==='red').length,greenRows=rows.length-redRows;
+    let plan='';if(t.st==='red'&&meta?.snapshotId){plan=`<div class="rcv34-plan"><strong>Plan de mejora / acción correctiva</strong><p>Describe qué se hará para corregir la desviación de esta unidad.</p><textarea id="r34PlanText" placeholder="Escribe aquí el plan de mejora..."></textarea><div class="rcv34-plan-actions"><span id="r34PlanMsg" class="rcv34-msg"></span><button id="r34SavePlan" class="rcv34-btn primary">Guardar plan de mejora</button></div></div>`}
+    const key=data?._manager?`GERENCIA: ${data._manager} · ÁREA: ${unit}`:`ÁREA: ${unit}`,conversation=source==='cloud'&&meta?.snapshotId?threadBlock(module,meta.snapshotId,adminRegionLabel(),key,[...new Set(rows.map(managerName).filter(Boolean))]):'';
+    $('r34DetailBody').innerHTML=`<div class="rcv34-kpis"><article class="rcv34-kpi"><small>REAL</small><strong>${money(t.real)}</strong></article><article class="rcv34-kpi"><small>PRESUPUESTO</small><strong>${money(t.budget)}</strong></article><article class="rcv34-kpi"><small>VARIACIÓN</small><strong>${money(t.diff)}</strong></article><article class="rcv34-kpi"><small>ESTADO</small><strong>${sema(t.st)}</strong></article></div><article class="rcv34-card"><h3>Información contable del área seleccionada</h3><div class="rcv34-subhier-grid">${acctCards}</div></article><article class="rcv34-card"><div class="rcv41-detail-head"><div><h3>Detalle completo del área</h3><p id="r41DetailCount">${rows.length.toLocaleString()} movimientos mostrados de ${rows.length.toLocaleString()}.</p></div><div class="rcv42-detail-tools"><div class="rcv41-detail-filters" role="group" aria-label="Filtrar movimientos por estado"><button class="rcv41-state-btn active" data-r41-state="all">Todos <b>${rows.length.toLocaleString()}</b></button><button class="rcv41-state-btn red" data-r41-state="red">Rojos <b>${redRows.toLocaleString()}</b></button><button class="rcv41-state-btn green" data-r41-state="green">Verdes <b>${greenRows.toLocaleString()}</b></button></div><input id="r42DetailSearch" class="rcv42-search" placeholder="Buscar cuenta, concepto, sublibro…"></div></div><div class="rcv34-table-wrap"><table class="rcv34-table"><thead><tr><th>Jerarquía contable</th><th>Cuenta / concepto</th><th>Gerencia</th><th>Centro / último nivel</th><th>Periodo</th><th>Real</th><th>Presupuesto</th><th>Estado</th></tr></thead><tbody id="r41DetailRows">${makeRows(rows)}</tbody></table></div><div id="r41DetailEmpty" class="rcv41-detail-empty rcv34-hidden">No hay movimientos con el estado seleccionado.</div></article>${plan}${conversation}`;
+    $('r34Detail').classList.add('open');
+    let detailState='all';const applyDetailFilter=state=>{detailState=state;const q=upper($('r42DetailSearch')?.value||'');const trs=[...document.querySelectorAll('#r41DetailRows tr')];let shown=0;trs.forEach(tr=>{const stateOk=state==='all'||tr.dataset.detailState===state,textOk=!q||upper(tr.textContent).includes(q),show=stateOk&&textOk;tr.classList.toggle('rcv34-hidden',!show);if(show)shown++});document.querySelectorAll('[data-r41-state]').forEach(btn=>btn.classList.toggle('active',btn.dataset.r41State===state));if($('r41DetailCount'))$('r41DetailCount').textContent=`${shown.toLocaleString()} movimientos mostrados de ${rows.length.toLocaleString()}.`;if($('r41DetailEmpty'))$('r41DetailEmpty').classList.toggle('rcv34-hidden',shown>0)};
+    document.querySelectorAll('[data-r41-state]').forEach(btn=>btn.onclick=()=>applyDetailFilter(btn.dataset.r41State));if($('r42DetailSearch'))$('r42DetailSearch').oninput=()=>applyDetailFilter(detailState);
+    if($('r34SavePlan'))$('r34SavePlan').onclick=()=>savePlan(module,meta.snapshotId,key);if(conversation){const getTarget=()=>$('r51TargetManager')?.value||S.session.gerencia||'';loadThread(module,meta.snapshotId,adminRegionLabel(),key,getTarget());if($('r51TargetManager'))$('r51TargetManager').onchange=()=>loadThread(module,meta.snapshotId,adminRegionLabel(),key,getTarget());$('r34SendNote').onclick=()=>sendNote(module,meta.snapshotId,adminRegionLabel(),key,getTarget())}
+  }
+  function openRegionNotification(module,meta){const region=adminRegionLabel(),key=`AVISO GENERAL · ${MODULES[module].label}`,rows=filterPeriod(filterRegion(S.cloud||{rows:[]})),managers=[...new Set(rows.map(managerName).filter(Boolean))];$('r34DetailTitle').textContent=`Notificación · ${region}`;$('r34DetailSub').textContent=`${MODULES[module].label} · publicación en nube`;$('r34DetailBody').innerHTML=`<article class="rcv34-card"><h3>Notificación por gerencia</h3><p>Selecciona la gerencia que debe recibir este aviso. Solo sus usuarios registrados lo verán y, con Push activado, recibirán la notificación en sus dispositivos.</p></article>${threadBlock(module,meta.snapshotId,region,key,managers)}`;$('r34Detail').classList.add('open');const getTarget=()=>$('r51TargetManager')?.value||'';loadThread(module,meta.snapshotId,region,key,getTarget());if($('r51TargetManager'))$('r51TargetManager').onchange=()=>loadThread(module,meta.snapshotId,region,key,getTarget());$('r34SendNote').onclick=()=>sendNote(module,meta.snapshotId,region,key,getTarget())}
+  async function loadThread(module,snapshotId,region,hierarchy,gerenciaDestino=''){const list=$('r34ThreadList');if(!list)return;try{const d=await jsonp({accion:'v38_thread',token:S.session.token,module,snapshotId,region,hierarchy,gerenciaDestino:gerenciaDestino||($('r51TargetManager')?.value||S.session.gerencia||'')});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible cargar los mensajes.');const items=d.items||[];$('r34ThreadCount').textContent=items.length+' mensaje'+(items.length===1?'':'s');list.innerHTML=items.length?items.map(x=>`<article class="rcv34-thread-msg ${upper(x.tipo)==='ADMINISTRADOR'?'admin':'user'}"><div><strong>${esc(x.usuario)}</strong><span>${esc(x.fecha)}</span></div><p>${esc(x.texto)}</p><small>${upper(x.tipo)==='ADMINISTRADOR'?'NOTA DEL ADMINISTRADOR':'RESPUESTA DE REGIÓN'}</small></article>`).join(''):'<div class="rcv34-thread-empty">Aún no hay mensajes en este seguimiento.</div>';const unread=items.filter(x=>x.unread).map(x=>x.id);if(unread.length){post({accion:'v38_mark_read',token:S.session.token,ids:unread.join(',')});setTimeout(refreshNotifications,500)}loadThreadStatus(module,snapshotId,region,hierarchy);loadCommitment(module,snapshotId,region,hierarchy);loadSmartFollowup(module,snapshotId,region,hierarchy,items)}catch(e){list.innerHTML=`<div class="rcv34-thread-empty">${esc(e.message)}</div>`}}
+  async function loadSmartFollowup(module,snapshotId,region,hierarchy,items){
+    try{
+      const d=await jsonp({accion:'v47_timeline',token:S.session.token,module,snapshotId,region,hierarchy});
+      if(!d?.ok)return;
+      const av=Number(d.avance||0),bar=$('r47Bar'),val=$('r47Progress'),sum=$('r47Summary'),tl=$('r47Timeline');
+      if(bar)bar.style.width=av+'%';if(val)val.textContent=av+'%';
+      document.querySelectorAll('[data-r47-progress]').forEach(b=>{b.classList.toggle('active',Number(b.dataset.r47Progress)===av);b.onclick=()=>setSmartProgress(module,snapshotId,region,hierarchy,Number(b.dataset.r47Progress))});
+      const c=d.compromiso||{},st=upper(d.estado||'PENDIENTE'),msgCount=(items||[]).length;
+      const bits=[];bits.push(st==='ATENDIDA'?'La incidencia está atendida.':st==='EN SEGUIMIENTO'?'La incidencia está en seguimiento.':'La incidencia está pendiente.');
+      if(c.responsable)bits.push('Responsable: '+c.responsable+'.');if(c.fechaCompromiso)bits.push((c.vencida?'Compromiso vencido: ':'Fecha compromiso: ')+c.fechaCompromiso+'.');bits.push(msgCount+' mensaje'+(msgCount===1?'':'s')+' en la conversación.');
+      if(sum)sum.textContent=bits.join(' ');
+      if(tl){const ev=d.items||[];tl.innerHTML=ev.length?ev.map(x=>`<article class="r47-event"><i></i><div><b>${esc(x.tipo)}</b><p>${esc(x.texto)}</p><small>${esc(x.usuario||'')}${x.fecha?' · '+esc(x.fecha):''}</small></div></article>`).join(''):'<p class="muted">Aún no hay eventos registrados.</p>'}
+      const rr=$('r47TimelineRefresh');if(rr)rr.onclick=()=>loadSmartFollowup(module,snapshotId,region,hierarchy,items);
+    }catch(_){}
+  }
+  async function setSmartProgress(module,snapshotId,region,hierarchy,avance){
+    document.querySelectorAll('[data-r47-progress]').forEach(b=>b.disabled=true);
+    try{const d=await post({accion:'v47_set_progress',token:S.session.token,module,snapshotId,region,hierarchy,avance});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible guardar el avance.');loadThread(module,snapshotId,region,hierarchy)}catch(e){alert(e.message)}finally{setTimeout(()=>document.querySelectorAll('[data-r47-progress]').forEach(b=>b.disabled=false),500)}
+  }
+  async function loadThreadStatus(module,snapshotId,region,hierarchy){try{const d=await jsonp({accion:'v42_thread_status',token:S.session.token,module,snapshotId,region,hierarchy});if(!d?.ok)return;const st=upper(d.estado||'PENDIENTE'),el=$('r42ThreadStatus');if(el){el.textContent=st;el.className='rcv42-status '+(st==='ATENDIDA'?'done':st==='EN SEGUIMIENTO'?'tracking':'pending')}document.querySelectorAll('[data-r42-status]').forEach(b=>{b.classList.toggle('active',upper(b.dataset.r42Status)===st);b.onclick=()=>setThreadStatus(module,snapshotId,region,hierarchy,b.dataset.r42Status)})}catch(_){}}
+  async function setThreadStatus(module,snapshotId,region,hierarchy,estado){if(upper(S.session.tipo)!=='ADMINISTRADOR')return;document.querySelectorAll('[data-r42-status]').forEach(b=>b.disabled=true);try{await post({accion:'v42_set_status',token:S.session.token,module,snapshotId,region,hierarchy,estado});setTimeout(()=>{loadThreadStatus(module,snapshotId,region,hierarchy);renderNotifications()},650)}finally{setTimeout(()=>document.querySelectorAll('[data-r42-status]').forEach(b=>b.disabled=false),800)}}
+  async function sendNote(module,snapshotId,region,hierarchy,gerenciaDestino=''){const txt=$('r34NoteText')?.value.trim(),msg=$('r34NoteMsg'),btn=$('r34SendNote');if(!txt){if(msg){msg.textContent='Escribe un mensaje.';msg.className='rcv34-msg error'}return}if(btn)btn.disabled=true;if(msg){msg.textContent='Enviando…';msg.className='rcv34-msg'}try{const target=gerenciaDestino||$('r51TargetManager')?.value||S.session.gerencia||'';if(upper(S.session.tipo)==='ADMINISTRADOR'&&!target){throw new Error('Selecciona una gerencia destino.')}await post({accion:'v38_note',token:S.session.token,module,snapshotId,region,hierarchy,texto:txt,gerenciaDestino:target});if($('r34NoteText'))$('r34NoteText').value='';if(msg){msg.textContent=upper(S.session.tipo)==='ADMINISTRADOR'?`Mensaje enviado a ${target}. Confirmando dispositivos…`:'Respuesta enviada.';msg.className='rcv34-msg ok'}setTimeout(async()=>{loadThread(module,snapshotId,region,hierarchy,target);refreshNotifications();if(upper(S.session.tipo)==='ADMINISTRADOR'){try{const r=await jsonp({accion:'v51_last_delivery',token:S.session.token});if(r?.item&&msg){const total=Number(r.item.destinatarios||0), sent=Number(r.item.enviados||0), err=String(r.item.error||'');msg.textContent=`Mensaje enviado a ${r.item.gerencia} · ${sent}/${total} dispositivo(s) notificado(s)${err?' · '+err:''}.`;msg.className='rcv34-msg '+(sent===total&&!err?'ok':'error')}}catch(_){}}},1000)}catch(e){if(msg){msg.textContent=e.message;msg.className='rcv34-msg error'}}finally{setTimeout(()=>{if(btn)btn.disabled=false},900)}}
+  window.REPORTIA_REFRESH_NOTIFICATIONS=()=>refreshNotifications();
+  async function refreshNotifications(){if(!S.session)return;try{const d=await jsonp({accion:'v42_notifications',token:S.session.token});if(!d?.ok)return;const n=Number(d.unread||0),b=$('r34NotifBadge'),mb=$('r519BottomBadge');if(b){b.textContent=String(n);b.classList.toggle('has',n>0)}if(mb){mb.textContent=String(n);mb.classList.toggle('has',n>0)}}catch(_){} }
+  async function refreshDeviceNotificationPanel(){
+    const status=$('r519DeviceStatus'),detail=$('r519DeviceDetail'),enable=$('r519EnableDevicePush'),local=$('r519LocalTest');
+    if(!status)return;
+    status.textContent='Comprobando este dispositivo…';status.className='r519-device-state pending';
+    try{
+      const d=await window.REPORTIA_PUSH?.deviceStatus?.();
+      if(!d){status.textContent='No fue posible consultar el canal push.';status.className='r519-device-state error';return}
+      if(d.permission==='unsupported'){
+        status.textContent='Este navegador no admite notificaciones web.';status.className='r519-device-state error';
+      }else if(d.permission==='denied'){
+        status.textContent='Notificaciones bloqueadas en este dispositivo.';status.className='r519-device-state error';
+      }else if(d.registered){
+        status.textContent='Este dispositivo está registrado y activo.';status.className='r519-device-state ok';
+      }else if(d.permission==='granted'){
+        status.textContent='Permiso concedido, pero este dispositivo aún no está registrado.';status.className='r519-device-state warn';
+      }else{
+        status.textContent='Notificaciones todavía no activadas en este dispositivo.';status.className='r519-device-state pending';
+      }
+      if(detail) detail.innerHTML=`<span><b>Permiso:</b> ${esc(d.permissionLabel||d.permission||'—')}</span><span><b>Service Worker:</b> ${d.serviceWorker?'Listo':'No disponible'}</span><span><b>Este dispositivo:</b> ${d.registered?'ACTIVO':'NO REGISTRADO'}</span><span><b>Dispositivos activos del usuario:</b> ${Number(d.activeUserDevices||0)}</span><span><b>Plataforma:</b> ${esc(d.platform||'—')}</span>`;
+      if(enable)enable.textContent=d.registered?'↻ Reactivar este dispositivo':'🔔 Activar en este dispositivo';
+      if(local)local.disabled=d.permission!=='granted';
+    }catch(e){status.textContent=e.message||String(e);status.className='r519-device-state error'}
+  }
+  function notifFilterItems(items){
+    const f=S.notifFilter||'all',q=upper(S.notifSearch||'');
+    return (items||[]).filter(x=>{
+      if(f==='unread'&&!x.unread)return false;
+      if(f==='tracking'&&upper(x.estado)!=='EN SEGUIMIENTO')return false;
+      if(f==='pending'&&upper(x.estado)!=='PENDIENTE')return false;
+      if(f==='done'&&upper(x.estado)!=='ATENDIDA')return false;
+      if(q){const hay=upper([x.hierarchy,x.texto,x.usuario,x.gerenciaDestino,x.region,MODULES[x.module]?.label].join(' '));if(!hay.includes(q))return false}
+      return true;
+    });
+  }
+  function notificationCard(x){
+    return `<article class="rcv34-notif-item r521-notif-card ${x.unread?'unread':''}" data-notif-id="${esc(x.id)}" data-notif-module="${esc(x.module)}" data-notif-hierarchy="${esc(x.hierarchy)}" data-notif-snapshot="${esc(x.snapshotId||'')}" data-notif-region="${esc(x.region||'')}">
+      <div class="rcv34-notif-icon">${upper(x.tipo)==='ADMINISTRADOR'?'A':'R'}</div>
+      <div class="rcv34-notif-main"><div><strong>${esc(x.hierarchy)}</strong><span>${esc(x.fecha)}</span></div><p>${esc(x.texto)}</p><small>${esc(x.usuario)} · ${esc(x.gerenciaDestino||x.region)} · ${esc(MODULES[x.module]?.label||x.module)}</small></div>
+      <span class="rcv42-status ${upper(x.estado)==='ATENDIDA'?'done':upper(x.estado)==='EN SEGUIMIENTO'?'tracking':'pending'}">${esc(x.estado||'PENDIENTE')}</span>${x.unread?'<b class="rcv34-new">NUEVO</b>':''}
+      <button class="r521-notif-open" type="button" title="Abrir detalle">›</button>
+    </article>`;
+  }
+  async function openNotificationItem(x){
+    if(!x)return;
+    if(x.unread&&x.id){try{await post({accion:'v38_mark_read',token:S.session.token,ids:x.id})}catch(_){}}
+    S.pendingNotification={module:x.module,hierarchy:x.hierarchy,snapshotId:x.snapshotId||'',region:x.region||''};
+    await navigate(x.module);
+    setTimeout(tryOpenPendingNotification,900);
+  }
+  function tryOpenPendingNotification(){
+    const p=S.pendingNotification;if(!p||!S.cloud||S.module!==p.module)return;
+    const rows=S.cloud.rows||[];
+    const acct=p.hierarchy;
+    if(acct){
+      const exists=rows.some(r=>accountName(r)===acct||accountDetailName(r)===acct);
+      if(exists){try{openAccount(S.cloud,p.module,acct,S.cloudMeta||{},'cloud')}catch(_){}}
+    }
+    S.pendingNotification=null;
+  }
+  async function renderNotifications(){
+    $('r34Title').textContent='Notificaciones';$('r34Subtitle').textContent='Centro de avisos, seguimiento y diagnóstico del dispositivo.';
+    $('r34Panel').innerHTML='<div class="rcv34-empty">Consultando mensajes…</div>';
+    try{
+      const d=await jsonp({accion:'v42_notifications',token:S.session.token});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible consultar las notificaciones.');
+      const items=d.items||[],pending=items.filter(x=>upper(x.estado)!=='ATENDIDA').length,answered=items.filter(x=>upper(x.tipo)!=='ADMINISTRADOR').length;
+      const filtered=notifFilterItems(items);
+      const html=filtered.length?filtered.map(notificationCard).join(''):'<div class="rcv34-empty">No hay avisos que coincidan con este filtro.</div>';
+      $('r34Panel').innerHTML=`
+        <section class="r519-device-card">
+          <div class="r519-device-head"><div><span>🔔 AVISOS DEL DISPOSITIVO</span><h2>Notificaciones en este equipo</h2><p>Comprueba aquí si este Android, Windows, Linux o navegador está realmente registrado para recibir avisos.</p></div><div id="r519DeviceStatus" class="r519-device-state pending">Comprobando…</div></div>
+          <div id="r519DeviceDetail" class="r519-device-detail"></div>
+          <div class="r519-device-actions"><button id="r519EnableDevicePush" class="rcv34-btn primary">🔔 Activar en este dispositivo</button><button id="r519LocalTest" class="rcv34-btn">🧪 Probar aviso local (diagnóstico)</button><button id="r519OpenProfile" class="rcv34-btn">👤 Mi perfil</button></div>
+          <p id="r519DeviceMsg" class="r519-device-msg">La prueba local es solo un diagnóstico del dispositivo: no crea un mensaje en la bandeja y no aumenta el contador de “Sin leer”.</p>
+        </section>
+        <div class="rcv42-kpis compact"><article><small>SIN LEER</small><strong>${Number(d.unread||0)}</strong><span>mensajes nuevos</span></article><article><small>ABIERTAS / SEGUIMIENTO</small><strong>${pending}</strong><span>conversaciones activas</span></article><article><small>RESPUESTAS RECIBIDAS</small><strong>${answered}</strong><span>en la bandeja actual</span></article></div>
+        <section class="r521-notif-toolbar">
+          <div class="r521-notif-tabs">
+            <button data-nfilter="all" class="${S.notifFilter==='all'?'active':''}">Todos <b>${items.length}</b></button>
+            <button data-nfilter="unread" class="${S.notifFilter==='unread'?'active':''}">Sin leer <b>${items.filter(x=>x.unread).length}</b></button>
+            <button data-nfilter="pending" class="${S.notifFilter==='pending'?'active':''}">Pendientes <b>${items.filter(x=>upper(x.estado)==='PENDIENTE').length}</b></button>
+            <button data-nfilter="tracking" class="${S.notifFilter==='tracking'?'active':''}">Seguimiento <b>${items.filter(x=>upper(x.estado)==='EN SEGUIMIENTO').length}</b></button>
+            <button data-nfilter="done" class="${S.notifFilter==='done'?'active':''}">Atendidas <b>${items.filter(x=>upper(x.estado)==='ATENDIDA').length}</b></button>
+          </div>
+          <div class="r521-notif-actions"><input id="r521NotifSearch" value="${esc(S.notifSearch||'')}" placeholder="Buscar aviso…"><button id="r521MarkAll" class="rcv34-btn" ${Number(d.unread||0)?'':'disabled'}>✓ Marcar todo leído</button><button id="r34NotifRefresh" class="rcv34-btn">↻ Actualizar</button></div>
+        </section>
+        <div class="rcv34-section-head"><div><h2>Bandeja de seguimiento</h2><p>Toca un aviso para abrir directamente su módulo y detalle relacionado.</p></div></div><div class="rcv34-notif-list">${html}</div>`;
+      $('r34NotifRefresh').onclick=renderNotifications;
+      $('r519OpenProfile').onclick=()=>window.REPORTIA_AUTH?.openProfile?.();
+      $('r519EnableDevicePush').onclick=async()=>{const b=$('r519EnableDevicePush'),m=$('r519DeviceMsg');b.disabled=true;m.textContent='Registrando este dispositivo…';try{await window.REPORTIA_PUSH?.enable?.();m.textContent='Listo. Este dispositivo fue registrado para recibir avisos.';await refreshDeviceNotificationPanel()}catch(e){m.textContent=e.message||String(e)}finally{b.disabled=false}};
+      $('r519LocalTest').onclick=async()=>{const m=$('r519DeviceMsg');m.textContent='Enviando prueba local…';try{await window.REPORTIA_PUSH?.testLocal?.();m.textContent='Prueba local enviada. Esta prueba NO se agrega a la bandeja ni al contador. Si no aparece, revisa los permisos del sistema operativo o del navegador.'}catch(e){m.textContent=e.message||String(e)}};
+      document.querySelectorAll('[data-nfilter]').forEach(b=>b.onclick=()=>{S.notifFilter=b.dataset.nfilter;renderNotifications()});
+      const search=$('r521NotifSearch');if(search)search.oninput=()=>{S.notifSearch=search.value;clearTimeout(search._t);search._t=setTimeout(renderNotifications,280)};
+      $('r521MarkAll').onclick=async()=>{const ids=items.filter(x=>x.unread).map(x=>x.id).filter(Boolean);if(!ids.length)return;const b=$('r521MarkAll');b.disabled=true;b.textContent='Marcando…';try{await post({accion:'v38_mark_read',token:S.session.token,ids:ids.join(',')});setTimeout(renderNotifications,450)}catch(e){b.textContent='No fue posible'}};
+      document.querySelectorAll('[data-notif-id]').forEach(el=>el.onclick=()=>{const x=items.find(i=>String(i.id)===String(el.dataset.notifId));openNotificationItem(x)});
+      const n=Number(d.unread||0),b=$('r34NotifBadge'),mb=$('r519BottomBadge');if(b){b.textContent=String(n);b.classList.toggle('has',n>0)}if(mb){mb.textContent=String(n);mb.classList.toggle('has',n>0)}
+      await refreshDeviceNotificationPanel();
+      if(upper(S.session.tipo)==='ADMINISTRADOR')loadSystemHealth();
+    }catch(e){$('r34Panel').innerHTML=`<div class="rcv34-empty">${esc(e.message)}</div>`}
+  }
+  async function loadSystemHealth(){
+    try{
+      const r=await jsonp({accion:'v51_last_delivery',token:S.session.token});
+      if(!r?.item)return;
+      const host=document.querySelector('.r519-device-card');if(!host)return;
+      const x=r.item,total=Number(x.destinatarios||0),sent=Number(x.enviados||0);
+      host.insertAdjacentHTML('beforeend',`<div class="r521-health"><span>ESTADO DEL CANAL</span><div><b>${sent===total&&total>0?'✅ Push operativo':'⚠ Revisar entrega'}</b><small>Último envío: ${sent}/${total} dispositivo(s) · ${esc(x.gerencia||'')}</small></div><div><b>Portal v53.3</b><small>Android v2.0 · Firebase + TWA</small></div></div>`);
+    }catch(_){ }
+  }
+
+  async function savePlan(module,snapshotId,hierarchy){const txt=$('r34PlanText').value.trim(),msg=$('r34PlanMsg');if(!txt){msg.textContent='Escribe el plan de mejora.';msg.className='rcv34-msg error';return}msg.textContent='Guardando…';try{await post({accion:'v34_plan',token:S.session.token,module,snapshotId,region:adminRegionLabel(),hierarchy,texto:txt});msg.textContent='Plan de mejora enviado correctamente.';msg.className='rcv34-msg ok';$('r34SavePlan').disabled=true}catch(e){msg.textContent=e.message;msg.className='rcv34-msg error'}}
+  function sourceTabs(){return `<div class="rcv40-source-banner"><div><b>VISTA DEL ADMINISTRADOR · v43</b><span>Elige claramente qué información deseas consultar</span></div></div><div class="rcv34-source-tabs rcv40-source-tabs"><button id="r34TabLocal" class="${S.adminSource==='local'?'active':''}"><span class="rcv40-tab-icon">⚡</span><span><b>PROCESADO EN REAL</b><small>Archivo cargado y procesado en esta sesión · aún no publicado</small></span></button><button id="r34TabCloud" class="${S.adminSource==='cloud'?'active':''}"><span class="rcv40-tab-icon">☁</span><span><b>NUBE PUBLICADA</b><small>Información oficial publicada · histórico de 30 días</small></span></button></div>`}
+  function renderCurrentSource(){const admin=upper(S.session.tipo)==='ADMINISTRADOR',box=$('r34Data');if(!box)return;const source=admin?S.adminSource:'cloud';if(source==='local'){populateRegionFilter(S.local,'local');box.innerHTML=S.local?'<div class="rcv34-card rcv40-context-card local"><div><b>⚡ PROCESADO EN REAL</b><span>Estás viendo el archivo procesado en esta sesión. No es todavía la publicación oficial.</span></div></div>':'<div class="rcv34-empty">Procesa un archivo para consultar la vista local.</div>';if(S.local)renderData(S.local,S.module,{},'local')}else{populateRegionFilter(S.cloud,'cloud');box.innerHTML=S.cloud?'<div class="rcv34-card rcv40-context-card cloud"><div><b>☁ NUBE PUBLICADA</b><span>Estás viendo la publicación oficial almacenada en la nube.</span></div></div>'+publicationCard(S.cloudMeta||{}):'<div class="rcv34-empty">Consultando información oficial…</div>';if(S.cloud)renderData(S.cloud,S.module,S.cloudMeta||{},'cloud')}}
+  async function renderModule(module){
+    S.module=module;if(module==='gastos')S.compareYears=true;else if(module==='productividad')S.compareYears=false;S.local=null;S.cloud=null;S.cloudMeta=null;S.adminRegion='';S.adminSnapshot='';S.periodYear='';S.periodFrom='';S.periodTo='';
+    const admin=upper(S.session.tipo)==='ADMINISTRADOR';
+    // v58.7: en teléfono/tablet el administrador trabaja únicamente con Nube Publicada.
+    // En escritorio se conserva intacto el flujo Local -> Procesar -> Publicar -> Nube.
+    const mobileAdmin=admin&&window.matchMedia&&window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
+    const adminDesktop=admin&&!mobileAdmin;
+    S.adminSource=adminDesktop?'local':'cloud';
+    $('r34Title').textContent=MODULES[module].label;
+    $('r34Subtitle').textContent=module==='general'?'Consolidado de la publicación más reciente de cada módulo.':'Consulta regional por jerarquía y unidad de negocio.';
+    if(module==='general')return loadGeneral();
+    $('r34Panel').innerHTML=`<div class="rcv34-section-head"><div><h2>${MODULES[module].label}</h2><p>${adminDesktop?'Trabaja en Local para validar y publicar; cambia a Nube para revisar exactamente lo que ya está publicado.':'Consulta la última publicación oficial disponible de tu región.'}</p></div></div>${adminDesktop?sourceTabs():''}<div id="r34LocalTools" class="${adminDesktop?'':'rcv34-hidden'}">${adminDesktop?`<div class="rcv34-upload"><div class="rcv34-upload-row"><input type="file" id="r34File" accept=".xlsx,.xls"><button id="r34Process" class="rcv34-btn">Procesar archivo</button><button id="r34Publish" class="rcv34-btn primary" disabled>☁ Publicar en nube</button></div><div id="r34UploadMsg" class="rcv34-msg">Carga exclusivamente el archivo de ${MODULES[module].label}.</div></div>`:''}</div><div id="r34CloudTools" class="${adminDesktop?'rcv34-hidden':''}">${admin?`<div class="rcv34-admin-filters"><div><label>Región</label><select id="r34CloudRegionFilter" class="rcv34-history-select"><option value="">Selecciona una región</option></select></div><div><label>Fecha de publicación</label><select id="r34History" class="rcv34-history-select"><option value="">Más reciente</option></select></div><button id="r34Refresh" class="rcv34-btn">↻ Actualizar nube</button></div>`:''}</div>${adminDesktop?'<div id="r34LocalRegionTools"><div class="rcv34-admin-filters"><div><label>Región del archivo local</label><select id="r34LocalRegionFilter" class="rcv34-history-select"></select></div></div></div>':''}<div id="r34Data"></div>`;
+    if(adminDesktop){
+      const setSource=src=>{S.adminSource=src;S.adminRegion='';$('r34TabLocal').classList.toggle('active',src==='local');$('r34TabCloud').classList.toggle('active',src==='cloud');$('r34LocalTools').classList.toggle('rcv34-hidden',src!=='local');$('r34LocalRegionTools').classList.toggle('rcv34-hidden',src!=='local');$('r34CloudTools').classList.toggle('rcv34-hidden',src!=='cloud');if(src==='cloud')loadCloud(module,S.adminSnapshot);else renderCurrentSource()};
+      $('r34TabLocal').onclick=()=>setSource('local');$('r34TabCloud').onclick=()=>setSource('cloud');$('r34Process').onclick=()=>processSelected(module);$('r34Publish').onclick=()=>publishLocal(module);$('r34Refresh').onclick=()=>loadCloud(module,S.adminSnapshot,true);loadHistory(module);renderCurrentSource();
+    }else if(admin){
+      // Administrador móvil: no se crean ni enlazan controles de carga local.
+      // Se conserva su acceso administrativo a región/histórico, pero siempre sobre la nube.
+      S.adminSource='cloud';
+      const refresh=$('r34Refresh');if(refresh)refresh.onclick=()=>loadCloud(module,S.adminSnapshot,true);
+      loadHistory(module);loadCloud(module);
+    }else loadCloud(module);
+  }
+  async function processSelected(module){const file=$('r34File').files?.[0],msg=$('r34UploadMsg');if(!file){msg.textContent='Selecciona un archivo Excel.';msg.className='rcv34-msg error';return}msg.textContent='Procesando y validando…';try{S.local=await parseFile(file,module);S.adminRegion='';populateRegionFilter(S.local,'local');msg.textContent=`Validado: ${S.local.rows.length.toLocaleString()} registros · Región(es): ${S.local.regions.join(', ')}`;msg.className='rcv34-msg ok';$('r34Publish').disabled=false;renderCurrentSource()}catch(e){msg.textContent=e.message;msg.className='rcv34-msg error';$('r34Publish').disabled=true}}
+  async function publishLocal(module){
+    if(!S.local)return;
+    const b=$('r34Publish'),msg=$('r34UploadMsg'); b.disabled=true;
+    try{
+      S.local=repairRegionData(S.local);
+      const regs=[...new Set((S.local.rows||[]).map(r=>cleanRegion(r.region)).filter(Boolean))];
+      const invalid=regs.filter(r=>/^\d+$/.test(r)||r==='SIN REGION'||r==='SIN REGIÓN');
+      if(invalid.length)throw new Error('No se publicará: todavía hay regiones inválidas: '+invalid.join(', '));
+      const before=await jsonp({accion:'v34_history',token:S.session.token,module});
+      const beforeId=before?.items?.[0]?.snapshotId||'';
+      const raw=JSON.stringify(S.local), packed0=await gzipBase64(raw);
+      // v57.0: Base64 URL-safe evita que + / = se alteren durante POST -> Apps Script.
+      const packed=packed0 ? packed0.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') : null;
+      if(!packed) throw new Error('Este navegador no permite compresión GZIP. Usa Chrome actualizado.');
+      // v55.6: envío por bloques pequeños. Evita que Apps Script pierda/trunque un POST grande.
+      const uploadId='U'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const PART=24000, parts=[]; for(let i=0;i<packed.length;i+=PART)parts.push(packed.slice(i,i+PART));
+      for(let i=0;i<parts.length;i++){
+        msg.textContent=`Enviando a la nube… bloque ${i+1}/${parts.length}`; msg.className='rcv34-msg';
+        await post({accion:'v55_upload_chunk',token:S.session.token,module,uploadId,index:i+1,total:parts.length,data:parts[i]});
+        await new Promise(r=>setTimeout(r,120));
+      }
+      // v56.4: la finalización se hace por GET/JSONP, que ya comprobamos que sí llega a Apps Script.
+      // Así recibimos directamente el snapshotId y eliminamos las 60 consultas repetitivas.
+      msg.textContent='Bloques completos · creando snapshot…';
+      const fin=await jsonpLong({accion:'v55_upload_finish',token:S.session.token,module,uploadId,total:parts.length,regiones:regs.join(' | '),archivo:String(S.local.filename||'')},300000);
+      if(!fin?.ok||!fin?.snapshotId)throw new Error(fin?.mensaje||'Apps Script no devolvió el snapshot final.');
+      msg.textContent='Verificando snapshot…';
+      const h=await jsonpLong({accion:'v34_history',token:S.session.token,module},120000);
+      const confirmed=(h?.items||[]).find(x=>x.snapshotId===fin.snapshotId);
+      if(!confirmed)throw new Error('Apps Script creó el snapshot '+String(fin.snapshotId).slice(0,8)+' pero el historial aún no lo devolvió. Pulsa Actualizar nube en unos segundos.');
+      msg.textContent='✓ Publicación confirmada · '+String(fin.snapshotId).slice(0,8)+' · Regiones: '+regs.join(', ');msg.className='rcv34-msg ok';
+      // v58.2: confirmar explícitamente el aviso una vez que el snapshot ya existe.
+      // Si el push falla, la publicación permanece confirmada.
+      try{
+        const aviso=await jsonpLong({accion:'v582_publication_notify',token:S.session.token,module,snapshotId:fin.snapshotId,regiones:regs.join(' | ')},90000);
+        if(aviso?.ok){
+          const enviados=Number(aviso.enviados||0), destinos=Number(aviso.destinatarios||0);
+          msg.textContent+=' · Notificación: '+enviados+'/'+destinos+' dispositivo(s)';
+          if(aviso.error) msg.textContent+=' · '+String(aviso.error);
+        }else if(aviso?.mensaje){ msg.textContent+=' · Aviso pendiente: '+String(aviso.mensaje); }
+      }catch(_avisoErr){ msg.textContent+=' · Publicado; aviso push pendiente'; }
+      S.adminSnapshot='';await loadHistory(module);
+    }catch(e){msg.textContent=e.message;msg.className='rcv34-msg error'}finally{b.disabled=false}
+  }
+  // v59.6: cache persistente en IndexedDB para que los módulos pesados puedan abrir
+  // inmediatamente con la última copia descargada mientras la nube se actualiza en segundo plano.
+  const R596_CACHE_DB='REPORTIA_RGI_CACHE_V596', R596_CACHE_STORE='cloudModules';
+  function r596CacheKey(module,snapshotId=''){return `${String(S.session?.usuario||'').toUpperCase()}|${module}|${snapshotId||'LATEST'}`}
+  function r596Db(){return new Promise((resolve,reject)=>{try{const q=indexedDB.open(R596_CACHE_DB,1);q.onupgradeneeded=()=>{const db=q.result;if(!db.objectStoreNames.contains(R596_CACHE_STORE))db.createObjectStore(R596_CACHE_STORE,{keyPath:'key'})};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)}catch(e){reject(e)}})}
+  async function r596CacheGet(module,snapshotId=''){try{const db=await r596Db();return await new Promise((resolve,reject)=>{const tx=db.transaction(R596_CACHE_STORE,'readonly'),q=tx.objectStore(R596_CACHE_STORE).get(r596CacheKey(module,snapshotId));q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error)})}catch(_){return null}}
+  async function r596CachePut(module,snapshotId,payload){try{const db=await r596Db();await new Promise((resolve,reject)=>{const tx=db.transaction(R596_CACHE_STORE,'readwrite');tx.objectStore(R596_CACHE_STORE).put({key:r596CacheKey(module,snapshotId),savedAt:Date.now(),payload});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}catch(_){}}
+  function r596ApplyCloud(d,module,snapshotId=''){if(!d?.disponible)return false;S.cloud=repairRegionData(d.data);S.cloudMeta=d.meta||{};S.adminSnapshot=snapshotId||'';populateRegionFilter(S.cloud,'cloud');renderCurrentSource();setTimeout(tryOpenPendingNotification,120);return true}
+  async function loadCloud(module,snapshotId='',force=false){
+    const box=$('r34Data');if(!box)return;if(upper(S.session.tipo)==='ADMINISTRADOR'&&S.adminSource!=='cloud')return;
+    let cached=null,showingCache=false;
+    if(!force){cached=await r596CacheGet(module,snapshotId);if(cached?.payload?.ok&&cached.payload.disponible){showingCache=r596ApplyCloud(cached.payload,module,snapshotId);if(showingCache){const age=Math.max(0,Math.round((Date.now()-(cached.savedAt||Date.now()))/60000));box.insertAdjacentHTML('afterbegin',`<div class="rcv34-card r596-cache-note"><b>⚡ Vista rápida</b><span>Mostrando la última copia descargada${age?` · hace ${age} min`:''}. Actualizando nube en segundo plano…</span></div>`)}}}
+    if(!showingCache)box.innerHTML='<div class="rcv34-empty"><b>Consultando información oficial…</b><br><span>Los archivos grandes pueden tardar; REPORT.IA conservará una copia local para las siguientes consultas.</span></div>';
+    try{
+      let d;
+      try{d=await jsonpLong({accion:snapshotId?'v34_snapshot':'v34_module',token:S.session.token,module,snapshotId},300000)}
+      catch(firstErr){if(showingCache)return;await new Promise(r=>setTimeout(r,1200));d=await jsonpLong({accion:snapshotId?'v34_snapshot':'v34_module',token:S.session.token,module,snapshotId},300000)}
+      if(!d?.ok)throw new Error(d?.mensaje||'No fue posible consultar.');
+      if(!d.disponible){if(showingCache)return;S.cloud=null;box.innerHTML='<div class="rcv34-empty">Aún no hay una publicación disponible para este módulo.</div>';return}
+      await r596CachePut(module,snapshotId,d);r596ApplyCloud(d,module,snapshotId);
+    }catch(e){if(showingCache){document.querySelector('.r596-cache-note span')?.replaceChildren(document.createTextNode('Mostrando la copia descargada. La nube no respondió; puedes seguir consultando y reintentar con ↻ Actualizar nube.'));return}box.innerHTML=`<div class="rcv34-empty">${esc(e.message)}<br><small>REPORT.IA volverá a intentar al pulsar ↻ Actualizar nube.</small></div>`}
+  }
+  async function loadHistory(module){const sel=$('r34History');if(!sel)return;try{const d=await jsonpLong({accion:'v34_history',token:S.session.token,module},120000);if(!d?.ok)return;S.history=d.items||[];sel.innerHTML='<option value="">Más reciente</option>'+S.history.map(x=>`<option value="${esc(x.snapshotId)}">${esc(x.fecha)} · ${esc(x.usuario)}${(x.regiones||[]).length?' · '+esc((x.regiones||[]).join(', ')):''}</option>`).join('');sel.value=S.adminSnapshot||'';sel.onchange=()=>{S.adminSnapshot=sel.value||'';S.adminRegion='';loadCloud(module,S.adminSnapshot)}}catch(_){}}
+  async function loadGeneral(){
+    $('r34Panel').innerHTML=`<div class="rcv34-empty r493-general-loading"><b>Construyendo centro de control regional…</b><span>Consultando Gastos, Costos y Productividad en paralelo.</span><div class="r493-loader"><i></i><i></i><i></i></div></div>`;
+    try{
+      const mods=['gastos','costos','productividad'];
+      const results=await Promise.allSettled(mods.map(module=>jsonpLong({accion:'v34_module',token:S.session.token,module},120000)));
+      const d={modules:{}};
+
+      results.forEach((res,i)=>{
+        const module=mods[i];
+        if(res.status==='fulfilled' && res.value?.ok){
+          const x=res.value;
+          d.modules[module]={disponible:!!x.disponible,data:x.data||null,meta:x.meta||{}};
+        }else{
+          d.modules[module]={disponible:false,error:res.status==='rejected' ? (res.reason?.message||'Error de conexión') : (res.value?.mensaje||'Sin información')};
+        }
+      });
+
+      const available=mods.filter(module=>d.modules[module]?.disponible);
+      if(!available.length){
+        const err=mods.map(module=>d.modules[module]?.error).filter(Boolean)[0];
+        throw new Error(err||'No fue posible cargar información de los módulos.');
+      }
+
+      const admin=upper(S.session.tipo)==='ADMINISTRADOR';
+      let moduleCards='',rankings='';
+      const allRegions=new Set();
+
+      for(const module of mods){
+        const x=d.modules[module];
+
+        if(!x?.disponible){
+          moduleCards+=`<article class="rcv34-menu-card r493-module-unavailable">
+            <div class="ico">${MODULES[module].icon}</div>
+            <h3>${MODULES[module].label}</h3>
+            <p>No respondió este módulo.<br><small>${esc(x?.error||'Sin publicación disponible.')}</small></p>
+            <button class="rcv34-btn" data-general-open="${module}">Reintentar módulo</button>
+          </article>`;
+          continue;
+        }
+
+        const raw=x.data?.rows||[];
+        if(!S.periodYear){
+          const ly=latestYear(raw);
+          if(ly)S.periodYear=ly;
+        }
+        const rows=filterPeriod(raw);
+        const t=totals(rows,module);
+
+        raw.forEach(r=>allRegions.add(cleanRegion(r.region)));
+        const redManagers=[...groupRows(rows,accountName)].filter(([,rs])=>totals(rs,module).st==='red').length;
+
+        moduleCards+=`<article class="rcv34-menu-card" data-general-open="${module}">
+          <div class="ico">${MODULES[module].icon}</div>
+          <h3>${MODULES[module].label}</h3>
+          <p>Real <b>${money(t.real)}</b><br>Presupuesto <b>${money(t.budget)}</b><br><b>${redManagers}</b> cuentas rojas</p>
+          <div class="status">${sema(t.st)}</div>
+        </article>`;
+
+        const rg=groupRows(rows,r=>cleanRegion(r.region));
+        rankings+=rankingBlock(rg,module,`Top 10 regiones · ${MODULES[module].label}`,module==='productividad'?'Regiones con mayor valor Real.':'Regiones con mayor importe Real.');
+      }
+
+      let regional='';
+      if(admin && allRegions.size){
+        const regs=[...allRegions].filter(Boolean).sort((a,b)=>a.localeCompare(b,'es'));
+        regional=`<article class="rcv34-card rcv42-regional">
+          <div class="rcv42-top-head">
+            <div><h3>Comparativo entre regiones</h3><p>Selecciona una región para revisar su estructura Región → Cuenta contable → Impactos → Detalle.</p></div>
+            <span>${regs.length} regiones</span>
+          </div>
+          <div class="rcv42-region-table">
+            <div class="head"><span>Región</span><span>Gastos</span><span>Costos</span><span>Productividad</span><span>Alertas</span></div>
+            ${regs.map(reg=>{
+              let alerts=0;
+              const cells=mods.map(module=>{
+                const x=d.modules[module];
+                const rs=filterPeriod((x?.data?.rows||[]).filter(r=>cleanRegion(r.region)===reg));
+                if(!rs.length)return '<span>—</span>';
+                const t=totals(rs,module);
+                if(t.st==='red')alerts++;
+                return `<span>${sema(t.st)}<small>${pctLabel(rs,module)}</small></span>`;
+              }).join('');
+              return `<button class="row" data-general-region="${esc(reg)}"><b>${esc(reg)}</b>${cells}<strong class="${alerts?'red':''}">${alerts}</strong></button>`;
+            }).join('')}
+          </div>
+        </article>`;
+      }
+
+      const partial=available.length<mods.length
+        ? `<div class="r493-partial-warning">⚠ Se cargaron ${available.length} de ${mods.length} módulos. Puedes abrir el módulo pendiente para reintentarlo sin perder los demás resultados.</div>`
+        : '';
+
+      $('r34Panel').innerHTML=`<div class="rcv34-section-head">
+        <div><h2>Centro de Control Regional</h2><p>Resumen ejecutivo y Top 10 por región. Los módulos se consultan de forma independiente para evitar tiempos de espera.</p></div>
+        <span class="rcv42-update">${S.periodYear?`Año ${esc(S.periodYear)}`:'Año más reciente'}</span>
+      </div>
+      ${partial}
+      <div class="rcv34-menu-grid">${moduleCards}</div>
+      <div class="rcv48-general-rankings">${rankings}</div>
+      ${regional}`;
+
+      document.querySelectorAll('[data-general-open]').forEach(x=>x.onclick=()=>navigate(x.dataset.generalOpen));
+      document.querySelectorAll('[data-general-region]').forEach(x=>x.onclick=()=>{
+        S.adminRegion=cleanRegion(x.dataset.generalRegion);
+        navigate('gastos');
+      });
+    }catch(e){
+      $('r34Panel').innerHTML=`<article class="rcv34-card r493-general-error">
+        <h3>No fue posible cargar General</h3>
+        <p>${esc(e.message)}</p>
+        <button id="r493RetryGeneral" class="rcv34-btn">↻ Reintentar</button>
+      </article>`;
+      const b=$('r493RetryGeneral');if(b)b.onclick=loadGeneral;
+    }
+  }
+  async function renderAdminUsers(){
+    if(upper(S.session.tipo)!=='ADMINISTRADOR')return renderMenu();
+    $('r34Title').textContent='Administración de usuarios';$('r34Subtitle').textContent='Crea accesos sin modificar la operación de REPORT.IA.';
+    $('r34Panel').innerHTML=`<style>.u585-wrap{display:grid;gap:18px}.u585-card{background:#fff;border:1px solid #dbe5f4;border-radius:18px;padding:24px;box-shadow:0 8px 24px rgba(15,23,42,.05)}.u585-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:20px}.u585-head h2{margin:0;color:#12346b;font-size:24px}.u585-head p{margin:5px 0 0;color:#64748b}.u585-badge{background:#eaf2ff;color:#0b4db5;border-radius:999px;padding:8px 12px;font-weight:800;font-size:12px}.u585-grid{display:grid;grid-template-columns:2fr 1.2fr 1.2fr 1.2fr;gap:14px;align-items:end}.u585-field label{display:block;font-size:12px;font-weight:800;color:#52627a;margin:0 0 7px}.u585-field input,.u585-field select{width:100%;height:46px;border:1px solid #cbd8ea;border-radius:11px;padding:0 13px;background:#fff;font:inherit}.u585-actions{display:flex;justify-content:flex-end;margin-top:18px}.u585-create{border:0;border-radius:11px;background:#0759c7;color:#fff;font-weight:900;padding:13px 22px;cursor:pointer}.u585-msg{min-height:22px;margin-top:12px;font-weight:700;font-size:13px}.u585-table{width:100%;border-collapse:collapse}.u585-table th{background:#173d8f;color:#fff;text-align:left;padding:12px}.u585-table td{padding:12px;border-bottom:1px solid #e7edf6}.u585-empty{text-align:center;padding:30px;color:#64748b}@media(max-width:900px){.u585-grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.u585-grid{grid-template-columns:1fr}}</style><div class="u585-wrap"><section class="u585-card"><div class="u585-head"><div><h2>Crear usuario</h2><p>Los administradores ven todo. La región se solicita únicamente para usuarios.</p></div><span class="u585-badge">CONTROL DE ACCESO</span></div><div class="u585-grid"><div class="u585-field"><label>NOMBRE / USUARIO</label><input id="u585Name" placeholder="Nombre del usuario"></div><div class="u585-field"><label>CONTRASEÑA INICIAL</label><input id="u585Pass" type="password" placeholder="Contraseña"></div><div class="u585-field"><label>TIPO DE USUARIO</label><select id="u585Type"><option>USUARIO</option><option>ADMINISTRADOR</option></select></div><div class="u585-field"><label>REGIÓN</label><select id="u585Region"><option value="">Selecciona región</option><option>VILLAHERMOSA</option><option>COATZA</option><option>REGIONAL</option></select></div></div><div class="u585-actions"><button id="u585Create" class="u585-create">＋ Crear usuario</button></div><div id="u585Msg" class="u585-msg"></div></section><section class="u585-card"><div class="u585-head"><div><h2>Usuarios registrados</h2><p>La consulta se realiza únicamente al entrar a esta pantalla.</p></div><button id="u585Refresh" class="rcv34-secondary">↻ Actualizar</button></div><div id="u585List" class="u585-empty">Presiona Actualizar para consultar los usuarios.</div></section></div>`;
+    const type=$('u585Type'),region=$('u585Region'),msg=$('u585Msg'),list=$('u585List');const sync=()=>{const a=type.value==='ADMINISTRADOR';region.disabled=a;if(a)region.value='';};type.onchange=sync;sync();
+    const load=async()=>{list.innerHTML='<div class="u585-empty">Consultando usuarios…</div>';try{const d=await jsonp({accion:'v585_admin_users',token:S.session.token});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible consultar usuarios.');list.innerHTML=`<div class="rcv34-table-wrap"><table class="u585-table"><thead><tr><th>Usuario</th><th>Tipo</th><th>Región</th></tr></thead><tbody>${(d.items||[]).map(x=>`<tr><td><b>${esc(x.usuario)}</b></td><td>${esc(x.tipo)}</td><td>${esc(x.region||'—')}</td></tr>`).join('')}</tbody></table></div>`}catch(e){list.innerHTML=`<div class="u585-empty">${esc(e.message)}</div>`}};$('u585Refresh').onclick=load;
+    $('u585Create').onclick=async()=>{const usuario=$('u585Name').value.trim(),contrasena=$('u585Pass').value,tipo=type.value,reg=region.value;if(!usuario||!contrasena){msg.style.color='#dc2626';msg.textContent='Completa nombre y contraseña.';return}if(tipo==='USUARIO'&&!reg){msg.style.color='#dc2626';msg.textContent='Selecciona una región.';return}msg.style.color='#475569';msg.textContent='Creando usuario…';try{await post({accion:'v585_admin_user_create',token:S.session.token,usuario,contrasena,tipo,region:reg});let ok=false;for(let i=0;i<8;i++){await new Promise(r=>setTimeout(r,1200));const d=await jsonp({accion:'v585_admin_users',token:S.session.token});if(d?.items?.some(x=>upper(x.usuario)===upper(usuario))){ok=true;break}}if(!ok)throw new Error('No se confirmó el alta.');msg.style.color='#059669';msg.textContent='✓ Usuario creado correctamente.';$('u585Name').value='';$('u585Pass').value='';await load()}catch(e){msg.style.color='#dc2626';msg.textContent=e.message||String(e)}};
+  }
+
+  async function renderSessions(){if(upper(S.session.tipo)!=='ADMINISTRADOR')return renderMenu();$('r34Title').textContent='Conexiones y actividad';$('r34Subtitle').textContent='Control de accesos y tiempo de consulta de los usuarios.';$('r34Panel').innerHTML='<div class="rcv34-empty">Consultando sesiones…</div>';try{const d=await jsonp({accion:'v34_sessions',token:S.session.token});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible consultar sesiones.');const active=d.items.filter(x=>x.estado==='ACTIVA').length,total=d.items.length,mins=d.items.reduce((a,x)=>a+(Number(x.minutos)||0),0);const trs=d.items.map(x=>`<tr><td>${esc(x.usuario)}</td><td>${esc(x.region)}</td><td>${esc(x.inicio)}</td><td>${esc(x.ultimaActividad)}</td><td>${esc(x.fin||'—')}</td><td>${Number(x.minutos||0).toFixed(1)} min</td><td>${Number(x.consultas||0)}</td><td>${Number(x.planes||0)}</td><td>${esc(x.estado)}</td></tr>`).join('');$('r34Panel').innerHTML=`<div class="rcv34-session-summary"><article class="rcv34-kpi"><small>SESIONES REGISTRADAS</small><strong>${total}</strong></article><article class="rcv34-kpi"><small>ACTIVAS / RECIENTES</small><strong>${active}</strong></article><article class="rcv34-kpi"><small>TIEMPO ACUMULADO</small><strong>${mins.toFixed(0)} min</strong></article></div><article class="rcv34-card"><h3>Bitácora de conexiones</h3><p>Una sesión sin cierre explícito se considera desconectada según su última actividad.</p><div class="rcv34-table-wrap"><table class="rcv34-table"><thead><tr><th>Usuario</th><th>Región</th><th>Inicio</th><th>Última actividad</th><th>Fin</th><th>Duración</th><th>Consultas</th><th>Planes</th><th>Estado</th></tr></thead><tbody>${trs}</tbody></table></div></article>`}catch(e){$('r34Panel').innerHTML=`<div class="rcv34-empty">${esc(e.message)}</div>`}}
+  function init(session){build();S.session=session;$('r34User').textContent=session.usuario;$('r34Role').textContent=upper(session.tipo)==='ADMINISTRADOR'?'Administrador del sistema':`Región ${sessionRegion(session)}`;$('r34Region').textContent=sessionRegion(session);renderMenu();refreshNotifications();if(S.notificationTimer)clearInterval(S.notificationTimer);S.notificationTimer=setInterval(refreshNotifications,60000)}
+  window.addEventListener('reportia:session',e=>init(e.detail));if(window.REPORTIA_SESSION)init(window.REPORTIA_SESSION);
+  function reportFolio(module){const d=new Date(),pad=n=>String(n).padStart(2,'0');const reg=(adminRegionLabel()||'GENERAL').replace(/[^A-Z0-9]/gi,'').slice(0,8).toUpperCase();return `RGI-${upper(module).slice(0,5)}-${reg}-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`}
+  function executiveReportBar(rows,module,meta,source){
+    return `<article class="rcv44-reportbar"><div><span>REPORTE EJECUTIVO</span><b>Genera una salida lista para reunión o exporta el detalle filtrado.</b><small>Respeta región, año, meses y fuente ${source==='cloud'?'Nube Publicada':'Procesado en Real'}.</small></div><div class="rcv44-report-actions"><button id="r44Report" class="rcv44-report-btn primary">📄 Generar reporte ejecutivo</button><button id="r44Excel" class="rcv44-report-btn">▦ Exportar Excel Ejecutivo</button></div></article>`;
+  }
+  function bindExecutiveReport(rows,module,meta,source){const r=$('r44Report'),x=$('r44Excel');if(r)r.onclick=()=>openReportOptions(rows,module,meta,source);if(x)x.onclick=()=>exportExecutiveExcel(rows,module,meta,source)}
+  function openReportOptions(rows,module,meta,source){
+    let m=$('r44Options');if(m)m.remove();document.body.insertAdjacentHTML('beforeend',`<div id="r44Options" class="rcv44-modal open"><div class="rcv44-modal-card"><button class="rcv44-x" id="r44Close">×</button><span class="rcv44-kicker">GENERADOR EJECUTIVO</span><h2>Configurar reporte</h2><p>El reporte usará la vista actualmente filtrada: <b>${esc(MODULES[module]?.label||module)}</b> · <b>${esc(adminRegionLabel())}</b> · <b>${esc(periodRangeLabel())}</b>.</p><div class="rcv44-options"><label><input type="checkbox" data-r44="charts" checked> Gráficas y tendencia mensual</label><label><input type="checkbox" data-r44="top" checked> Top desviaciones</label><label><input type="checkbox" data-r44="repeat" checked> Reincidencias</label><label><input type="checkbox" data-r44="detail"> Detalle de movimientos</label><label><input type="checkbox" data-r44="notes" checked> Resumen de seguimiento</label></div><div class="rcv44-modal-actions"><button id="r44Cancel">Cancelar</button><button id="r44Generate" class="primary">Generar reporte</button></div></div></div>`);const close=()=>$('r44Options')?.remove();$('r44Close').onclick=close;$('r44Cancel').onclick=close;$('r44Options').onclick=e=>{if(e.target===$('r44Options'))close()};$('r44Generate').onclick=()=>{const opt={};document.querySelectorAll('[data-r44]').forEach(i=>opt[i.dataset.r44]=i.checked);close();generateExecutiveReport(rows,module,meta,source,opt)}}
+  function reportConclusions(rows,module){const groups=[...groupRows(rows,accountName)].map(([name,rs])=>({name,rs,t:totals(rs,module),dev:deviationValue(rs,module),streak:redStreak(rs,module)}));const red=groups.filter(x=>x.t.st==='red').sort((a,b)=>b.dev-a.dev);const out=[];if(red.length)out.push(`${red.length} de ${groups.length} cuentas presentan semáforo rojo en el periodo seleccionado.`);else out.push(`No se detectan cuentas en rojo en el periodo seleccionado.`);if(red[0])out.push(`${red[0].name} concentra la mayor desviación, por ${money(red[0].dev)}.`);const repeat=groups.filter(x=>x.streak>=2).sort((a,b)=>b.streak-a.streak);if(repeat.length)out.push(`${repeat.length} cuenta(s) presentan reincidencia de al menos 2 meses consecutivos en rojo; la mayor racha es de ${repeat[0].streak} meses.`);const by=monthlyGroups(rows);if(by.length>=2){const a=totals(by[by.length-2][1],module),b=totals(by[by.length-1][1],module);if(Math.abs(a.real)>0){const ch=((Math.abs(b.real)-Math.abs(a.real))/Math.abs(a.real))*100;out.push(`El Real del último mes ${ch>=0?'aumentó':'disminuyó'} ${Math.abs(ch).toFixed(1)}% respecto al mes anterior disponible.`)}}return out}
+  function reportSvg(rows,module){const data=monthlyGroups(rows).map(([name,rs])=>({name,t:totals(rs,module)}));if(!data.length)return'';const max=Math.max(...data.flatMap(x=>[Math.abs(x.t.real),Math.abs(x.t.budget)]),1),W=760,H=240,p=35,gap=(W-p*2)/Math.max(data.length,1);let bars='';data.forEach((x,i)=>{const bx=p+i*gap+gap*.17,bw=Math.max(8,gap*.25),rh=Math.abs(x.t.real)/max*150,bh=Math.abs(x.t.budget)/max*150;bars+=`<rect x="${bx}" y="${185-rh}" width="${bw}" height="${rh}" rx="3" fill="#2563eb"/><rect x="${bx+bw+4}" y="${185-bh}" width="${bw}" height="${bh}" rx="3" fill="#14b8a6"/><text x="${bx+bw}" y="210" text-anchor="middle" font-size="10" fill="#667085">${esc(x.name)}</text>`});return `<svg viewBox="0 0 ${W} ${H}" class="r44-svg"><line x1="${p}" y1="185" x2="${W-p}" y2="185" stroke="#d0d5dd"/>${bars}<g font-size="11"><rect x="560" y="12" width="10" height="10" rx="2" fill="#2563eb"/><text x="575" y="21">Real</text><rect x="625" y="12" width="10" height="10" rx="2" fill="#14b8a6"/><text x="640" y="21">Presupuesto</text></g></svg>`}
+  function generateExecutiveReport(rows,module,meta,source,opt){const t=totals(rows,module),groups=[...groupRows(rows,accountName)].map(([name,rs])=>({name,rs,t:totals(rs,module),dev:deviationValue(rs,module),streak:redStreak(rs,module)})),reds=groups.filter(x=>x.t.st==='red'),greens=groups.length-reds.length,top=[...reds].sort((a,b)=>b.dev-a.dev).slice(0,5),folio=reportFolio(module),now=new Date().toLocaleString('es-MX'),conclusions=reportConclusions(rows,module);const topHtml=opt.top?`<section><h2>Principales desviaciones</h2><table><thead><tr><th>#</th><th>Cuenta contable</th><th>Real</th><th>Presupuesto</th><th>Desviación</th><th>Estado</th></tr></thead><tbody>${top.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${money(x.t.real)}</td><td>${money(x.t.budget)}</td><td>${money(x.dev)}</td><td class="bad">ROJO</td></tr>`).join('')||'<tr><td colspan="6">Sin desviaciones rojas.</td></tr>'}</tbody></table></section>`:'';const repeat=groups.filter(x=>x.streak>=2).sort((a,b)=>b.streak-a.streak);const repeatHtml=opt.repeat?`<section><h2>Reincidencias</h2>${repeat.length?`<div class="chips">${repeat.map(x=>`<span><b>${esc(x.name)}</b> · ${x.streak} meses en rojo</span>`).join('')}</div>`:'<p>No se detectan reincidencias de 2 o más meses consecutivos.</p>'}</section>`:'';const detailHtml=opt.detail?`<section class="page"><h2>Detalle de movimientos</h2><table><thead><tr><th>Jerarquía</th><th>Cuenta / concepto</th><th>Cuenta contable</th><th>Periodo</th><th>Real</th><th>Presupuesto</th><th>Estado</th></tr></thead><tbody>${rows.slice(0,2500).map(r=>{const st=status(module,Number(r.real)||0,Number(r.budget)||0);return `<tr><td>${esc(r.hierarchy)}</td><td>${esc(r.account)}</td><td>${esc(unitName(r))}</td><td>${esc(r.period)}</td><td>${money(r.real)}</td><td>${money(r.budget)}</td><td class="${st==='red'?'bad':'good'}">${st==='red'?'ROJO':'VERDE'}</td></tr>`}).join('')}</tbody></table>${rows.length>2500?'<p><i>Por legibilidad, el PDF limita el detalle a los primeros 2,500 movimientos. Use Exportar a Excel para el universo completo.</i></p>':''}</section>`:'';const html=`<!doctype html><html><head><meta charset="utf-8"><title>${folio}</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#172033;margin:0;font-size:11px;background:#fff}.cover{padding:28px;border-radius:18px;background:linear-gradient(135deg,#172554 0%,#1d4ed8 55%,#0f766e 100%);color:#fff;margin-bottom:18px;box-shadow:0 8px 28px rgba(29,78,216,.14)}.brand{font-size:27px;font-weight:900;letter-spacing:.02em}.brand span{font-size:11px;color:#dbeafe;display:block;margin-top:4px;letter-spacing:.08em;text-transform:uppercase}.cover h1{font-size:25px;margin:32px 0 8px}.cover>p{color:#dbeafe}.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:22px}.meta div{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:10px;border-radius:9px}.meta small{color:#bfdbfe}.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:15px 0}.kpis div{border:1px solid #dbe5f4;border-radius:10px;padding:11px;background:#f8fbff;position:relative;overflow:hidden}.kpis div:before{content:'';position:absolute;left:0;top:0;width:100%;height:3px;background:#2563eb}.kpis div:nth-child(2):before{background:#14b8a6}.kpis div:nth-child(3):before{background:#7c3aed}.kpis div:nth-child(4):before{background:#ef4444}.kpis div:nth-child(5):before{background:#10b981}.kpis small{display:block;color:#64748b;font-weight:700}.kpis b{display:block;font-size:15px;margin-top:5px;color:#172033}h2{font-size:16px;margin:23px 0 9px;border-bottom:2px solid #dbeafe;padding-bottom:6px;color:#1e3a8a}table{border-collapse:separate;border-spacing:0;width:100%;font-size:9px;border:1px solid #e2e8f0;border-radius:9px;overflow:hidden}th,td{padding:7px;border-bottom:1px solid #e8eef7;text-align:left}th{background:#1e3a8a;color:#fff;font-weight:700}tbody tr:nth-child(even){background:#f8fafc}.bad{color:#dc2626;font-weight:bold}.good{color:#059669;font-weight:bold}.r44-svg{width:100%;height:auto;border:1px solid #dbe5f4;border-radius:10px;background:#fbfdff}.conclusions{padding:13px 18px;background:#eff6ff;border-left:4px solid #2563eb;border-radius:0 9px 9px 0}.conclusions li{margin:7px 0}.chips{display:grid;grid-template-columns:1fr 1fr;gap:7px}.chips span{border:1px solid #ddd6fe;background:#f5f3ff;padding:9px;border-radius:9px;color:#5b21b6}.footer{margin-top:22px;border-top:2px solid #dbeafe;padding-top:8px;color:#64748b;font-size:9px}.page{page-break-before:always}@media print{button{display:none}.cover{-webkit-print-color-adjust:exact;print-color-adjust:exact}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="cover"><div class="brand">REPORT.IA<span>Centro de Control Regional</span></div><h1>Reporte Ejecutivo · ${esc(MODULES[module]?.label||module)}</h1><p>Resumen de la información actualmente seleccionada en el portal.</p><div class="meta"><div><small>REGIÓN</small><b>${esc(adminRegionLabel())}</b></div><div><small>PERIODO</small><b>${esc(periodRangeLabel())}</b></div><div><small>FUENTE</small><b>${source==='cloud'?'Nube Publicada':'Procesado en Real'}</b></div><div><small>FOLIO</small><b>${folio}</b></div><div><small>GENERADO POR</small><b>${esc(S.session?.usuario||'—')}</b></div><div><small>FECHA Y HORA</small><b>${now}</b></div></div></div><div class="kpis"><div><small>REAL</small><b>${money(t.real)}</b></div><div><small>PRESUPUESTO</small><b>${money(t.budget)}</b></div><div><small>VARIACIÓN</small><b>${money(t.diff)}</b></div><div><small>ROJAS</small><b>${reds.length}</b></div><div><small>VERDES</small><b>${greens}</b></div></div>${opt.charts?`<section><h2>Evolución mensual · Real vs Presupuesto</h2>${reportSvg(rows,module)}</section>`:''}${topHtml}<section><h2>Conclusiones automáticas</h2><ol class="conclusions">${conclusions.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></section>${repeatHtml}${opt.notes?`<section><h2>Seguimiento ejecutivo</h2><p>Las incidencias y conversaciones se gestionan desde la vista Nube Publicada. Este reporte identifica las cuentas contables que requieren seguimiento con base en el semáforo y reincidencia del periodo.</p></section>`:''}${detailHtml}<div class="footer">${folio} · Generado desde REPORT.IA · ${now}</div><script>window.onload=()=>setTimeout(()=>window.print(),350)<\/script></body></html>`;const w=window.open('','_blank');if(!w){alert('El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para este sitio.');return}w.document.open();w.document.write(html);w.document.close()}
+  
+  function excelMoney(n){return Number(n)||0}
+  function excelSheetFromAOA(data,widths){
+    const ws=XLSX.utils.aoa_to_sheet(data);
+    if(widths)ws['!cols']=widths.map(w=>({wch:w}));
+    return ws;
+  }
+  function excelTableSheet(data,widths){
+    const ws=XLSX.utils.json_to_sheet(data);
+    if(widths)ws['!cols']=widths.map(w=>({wch:w}));
+    if(data.length){
+      const ref=XLSX.utils.decode_range(ws['!ref']);
+      ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:ref.e.r,c:ref.e.c}})};
+    }
+    return ws;
+  }
+  function chartCanvas(w,h){
+    const c=document.createElement('canvas');c.width=w;c.height=h;
+    const x=c.getContext('2d');x.fillStyle='#ffffff';x.fillRect(0,0,w,h);
+    return {c,x,w,h};
+  }
+  function chartPngTrend(items,module){
+    const {c,x,w,h}=chartCanvas(1200,430),p={l:90,r:40,t:75,b:70},cw=w-p.l-p.r,ch=h-p.t-p.b;
+    x.fillStyle='#172033';x.font='700 26px Segoe UI';x.fillText('Evolución mensual · Real vs Presupuesto',35,42);
+    x.fillStyle='#64748b';x.font='15px Segoe UI';x.fillText('Datos del filtro utilizado para generar el reporte',35,66);
+    const mx=Math.max(...items.flatMap(i=>[Math.abs(i.real),Math.abs(i.budget)]),1);
+    x.font='13px Segoe UI';x.strokeStyle='#e2e8f0';x.fillStyle='#64748b';x.textAlign='right';
+    for(let i=0;i<=5;i++){const y=p.t+ch*i/5;x.beginPath();x.moveTo(p.l,y);x.lineTo(w-p.r,y);x.stroke();x.fillText(new Intl.NumberFormat('es-MX',{notation:'compact',maximumFractionDigits:1}).format(mx*(1-i/5)),p.l-12,y+4)}
+    const slot=cw/Math.max(items.length,1),bw=Math.min(34,slot*.28);
+    items.forEach((it,i)=>{const cx=p.l+slot*i+slot/2,hr=Math.abs(it.real)/mx*ch,hb=Math.abs(it.budget)/mx*ch;
+      x.fillStyle='#2563eb';x.fillRect(cx-bw-3,p.t+ch-hr,bw,hr);
+      x.fillStyle='#14b8a6';x.fillRect(cx+3,p.t+ch-hb,bw,hb);
+      x.fillStyle='#475569';x.font='12px Segoe UI';x.textAlign='center';x.fillText(String(it.period).slice(0,12),cx,h-32);
+    });
+    x.fillStyle='#2563eb';x.fillRect(w-280,26,16,16);x.fillStyle='#334155';x.textAlign='left';x.font='13px Segoe UI';x.fillText('Real',w-255,39);
+    x.fillStyle='#14b8a6';x.fillRect(w-190,26,16,16);x.fillStyle='#334155';x.fillText('Presupuesto',w-165,39);
+    return c.toDataURL('image/png').split(',')[1];
+  }
+  function chartPngStatus(red,green){
+    const {c,x,w,h}=chartCanvas(620,410),cx=205,cy=220,r=115,th=46,total=Math.max(red+green,1);
+    x.fillStyle='#172033';x.font='700 24px Segoe UI';x.fillText('Estado de jerarquías',28,42);
+    x.fillStyle='#64748b';x.font='14px Segoe UI';x.fillText('Distribución rojo / verde',28,65);
+    x.lineWidth=th;x.lineCap='butt';let start=-Math.PI/2;
+    [[green,'#10b981'],[red,'#ef4444']].forEach(([v,color])=>{const a=v/total*Math.PI*2;x.beginPath();x.strokeStyle=color;x.arc(cx,cy,r,start,start+a);x.stroke();start+=a});
+    x.fillStyle='#172033';x.textAlign='center';x.font='800 36px Segoe UI';x.fillText(String(red+green),cx,cy+5);
+    x.fillStyle='#64748b';x.font='14px Segoe UI';x.fillText('jerarquías',cx,cy+30);
+    x.textAlign='left';x.fillStyle='#10b981';x.fillRect(385,145,18,18);x.fillStyle='#334155';x.font='700 16px Segoe UI';x.fillText(`Verdes  ${green}`,416,160);
+    x.fillStyle='#ef4444';x.fillRect(385,200,18,18);x.fillStyle='#334155';x.fillText(`Rojas   ${red}`,416,215);
+    x.fillStyle='#64748b';x.font='13px Segoe UI';x.fillText(`${((green/total)*100).toFixed(1)}% en objetivo`,385,260);
+    return c.toDataURL('image/png').split(',')[1];
+  }
+  function chartPngTop(top,module){
+    const {c,x,w,h}=chartCanvas(900,410),p={l:300,r:55,t:82,b:40},cw=w-p.l-p.r,ch=h-p.t-p.b;
+    x.fillStyle='#172033';x.font='700 24px Segoe UI';x.fillText('Top desviaciones',28,42);
+    x.fillStyle='#64748b';x.font='14px Segoe UI';x.fillText('Unidades que requieren mayor atención',28,65);
+    const mx=Math.max(...top.map(z=>Math.abs(z.dev)),1),slot=ch/Math.max(top.length,1),bh=Math.min(32,slot*.58);
+    top.forEach((it,i)=>{const y=p.t+i*slot+(slot-bh)/2,wv=Math.abs(it.dev)/mx*cw;
+      x.fillStyle=i===0?'#e85d75':i===1?'#f97316':i===2?'#f59e0b':'#7c3aed';x.fillRect(p.l,y,wv,bh);
+      x.fillStyle='#334155';x.textAlign='right';x.font='13px Segoe UI';x.fillText(String(it.name).slice(0,36),p.l-14,y+bh*.68);
+      x.textAlign='left';x.font='700 12px Segoe UI';x.fillText(new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN',notation:'compact',maximumFractionDigits:1}).format(it.dev),p.l+wv+8,y+bh*.68);
+    });
+    return c.toDataURL('image/png').split(',')[1];
+  }
+  function xmlEsc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
+  function excelDownloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1200)}
+  async function injectExcelDashboardImages(arrayBuffer,sheetName,images){
+    if(!window.JSZip||!images?.length)return new Blob([arrayBuffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const zip=await JSZip.loadAsync(arrayBuffer),wbXml=await zip.file('xl/workbook.xml').async('string'),wbRels=await zip.file('xl/_rels/workbook.xml.rels').async('string');
+    const safe=sheetName.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),sm=wbXml.match(new RegExp(`<sheet[^>]*name="${safe}"[^>]*r:id="([^"]+)"[^>]*/?>`));
+    if(!sm)return new Blob([arrayBuffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const rid=sm[1],rm=wbRels.match(new RegExp(`<Relationship[^>]*Id="${rid}"[^>]*Target="([^"]+)"[^>]*/?>`));
+    if(!rm)return new Blob([arrayBuffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    let target=rm[1].replace(/^\/+/,'');if(!target.startsWith('xl/'))target='xl/'+target.replace(/^\.\//,'');
+    const sheetPath=target,base=sheetPath.split('/').pop(),relsPath=`xl/worksheets/_rels/${base}.rels`;
+    const drawFiles=Object.keys(zip.files).filter(k=>/^xl\/drawings\/drawing\d+\.xml$/.test(k));
+    const dNum=Math.max(0,...drawFiles.map(k=>Number((k.match(/drawing(\d+)/)||[])[1]||0)))+1;
+    const drawingPath=`xl/drawings/drawing${dNum}.xml`,drawingRelsPath=`xl/drawings/_rels/drawing${dNum}.xml.rels`;
+    const mediaFiles=Object.keys(zip.files).filter(k=>/^xl\/media\/image\d+\.png$/.test(k));
+    let imgNum=Math.max(0,...mediaFiles.map(k=>Number((k.match(/image(\d+)/)||[])[1]||0)))+1;
+    const placements=[
+      {col:0,row:12,w:920,h:330},
+      {col:0,row:31,w:470,h:310},
+      {col:8,row:31,w:680,h:310}
+    ];
+    let anchors='',drels=[];
+    images.forEach((im,i)=>{
+      const name=`image${imgNum+i}.png`;zip.file(`xl/media/${name}`,im.base64,{base64:true});
+      const pr=placements[i]||{col:0,row:12+i*18,w:700,h:300},cx=pr.w*9525,cy=pr.h*9525,id=i+1;
+      anchors+=`<xdr:oneCellAnchor><xdr:from><xdr:col>${pr.col}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${pr.row}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${cx}" cy="${cy}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${id}" name="${xmlEsc(im.name||'Gráfica '+id)}"/><xdr:cNvPicPr/></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${id}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:ln><a:noFill/></a:ln></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`;
+      drels.push(`<Relationship Id="rId${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${name}"/>`);
+    });
+    zip.file(drawingPath,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${anchors}</xdr:wsDr>`);
+    zip.file(drawingRelsPath,`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${drels.join('')}</Relationships>`);
+    let sxml=await zip.file(sheetPath).async('string'),srels=zip.file(relsPath)?await zip.file(relsPath).async('string'):`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`;
+    const ids=[...srels.matchAll(/Id="rId(\d+)"/g)].map(m=>Number(m[1])),srid='rId'+(Math.max(0,...ids)+1);
+    srels=srels.replace('</Relationships>',`<Relationship Id="${srid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${dNum}.xml"/></Relationships>`);
+    if(!/xmlns:r=/.test(sxml))sxml=sxml.replace('<worksheet ','<worksheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ');
+    sxml=sxml.replace('</worksheet>',`<drawing r:id="${srid}"/></worksheet>`);
+    zip.file(sheetPath,sxml);zip.file(relsPath,srels);
+    let ct=await zip.file('[Content_Types].xml').async('string');
+    if(!/Extension="png"/.test(ct))ct=ct.replace('</Types>','<Default Extension="png" ContentType="image/png"/></Types>');
+    if(!ct.includes(`/xl/drawings/drawing${dNum}.xml`))ct=ct.replace('</Types>',`<Override PartName="/xl/drawings/drawing${dNum}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/></Types>`);
+    zip.file('[Content_Types].xml',ct);
+    return await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  }
+  async function exportExecutiveExcel(rows,module,meta,source){
+    if(!window.XLSX){alert('No está disponible el componente de Excel.');return}
+    const t=totals(rows,module),folio=reportFolio(module),now=new Date().toLocaleString('es-MX'),region=adminRegionLabel(),period=periodRangeLabel(),sourceLabel=source==='cloud'?'Nube Publicada':'Procesado en Real';
+    const unitGroups=[...groupRows(rows,accountName)].map(([name,rs])=>{const z=totals(rs,module);return{name,rs,t:z,dev:deviationValue(rs,module),streak:redStreak(rs,module),accounts:new Set(rs.map(r=>r.hierarchy).filter(Boolean)).size}}).sort((a,b)=>Math.abs(b.t.real)-Math.abs(a.t.real));
+    const red=unitGroups.filter(x=>x.t.st==='red'),green=unitGroups.length-red.length,top=[...red].sort((a,b)=>b.dev-a.dev),repeat=unitGroups.filter(x=>x.streak>=2).sort((a,b)=>b.streak-a.streak);
+    const monthly=monthlyGroups(rows).map(([name,rs])=>{const z=totals(rs,module);return{period:name,real:z.real,budget:z.budget,variation:z.diff,state:z.st==='red'?'ROJO':'VERDE'}});
+    const hierarchyRows=[...groupRows(rows,'hierarchy')].map(([name,rs])=>{const z=totals(rs,module);return{'Jerarquía contable':name,'Unidad(es)':new Set(rs.map(unitName)).size,'Movimientos':rs.length,'Real':z.real,'Presupuesto':z.budget,'Variación':z.diff,'Estado':z.st==='red'?'ROJO':'VERDE'}}).sort((a,b)=>Math.abs(b.Real)-Math.abs(a.Real));
+    const detail=rows.map(r=>({'Región':r.region,'Cuenta contable':r.hierarchy,'Cuenta / concepto':r.account,'Gerencia afectada':managerName(r),'Área afectada':areaName(r),'Jerarquía Sublibro':r.subledgerHierarchy||r.subledger,'Periodo':r.period,'Año':r.year,'Real':r.real,'Presupuesto':r.budget,'Variación':module==='productividad'?(Number(r.real)||0)-(Number(r.budget)||0):Math.abs(Number(r.real)||0)-Math.abs(Number(r.budget)||0),'Estado':status(module,Number(r.real)||0,Number(r.budget)||0)==='red'?'ROJO':'VERDE'}));
+    const dashboard=[
+      ['REPORT.IA · DASHBOARD EJECUTIVO'],[],
+      ['Módulo',MODULES[module]?.label||module,'Región',region],
+      ['Periodo',period,'Fuente',sourceLabel],
+      ['Folio',folio,'Generado',now],
+      ['Usuario',S.session?.usuario||'','Movimientos',rows.length],
+      [],
+      ['INDICADORES','VALOR'],
+      ['Real',t.real],['Presupuesto',t.budget],['Variación',t.diff],
+      ['Jerarquías rojas',red.length],['Jerarquías verdes',green],['Reincidentes',repeat.length],...(S.compareYears?[[],['COMPARATIVA',`${S.compareBase} vs ${S.compareTarget}`],['Nota','El portal mantiene la comparativa visual; esta exportación corresponde al año objetivo seleccionado.']]:[]),
+      [],['GRÁFICAS'],['Las gráficas del filtro actual aparecen debajo.']
+    ];
+    const wb=XLSX.utils.book_new();
+    const wsDash=excelSheetFromAOA(dashboard,[25,22,22,28,16,16,16,16,16,16,16,16,16,16,16]);
+    wsDash['!merges']=[XLSX.utils.decode_range('A1:D1')];
+    XLSX.utils.book_append_sheet(wb,wsDash,'Dashboard');
+    const wsSummary=excelSheetFromAOA([
+      ['REPORT.IA · RESUMEN EJECUTIVO'],[],
+      ['Folio',folio],['Módulo',MODULES[module]?.label||module],['Región',region],['Periodo',period],['Fuente',sourceLabel],['Generado por',S.session?.usuario||''],['Fecha',now],[],
+      ['KPI','Valor'],['Real',t.real],['Presupuesto',t.budget],['Variación',t.diff],['Cuentas contables',unitGroups.length],['Rojas',red.length],['Verdes',green],['Reincidentes',repeat.length],[],
+      ['PRINCIPALES HALLAZGOS'],
+      ...reportConclusions(rows,module).map(x=>[x])
+    ],[28,28,24,24]);
+    XLSX.utils.book_append_sheet(wb,wsSummary,'Resumen Ejecutivo');
+    const wsTrend=excelTableSheet(monthly.map(x=>({'Periodo':x.period,'Real':x.real,'Presupuesto':x.budget,'Variación':x.variation,'Estado':x.state})),[18,18,18,18,14]);
+    XLSX.utils.book_append_sheet(wb,wsTrend,'Tendencia Mensual');
+    const jer=unitGroups.map(x=>({'Cuenta contable':x.name,'Conceptos contables':x.accounts,'Movimientos':x.rs.length,'Real':x.t.real,'Presupuesto':x.t.budget,'Variación':x.t.diff,'Estado':x.t.st==='red'?'ROJO':'VERDE','Meses consecutivos rojo':x.streak||0}));
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(jer,[38,20,16,18,18,18,14,22]),'Unidades');
+    const topRows=top.map((x,i)=>({'Posición':i+1,'Cuenta contable':x.name,'Real':x.t.real,'Presupuesto':x.t.budget,'Desviación':x.dev,'Meses rojo':x.streak||0,'Movimientos':x.rs.length}));
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(topRows,[10,38,18,18,18,14,14]),'Top Desviaciones');
+    const repRows=repeat.map(x=>({'Cuenta contable':x.name,'Meses consecutivos en rojo':x.streak,'Real':x.t.real,'Presupuesto':x.t.budget,'Desviación':x.dev,'Movimientos':x.rs.length}));
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(repRows,[38,24,18,18,18,14]),'Reincidencias');
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(hierarchyRows,[38,14,14,18,18,18,14]),'Jerarquías Contables');
+    XLSX.utils.book_append_sheet(wb,excelTableSheet(detail,[18,34,34,42,34,14,10,18,18,18,14]),'Detalle Completo');
+
+    if(source==='cloud'){
+      try{
+        const [notes,commit]=await Promise.all([jsonp({accion:'v42_notifications',token:S.session.token}),jsonp({accion:'v46_commitments',token:S.session.token})]);
+        const nitems=(notes?.items||[]).filter(x=>(!x.module||x.module===module)&&(!region||region==='TODAS LAS REGIONES'||cleanRegion(x.region)===cleanRegion(region)));
+        const citems=(commit?.items||[]).filter(x=>(!x.module||x.module===module)&&(!region||region==='TODAS LAS REGIONES'||cleanRegion(x.region)===cleanRegion(region)));
+        const tracking=[...nitems.map(x=>({'Tipo':'Mensaje','Región':x.region,'Incidencia / Jerarquía':x.hierarchy,'Usuario':x.usuario,'Fecha':x.fecha,'Estado':x.estado||'','Responsable':'','Fecha compromiso':'','Vencida':'','Texto':x.texto})),
+          ...citems.map(x=>({'Tipo':'Compromiso','Región':x.region,'Incidencia / Jerarquía':x.hierarchy,'Usuario':x.actualizadoPor||'','Fecha':'','Estado':x.estado||'','Responsable':x.responsable||'','Fecha compromiso':x.fechaCompromiso||'','Vencida':x.vencida?'SÍ':'NO','Texto':''}))];
+        if(tracking.length)XLSX.utils.book_append_sheet(wb,excelTableSheet(tracking,[14,18,42,22,18,18,24,20,12,55]),'Seguimiento');
+      }catch(_){}
+    }
+
+    const images=[
+      {name:'Tendencia mensual',base64:chartPngTrend(monthly,module)},
+      {name:'Semáforo de jerarquías',base64:chartPngStatus(red.length,green)},
+      {name:'Top desviaciones',base64:chartPngTop(top.slice(0,7),module)}
+    ];
+    const arr=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const blob=await injectExcelDashboardImages(arr,'Dashboard',images);
+    excelDownloadBlob(blob,`${folio}.xlsx`);
+  }
+
+
+/* ===== REPORT.IA v46 · Gestión Ejecutiva ===== */
+ 'use strict';
+ function findRows(){
+   try{
+    const box=$('r34Data'); if(!box) return [];
+    const data=(typeof S!=='undefined'?(S.adminSource==='local'?S.local:S.cloud):null);
+    if(!data?.rows) return [];
+    let rows=data.rows.slice();
+    if(typeof filterRowsByRegion==='function') rows=filterRowsByRegion(rows);
+    if(typeof periodFilteredRows==='function') rows=periodFilteredRows(rows);
+    return rows;
+   }catch(e){return []}
+ }
+ function forecast(rows,module){
+   const by={}; rows.forEach(r=>{let m=Number(r.month)||0;if(!m&&r.period){const x=String(r.period).match(/(?:^|\D)(1[0-2]|[1-9])(?:\D|$)/);m=x?Number(x[1]):0}if(!m)return;(by[m]??=[]).push(r)});
+   const months=Object.keys(by).map(Number).sort((a,b)=>a-b); if(!months.length)return null;
+   let real=0,budget=0; months.forEach(m=>{const t=totals(by[m],module);real+=Math.abs(t.real);budget+=Math.abs(t.budget)});
+   const avg=real/months.length, projected=avg*12, budgetAnnual=budget/months.length*12;
+   return {months:months.length,last:months.at(-1),real,budget,projected,budgetAnnual,gap:projected-budgetAnnual};
+ }
+ function priorityRows(rows,module){
+   const groups=[...groupRows(rows,accountName)].map(([name,rs])=>{const t=totals(rs,module);return{name,rs,t,dev:deviationValue(rs,module),streak:redStreak(rs,module)}});
+   return groups.filter(x=>x.t.st==='red').sort((a,b)=>b.dev-a.dev);
+ }
+ function renderCenter(){
+   const rows=findRows(); if(!rows.length||!S?.module||S.module==='general')return;
+   const host=$('r34Data'); if(!host||$('r45Center'))return;
+   const red=priorityRows(rows,S.module), reinc=red.filter(x=>x.streak>=2), f=forecast(rows,S.module);
+   const html=`<section id="r45Center" class="r45-center"><div class="r45-head"><div><span>CENTRO DE ATENCIÓN</span><h3>Prioridades del periodo</h3></div><button id="r45Presentation">▣ Modo presentación</button></div><div class="r45-kpis"><button data-r45="red"><small>DESVIACIONES</small><b>${red.length}</b><em>requieren revisión</em></button><button data-r45="repeat"><small>REINCIDENTES</small><b>${reinc.length}</b><em>2+ meses en rojo</em></button><div><small>PROYECCIÓN CIERRE</small><b>${f?money(f.projected):'—'}</b><em>${f?`${f.months} mes(es) disponibles`:'Sin periodo suficiente'}</em></div><div class="${f&&f.gap>0?'danger':'ok'}"><small>RIESGO PROYECTADO</small><b>${f?money(f.gap):'—'}</b><em>${f&&f.gap>0?'sobre presupuesto anualizado':'sin exceso proyectado'}</em></div></div>${red.length?`<div class="r45-priority"><h4>Atención requerida</h4>${red.slice(0,5).map((x,i)=>`<div><span class="rank">${i+1}</span><span><b>${esc(x.name)}</b><small>${x.streak>=2?`↻ ${x.streak} meses consecutivos en rojo`:'Incidencia del periodo'}</small></span><strong>${money(x.dev)}</strong></div>`).join('')}</div>`:''}</section>`;
+   const anchor=host.querySelector('.rcv44-report-center')||host.firstElementChild; if(anchor)anchor.insertAdjacentHTML('afterend',html); else host.insertAdjacentHTML('afterbegin',html);
+   $('r45Presentation')?.addEventListener('click',()=>document.body.classList.toggle('r45-present'));
+ }
+ const obs=new MutationObserver(()=>setTimeout(renderCenter,20));
+ window.addEventListener('load',()=>{const p=$('r34Panel');if(p)obs.observe(p,{childList:true,subtree:true});setTimeout(renderCenter,600)});
+
+  async function loadCommitment(module,snapshotId,region,hierarchy){
+    const wrap=$('r46Commitment');if(!wrap)return;
+    try{
+      const d=await jsonp({accion:'v46_commitment',token:S.session.token,module,snapshotId,region,hierarchy});if(!d?.ok)return;
+      const c=d.item||{},resp=$('r46Responsible'),due=$('r46Due'),st=$('r46DueStatus');
+      if(resp)resp.textContent=c.responsable||'Sin asignar';if(due)due.textContent=c.fechaCompromiso||'Sin fecha';
+      if(st){st.textContent=c.vencida?'VENCIDA':(c.fechaCompromiso?'EN TIEMPO':'SIN COMPROMISO');st.className=c.vencida?'overdue':c.fechaCompromiso?'ontime':'none'}
+      const edit=$('r46EditCommitment');if(edit)edit.onclick=()=>editCommitment(module,snapshotId,region,hierarchy,c);
+    }catch(_){}
+  }
+  function editCommitment(module,snapshotId,region,hierarchy,c){
+    let m=$('r46CommitModal');if(m)m.remove();
+    document.body.insertAdjacentHTML('beforeend',`<div id="r46CommitModal" class="rcv44-modal open"><div class="rcv44-modal-card"><button id="r46CommitClose" class="rcv44-x">×</button><span class="rcv44-kicker">INCIDENCIA 2.0</span><h2>Asignar seguimiento</h2><p>${esc(region)} · ${esc(hierarchy)}</p><div class="r46-form"><label>Responsable<input id="r46CommitResp" value="${esc(c?.responsable||region)}" placeholder="Responsable o área"></label><label>Fecha compromiso<input id="r46CommitDue" type="date" value="${esc(c?.fechaISO||'')}"></label></div><div class="rcv44-modal-actions"><button id="r46CommitCancel">Cancelar</button><button id="r46CommitSave" class="primary">Guardar compromiso</button></div><div id="r46CommitMsg" class="rcv34-msg"></div></div></div>`);
+    const close=()=>$('r46CommitModal')?.remove();$('r46CommitClose').onclick=close;$('r46CommitCancel').onclick=close;
+    $('r46CommitSave').onclick=async()=>{const b=$('r46CommitSave');b.disabled=true;try{const d=await post({accion:'v46_set_commitment',token:S.session.token,module,snapshotId,region,hierarchy,responsable:$('r46CommitResp').value.trim(),fechaCompromiso:$('r46CommitDue').value});if(!d?.ok)throw new Error(d?.mensaje||'No fue posible guardar.');close();loadCommitment(module,snapshotId,region,hierarchy);refreshNotifications()}catch(e){$('r46CommitMsg').textContent=e.message;$('r46CommitMsg').className='rcv34-msg error'}finally{b.disabled=false}};
+  }
+  function healthScore(redModules,openInc,overdue){return Math.max(0,Math.min(100,100-redModules*18-Math.min(openInc,10)*2-overdue*7))}
+  function r530PulseScore(redModules,openInc,overdue,unread){return Math.max(0,Math.min(100,healthScore(redModules,openInc,overdue)-Math.min(Number(unread||0),10)))}
+  function r530PulseMeta(score){if(score>=90)return{label:'Control sólido',cls:'excellent'};if(score>=80)return{label:'Gestión estable',cls:'good'};if(score>=65)return{label:'Atención preventiva',cls:'warn'};return{label:'Atención prioritaria',cls:'bad'}}
+  function r530RenderPending(items,commitments){
+    const list=[];
+    commitments.filter(x=>x.vencida).slice(0,3).forEach(x=>list.push({kind:'overdue',title:'Compromiso vencido',sub:`${x.region||''} · ${x.hierarchy||''}`,action:()=>{S.adminRegion=cleanRegion(x.region);navigate(x.module||'general')}}));
+    items.filter(x=>x.unread).slice(0,3).forEach(x=>list.push({kind:'unread',title:'Aviso sin leer',sub:`${x.region||''} · ${x.hierarchy||x.texto||''}`,action:()=>navigate('notificaciones')}));
+    items.filter(x=>upper(x.estado)==='EN SEGUIMIENTO'&&!x.unread).slice(0,2).forEach(x=>list.push({kind:'track',title:'En seguimiento',sub:`${x.region||''} · ${x.hierarchy||''}`,action:()=>navigate('notificaciones')}));
+    const box=$('r530PendingList');if(!box)return;
+    if(!list.length){box.innerHTML='<div class="r530-empty-good"><b>✓ Sin pendientes urgentes</b><small>No hay compromisos vencidos ni avisos sin leer.</small></div>';return}
+    box.innerHTML=list.slice(0,4).map((x,i)=>`<button class="r530-pending-row ${x.kind}" data-r530-pend="${i}"><i></i><span><b>${esc(x.title)}</b><small>${esc(x.sub)}</small></span><em>›</em></button>`).join('');
+    document.querySelectorAll('[data-r530-pend]').forEach(b=>b.onclick=()=>list[Number(b.dataset.r530Pend)]?.action?.());
+  }
+  async function loadExecutiveHome(){
+    try{
+      const [g,n,c]=await Promise.all([jsonp({accion:'v34_general',token:S.session.token}),jsonp({accion:'v42_notifications',token:S.session.token}),jsonp({accion:'v46_commitments',token:S.session.token})]);
+      const items=n?.items||[], commitments=c?.items||[], open=items.filter(x=>upper(x.estado)!=='ATENDIDA').length, overdue=commitments.filter(x=>x.vencida).length;
+      let reinc=0, priorities=[], regions=new Set();
+      for(const mod of ['gastos','costos','productividad']){
+        const pack=g?.modules?.[mod],rows=pack?.data?.rows||[];rows.forEach(r=>regions.add(cleanRegion(r.region)));
+        const badge=$('r472Status-'+mod);if(badge){if(!rows.length){badge.textContent='SIN DATOS';badge.className='r472-module-status neutral'}else{const mt=totals(rows,mod);badge.textContent=mt.st==='red'?'● REQUIERE ATENCIÓN':'● EN OBJETIVO';badge.className='r472-module-status '+(mt.st==='red'?'red':'green')}}
+        [...groupRows(rows,accountName)].forEach(([name,rs])=>{const t=totals(rs,mod),streak=redStreak(rs,mod);if(streak>=2)reinc++;if(t.st==='red')priorities.push({module:mod,name,region:cleanRegion(rs[0]?.region),dev:deviationValue(rs,mod),streak})});
+      }
+      const gb=$('r472Status-general');if(gb){gb.textContent=priorities.length?'● '+priorities.length+' ALERTAS':'● ESTABLE';gb.className='r472-module-status '+(priorities.length?'red':'green')}
+      const redModules=['gastos','costos','productividad'].reduce((n,mod)=>{const rs=g?.modules?.[mod]?.data?.rows||[];return n+(rs.length&&totals(rs,mod).st==='red'?1:0)},0),unread=Number(n?.unread||0),pulse=r530PulseScore(redModules,open,overdue,unread),pm=r530PulseMeta(pulse);
+      const pulseEl=$('r530Pulse'),ring=$('r530PulseRing'),label=$('r530PulseLabel'),reason=$('r530PulseReason');if(pulseEl)pulseEl.textContent=String(pulse);if(ring){ring.className='r530-pulse-ring '+pm.cls;ring.style.setProperty('--pulse',pulse)}if(label)label.textContent=pm.label;if(reason)reason.textContent=`${redModules} módulo(s) en rojo · ${open} incidencia(s) abiertas · ${overdue} vencida(s) · ${unread} aviso(s) sin leer.`;
+      priorities.sort((a,b)=>b.dev-a.dev);const focus=priorities[0],focusBox=$('r530TodayFocus'),pb=$('r530PriorityBadge');if(focusBox){if(focus){const critical=overdue>0||focus.streak>=3;focusBox.innerHTML=`<button class="r530-focus-row" id="r530FocusOpen"><div><small>${esc(MODULES[focus.module].label)} · ${esc(focus.region)}</small><h3>${esc(focus.name)}</h3><p>${focus.streak>=2?'Reincidencia de '+focus.streak+' meses · ':''}desviación ${money(focus.dev)}</p></div><strong>Revisar →</strong></button>`;if(pb){pb.textContent=critical?'CRÍTICA':'ALTA';pb.className='r530-priority '+(critical?'critical':'high')}$('r530FocusOpen').onclick=()=>{S.adminRegion=cleanRegion(focus.region);navigate(focus.module)}}else{focusBox.innerHTML='<div class="r530-focus-ok"><b>✓ Sin desviaciones rojas prioritarias</b><p>Los módulos publicados se encuentran en objetivo.</p></div>';if(pb){pb.textContent='CONTROLADA';pb.className='r530-priority good'}}}
+      r530RenderPending(items,commitments);
+      const positive=$('r530Positive');if(positive){let greenModules=0;['gastos','costos','productividad'].forEach(mod=>{const rs=g?.modules?.[mod]?.data?.rows||[];if(rs.length&&totals(rs,mod).st==='green')greenModules++});let stableRegions=0;[...regions].filter(Boolean).forEach(reg=>{let rm=0;for(const mod of ['gastos','costos','productividad']){const rs=(g?.modules?.[mod]?.data?.rows||[]).filter(r=>cleanRegion(r.region)===reg);if(rs.length&&totals(rs,mod).st==='red')rm++}const oi=items.filter(x=>cleanRegion(x.region)===reg&&upper(x.estado)!=='ATENDIDA').length,ov=commitments.filter(x=>cleanRegion(x.region)===reg&&x.vencida).length;if(healthScore(rm,oi,ov)>=85)stableRegions++});positive.innerHTML=`<span>✓</span><div><b>Reconocimiento del día</b><small>${greenModules} módulo(s) en objetivo · ${stableRegions} región(es) con salud ≥85/100.</small></div>`}
+      const hk=$('r46HomeKpis');if(hk)hk.innerHTML=`<article><small>INCIDENCIAS ABIERTAS</small><b>${open}</b><em>Pendiente / seguimiento</em></article><article><small>SIN LEER</small><b>${Number(n?.unread||0)}</b><em>Mensajes nuevos</em></article><article class="${overdue?'danger':''}"><small>VENCIDAS</small><b>${overdue}</b><em>Fecha compromiso superada</em></article><article><small>REINCIDENTES</small><b>${reinc}</b><em>2+ meses en rojo</em></article>`;
+      const pr=$('r46Priorities');if(pr)pr.innerHTML=priorities.length?priorities.slice(0,6).map((x,i)=>`<button class="r46-priority-row" data-r46-mod="${x.module}" data-r46-reg="${esc(x.region)}"><span>${i+1}</span><div><b>${esc(x.name)}</b><small>${esc(x.region)} · ${MODULES[x.module].label}${x.streak>=2?' · ↻ '+x.streak+' meses':''}</small></div><strong>${money(x.dev)}</strong></button>`).join(''):'<p class="muted">No hay prioridades rojas en las publicaciones actuales.</p>';
+      document.querySelectorAll('[data-r46-mod]').forEach(b=>b.onclick=()=>{S.adminRegion=cleanRegion(b.dataset.r46Reg);navigate(b.dataset.r46Mod)});
+      if($('r46HealthPanel'))$('r46HealthPanel').classList.toggle('rcv34-hidden',upper(S.session.tipo)!=='ADMINISTRADOR');
+      if(upper(S.session.tipo)==='ADMINISTRADOR'){const arr=[...regions].filter(Boolean).sort();const h=$('r46Health');if(h)h.innerHTML=`<div class="r46-health-table">${arr.map(reg=>{let rm=0;for(const mod of ['gastos','costos','productividad']){const rs=(g?.modules?.[mod]?.data?.rows||[]).filter(r=>cleanRegion(r.region)===reg);if(rs.length&&totals(rs,mod).st==='red')rm++}const oi=items.filter(x=>cleanRegion(x.region)===reg&&upper(x.estado)!=='ATENDIDA').length,ov=commitments.filter(x=>cleanRegion(x.region)===reg&&x.vencida).length,score=healthScore(rm,oi,ov);return `<button data-r46-health="${esc(reg)}"><span><b>${esc(reg)}</b><small>${oi} incidencias · ${ov} vencidas</small></span><strong class="${score>=85?'good':score>=65?'warn':'bad'}">${score}/100</strong><em>${rm===0?'● Estable':'● '+rm+' módulo(s) en rojo'}</em></button>`}).join('')}</div>`;document.querySelectorAll('[data-r46-health]').forEach(b=>b.onclick=()=>{S.adminRegion=cleanRegion(b.dataset.r46Health);navigate('general')})}
+      loadPublicationChanges(g);
+    }catch(e){const ch=$('r46Changes');if(ch)ch.innerHTML=`<p class="muted">No fue posible completar el resumen: ${esc(e.message)}</p>`}
+  }
+  async function loadPublicationChanges(general){
+    const box=$('r46Changes');if(!box)return;const changes=[];
+    for(const mod of ['gastos','costos','productividad']){
+      try{
+        const h=await jsonp({accion:'v34_history',token:S.session.token,module:mod}),hist=h?.items||[];
+        if(hist.length<2){changes.push({mod,text:'Sin publicación anterior para comparar.',kind:'same'});continue}
+        const cur=general?.modules?.[mod]?.data?.rows||[],prevPack=await jsonp({accion:'v34_snapshot',token:S.session.token,module:mod,snapshotId:hist[1].snapshotId||hist[1].id}),prev=prevPack?.data?.rows||prevPack?.payload?.rows||[];
+        const tc=totals(cur,mod),tp=totals(prev,mod),delta=Math.abs(tc.real)-Math.abs(tp.real);
+        const rc=new Set([...groupRows(cur,unitName)].filter(([,rs])=>totals(rs,mod).st==='red').map(([n])=>n)),rp=new Set([...groupRows(prev,unitName)].filter(([,rs])=>totals(rs,mod).st==='red').map(([n])=>n));
+        const news=[...rc].filter(x=>!rp.has(x)).length,recovered=[...rp].filter(x=>!rc.has(x)).length;
+        changes.push({mod,text:`Real ${delta>=0?'↑':'↓'} ${money(Math.abs(delta))} · ${news} nuevos rojos · ${recovered} recuperados`,kind:delta>0?'bad':'good'});
+      }catch(_){changes.push({mod,text:'Comparación no disponible.',kind:'same'})}
+    }
+    box.innerHTML=changes.map(x=>`<div class="r46-change ${x.kind}"><span>${MODULES[x.mod].icon}</span><div><b>${MODULES[x.mod].label}</b><small>${esc(x.text)}</small></div></div>`).join('');
+  }
+
+  /* REPORT.IA v47.4 · puente de contexto para Copiloto */
+  window.REPORTIA_RCV_CONTEXT=function(){
+    try{
+      if(!S.session||!S.module||S.module==='general')return null;
+      const admin=upper(S.session.tipo)==='ADMINISTRADOR';
+      const source=admin?S.adminSource:'cloud';
+      const data=source==='local'?S.local:S.cloud;
+      if(!data?.rows?.length)return null;
+      let rows=data.rows.slice();
+      const region=admin?(S.adminRegion||'') : sessionRegion(S.session);
+      if(region)rows=rows.filter(r=>cleanRegion(r.region)===cleanRegion(region));
+      rows=filterPeriod(rows);
+      if(!rows.length)return null;
+      const t=totals(rows,S.module);
+      const groups=[...groupRows(rows,accountName)].map(([name,rs])=>{
+        const x=totals(rs,S.module);
+        return {name,real:x.real,budget:x.budget,state:x.st,deviation:deviationValue(rs,S.module),streak:redStreak(rs,S.module)};
+      }).sort((a,b)=>b.deviation-a.deviation);
+      const red=groups.filter(x=>x.state==='red'), green=groups.filter(x=>x.state==='green');
+      const totalImpact=groups.reduce((s,x)=>s+Math.abs(Number(x.real)||0),0);
+      let acc=0,pareto=[];
+      for(const x of [...groups].sort((a,b)=>Math.abs(b.real)-Math.abs(a.real))){
+        if(totalImpact&&acc/totalImpact>=.8)break;
+        pareto.push(x);acc+=Math.abs(Number(x.real)||0);
+      }
+      return {
+        module:S.module,moduleLabel:MODULES[S.module]?.label||S.module,
+        region:region||'TODAS LAS REGIONES',period:periodRangeLabel(),
+        source:source==='cloud'?'Nube Publicada':'Procesado en Real',
+        real:t.real,budget:t.budget,diff:t.diff,state:t.st,
+        rows:rows.length,totalUnits:groups.length,redCount:red.length,greenCount:green.length,
+        topRed:red.slice(0,8),topImpact:groups.slice().sort((a,b)=>Math.abs(b.real)-Math.abs(a.real)).slice(0,8),
+        pareto:pareto.slice(0,12)
+      };
+    }catch(e){console.warn('Copilot context',e);return null}
+  };
+
+})();
