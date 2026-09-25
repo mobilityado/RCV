@@ -1112,15 +1112,16 @@ body{
 .r590-productivity-tree .r570-prod-accounts{border-left:0!important}
 @media(max-width:800px){.r590-productivity-tree .r570-prod-head,.r590-productivity-tree .r570-prod-toggle{min-width:1180px!important}}
 
-/* v59.2 — Productividad: mayor contraste en Cuenta contable */
-.r590-productivity-tree .r570-prod-toggle.account,
-.r590-productivity-tree .r570-prod-toggle.account .r590-hcell,
-.r590-productivity-tree .r570-prod-toggle.account .r590-hcell b,
+/* v59.3 · Productividad: contraste fuerte en textos de la jerarquía */
+.r590-productivity-tree .r570-prod-toggle .r590-hcell,
+.r590-productivity-tree .r570-prod-toggle .r590-hcell b,
+.r590-productivity-tree .r570-prod-toggle.brand .r590-h2,
+.r590-productivity-tree .r570-prod-toggle.brand .r590-h2 b,
 .r590-productivity-tree .r570-prod-toggle.account .r590-h3,
-.r590-productivity-tree .r570-prod-toggle.account .r590-h3 b{
+.r590-productivity-tree .r570-prod-toggle.account .r590-h3 b {
   color:#172033 !important;
   opacity:1 !important;
+  -webkit-text-fill-color:#172033 !important;
 }
-.r590-productivity-tree .r570-prod-toggle.account .r590-h3 b{
-  font-weight:800 !important;
-}
+.r590-productivity-tree .r570-prod-toggle.brand .r590-h2 b,
+.r590-productivity-tree .r570-prod-toggle.account .r590-h3 b {font-weight:800!important;}
