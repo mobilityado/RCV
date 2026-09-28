@@ -1128,3 +1128,18 @@ body{
 
 /* v59.6 · indicador de carga rápida desde caché local */
 .r596-cache-note{display:flex;gap:10px;align-items:center;border-left:4px solid #2563eb;padding:10px 14px;margin-bottom:10px}.r596-cache-note b{color:#172554}.r596-cache-note span{color:#475569;font-size:.88rem}
+
+
+/* v59.12 · Productividad: mayor contraste para etiquetas y valores de la tabla jerárquica */
+.r590-productivity-tree .r570-prod-toggle.brand,
+.r590-productivity-tree .r570-prod-toggle.account { color:#172033!important; }
+.r590-productivity-tree .r570-prod-toggle.brand .r590-num,
+.r590-productivity-tree .r570-prod-toggle.account .r590-num,
+.r590-productivity-tree .r570-prod-toggle.brand .r590-num:not(.good):not(.bad),
+.r590-productivity-tree .r570-prod-toggle.account .r590-num:not(.good):not(.bad) {
+  color:#334155!important; opacity:1!important; -webkit-text-fill-color:#334155!important;
+}
+.r590-productivity-tree .r570-prod-toggle.brand .r590-h2 b,
+.r590-productivity-tree .r570-prod-toggle.account .r590-h3 b {
+  color:#172033!important; opacity:1!important; -webkit-text-fill-color:#172033!important; font-weight:800!important;
+}
